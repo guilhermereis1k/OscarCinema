@@ -6,13 +6,10 @@ using System.Threading.Tasks;
 
 namespace OscarCinema.Domain.Enums
 {
-    public enum AgeRating
+    public enum TicketType
     {
-        L = 0,
-        Age10 = 10, 
-        Age12 = 12, 
-        Age14 = 14, 
-        Age16 = 16,
-        Age18 = 18
+        Full, // Inteira
+        Half, // Meia
+        StudentHalf // Meia de estudante (necessita validação de documento de estudante)
     }
 }

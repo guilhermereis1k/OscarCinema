@@ -8,13 +8,6 @@ namespace OscarCinema.Domain.Entities
 {
     public class User
     {
-        public int UserId { get; private set; }
-        public string Name { get; private set; }
-        public string DocumentNumber { get; private set; }
-        public string Email { get; private set; }
-        public string Password { get; private set; }
-        public string Role { get; private set; }
-
         public User() { }
 
         public User(string name, string documentNumber, string email, string password, string role)
@@ -25,5 +18,12 @@ namespace OscarCinema.Domain.Entities
             Password = password;
             Role = role;
         }
+
+        public int UserId { get; private set; }
+        public string Name { get; private set; }
+        public string DocumentNumber { get; private set; }
+        public string Email { get; private set; }
+        public string Password { get; private set; }
+        public string Role { get; private set; }
     }
 }

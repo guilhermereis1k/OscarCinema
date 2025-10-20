@@ -1,30 +1,33 @@
-﻿using OscarCinema.Domain.ENUMs;
+﻿using OscarCinema.Domain.Enums;
+using OscarCinema.Domain.ENUMs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OscarCinema.Domain.Entities
 {
-    public class Session
+    public class Session 
     {
-        public int SessionId { get; private set; }
+    public Session() { }
+
+    public Session(int movieId, DateTime date, List<int> rooms, ExhibitionType exhibition)
+    {
+        MovieId = movieId;
+        Date = date;
+        _rooms = rooms;
+        Exhibition = exhibition;
+
+    }
+
+    public int SessionId { get; private set; }
         public int MovieId { get; private set; }
-        public DateTime DateTime { get; private set; }
+        public DateTime Date { get; private set; }
 
         public List<int> _rooms = new();
         public IReadOnlyList<int> Rooms => _rooms.AsReadOnly();
-        public ExhibitionType ExhibitionType { get; private set; }
-
-        public Session() { }
-
-        public Session(int movieId, DateTime dateTime, List<int> rooms, ExhibitionType exhibitionType)
-        {
-            MovieId = movieId;
-            DateTime = dateTime;
-            _rooms = rooms;
-            ExhibitionType = exhibitionType;
-        }
+        public ExhibitionType Exhibition { get; private set; }
     }
 }
