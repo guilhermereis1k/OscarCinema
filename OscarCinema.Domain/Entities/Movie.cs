@@ -9,13 +9,24 @@ namespace OscarCinema.Domain.Entities
 {
     public class Movie
     {
-        private Guid _id { get; set; }
-        private string Title { get; set; }
-        private string? Description { get; set; }
-        private string ImageUrl { get; set; }
-        private int? Duration { get; set; }
-        private string? Genre { get; set; }
-        private AgeRating AgeRating { get; set; }
+        public int MovieId { get; private set; }
+        public string Title { get; private set; }
+        public string? Description { get; private set; }
+        public string ImageUrl { get; private set; }
+        public int? Duration { get; private set; }
+        public string? Genre { get; private set; }
+        public AgeRating AgeRating { get; private set; }
 
+        public Movie() { }
+
+        public Movie(string title, string? description, string imageUrl, int? duration, string? genre, AgeRating ageRating)
+        {
+            Title = title;
+            Description = description;
+            ImageUrl = imageUrl;
+            Duration = duration;
+            Genre = genre;
+            AgeRating = ageRating;
+        }
     }
 }

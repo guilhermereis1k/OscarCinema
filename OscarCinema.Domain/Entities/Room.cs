@@ -8,9 +8,20 @@ namespace OscarCinema.Domain.Entities
 {
     public class Room
     {
-        private Guid _id { get; set; }
-        private int Number { get; set; }
-        private string? Name { get; set; }
-        private List<Guid> Seats_id { get; set; }
+        public int RoomId { get; private set; }
+        public int Number { get; private set; }
+        public string? Name { get; private set; }
+
+        private List<int> _seats = new();
+        public IReadOnlyList<int> Seats => _seats.AsReadOnly();
+
+        Room() { }
+
+        Room(int number, string? name, List<int> seats)
+        {
+            Number = number;
+            Name = name;
+            _seats = seats;
+        }
     }
 }

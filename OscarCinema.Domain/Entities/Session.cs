@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OscarCinema.Domain.ENUMs;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,10 +9,22 @@ namespace OscarCinema.Domain.Entities
 {
     public class Session
     {
-        private Guid _id { get; set; }
-        private Guid Movie_id { get; set; }
-        private DateTime DateTime { get; set; }
-        private List<Guid> Rooms_id { get; set; }
-        private string ExhibitionType { get; set; } //enum
+        public int SessionId { get; private set; }
+        public int MovieId { get; private set; }
+        public DateTime DateTime { get; private set; }
+
+        public List<int> _rooms = new();
+        public IReadOnlyList<int> Rooms => _rooms.AsReadOnly();
+        public ExhibitionType ExhibitionType { get; private set; }
+
+        public Session() { }
+
+        public Session(int movieId, DateTime dateTime, List<int> rooms, ExhibitionType exhibitionType)
+        {
+            MovieId = movieId;
+            DateTime = dateTime;
+            _rooms = rooms;
+            ExhibitionType = exhibitionType;
+        }
     }
 }

@@ -9,21 +9,31 @@ namespace OscarCinema.Domain.Entities
 {
     public class Seat
     {
-        private Guid _id { get; set; }
-        private Guid Room_id { get; set; }
-        private bool isOccupied { get; set; }
+        public int SeatId { get; private set; }
+        public int RoomId { get; private set; }
+        public bool IsOccupied { get; private set; }
 
-        private char Row { get; set; }
-        private int Number { get; set; }
+        public char Row { get; private set; }
+        public int Number { get; private set; }
 
-        private void OccupySeat(Guid id)
+        public Seat() { }
+
+        public Seat(int roomId, bool isOccupied, char row, int number)
         {
-            if (isOccupied)
+            RoomId = roomId;
+            IsOccupied = isOccupied;
+            Row = row;
+            Number = number;
+        }
+
+        public void OccupySeat(Guid id)
+        {
+            if (IsOccupied)
             {
                 throw new InvalidOperationException("Seat already occupied");
             }
 
-            isOccupied = true;
+            IsOccupied = true;
         }
     }
 }

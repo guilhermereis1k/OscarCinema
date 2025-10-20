@@ -8,12 +8,22 @@ namespace OscarCinema.Domain.Entities
 {
     public class User
     {
-        private Guid _id { get; set; }
-        private string Name { get; set; }
-        private string DocumentNumber { get; set; }
-        private string Email { get; set; }
-        private string Password { get; set; }
-        private string Role { get; set; }
+        public int UserId { get; private set; }
+        public string Name { get; private set; }
+        public string DocumentNumber { get; private set; }
+        public string Email { get; private set; }
+        public string Password { get; private set; }
+        public string Role { get; private set; }
 
+        public User() { }
+
+        public User(string name, string documentNumber, string email, string password, string role)
+        {
+            Name = name;
+            DocumentNumber = documentNumber;
+            Email = email;
+            Password = password;
+            Role = role;
+        }
     }
 }
