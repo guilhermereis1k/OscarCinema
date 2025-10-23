@@ -9,6 +9,12 @@ namespace OscarCinema.Domain.Entities
 {
     public class Seat
     {
+        public int SeatId { get; private set; }
+        public int RoomId { get; private set; }
+        private bool IsOccupied { get; set; }
+
+        public char Row { get; private set; }
+        public int Number { get; private set; }
         public Seat() { }
 
         public Seat(int roomId, bool isOccupied, char row, int number)
@@ -18,13 +24,6 @@ namespace OscarCinema.Domain.Entities
             Row = row;
             Number = number;
         }
-
-        public int SeatId { get; private set; }
-        public int RoomId { get; private set; }
-        private bool IsOccupied { get; set; }
-
-        public char Row { get; private set; }
-        public int Number { get; private set; }
 
         public void OccupySeat(int id)
         {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OscarCinema.Domain.Validation;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -21,9 +22,26 @@ namespace OscarCinema.Domain.Entities
 
         public Room(int number, string? name, List<int> seats)
         {
+            ValidateDomain(number, name, seats);
+
             Number = number;
             Name = name;
             _seats = seats;
+        }
+
+        private void ValidateDomain(int number, string? name, List<int> seats)
+        {
+            DomainExceptionValidation.When(number <= 0,
+                "Room number must be greater than 0.");
+
+            DomainExceptionValidation.When(!string.IsNullOrWhiteSpace(name) && name.Length < 2,
+                "Room name must be at least 2 characters long if provided.");
+
+            DomainExceptionValidation.When(seats == null || seats.Count == 0,
+                "Room must have at least one seat.");
+
+            DomainExceptionValidation.When(seats.Any(s => s <= 0),
+                "All seats must have a positive number.");
         }
     }
 }

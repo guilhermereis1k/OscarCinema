@@ -1,4 +1,5 @@
 ﻿using OscarCinema.Domain.Enums;
+using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,21 +10,6 @@ namespace OscarCinema.Domain.Entities
 {
     public class Ticket
     {
-        public Ticket() { }
-
-        public Ticket(DateTime date, int userId, int movieId, int roomId, IEnumerable<Seat> seatsId, IEnumerable<TicketType> type, PaymentMethod method, float totalValue, bool paid)
-        {
-            Date = date;
-            UserId = userId;
-            MovieId = movieId;
-            RoomId = roomId;
-            SeatsId = seatsId;
-            Type = type;
-            Method = method;
-            TotalValue = totalValue;
-            Paid = paid;
-        }
-
         public int Id { get; private set; }
         public DateTime Date { get; private set; }
         public int UserId { get; private set; }
@@ -37,7 +23,50 @@ namespace OscarCinema.Domain.Entities
         public float TotalValue { get; private set; }
         public bool Paid { get; private set; }
 
+        public Ticket() { }
 
+        public Ticket(DateTime date, int userId, int movieId, int roomId, IEnumerable<Seat> seatsId, IEnumerable<TicketType> type, PaymentMethod method, float totalValue, bool paid)
+        {
+            ValidateDomain(date, userId, movieId, roomId, seatsId, type, method, totalValue);
+
+            Date = date;
+            UserId = userId;
+            MovieId = movieId;
+            RoomId = roomId;
+            SeatsId = seatsId;
+            Type = type;
+            Method = method;
+            TotalValue = totalValue;
+            Paid = paid;
+        }
+
+        private void ValidateDomain(DateTime date, int userId, int movieId, int roomId,
+            IEnumerable<Seat> seatsId, IEnumerable<TicketType> type, PaymentMethod method, float totalValue)
+        {
+            DomainExceptionValidation.When(date < DateTime.Now,
+                "Ticket date cannot be in the past.");
+
+            DomainExceptionValidation.When(userId <= 0,
+                "User ID must be greater than 0.");
+
+            DomainExceptionValidation.When(movieId <= 0,
+                "Movie ID must be greater than 0.");
+
+            DomainExceptionValidation.When(roomId <= 0,
+                "Room ID must be greater than 0.");
+
+            DomainExceptionValidation.When(seatsId == null || !seatsId.Any(),
+                "At least one seat must be selected.");
+
+            DomainExceptionValidation.When(type == null || !type.Any(),
+                "At least one ticket type must be selected.");
+
+            DomainExceptionValidation.When(!Enum.IsDefined(typeof(PaymentMethod), method),
+                "Invalid payment method.");
+
+            DomainExceptionValidation.When(totalValue <= 0,
+                "Total value must be greater than 0.");
+        }
 
     }
 }
