@@ -9,7 +9,7 @@ namespace OscarCinema.Domain.Interfaces
 {
     public interface IUserRepository
     {
-        Task<User> AddAsync(User user);
+        Task<User> CreateAsync(User user);
         Task<User> UpdateAsync(User user);
         Task<User> DeleteAsync(int id);
         Task<User> GetByIdAsync(int id);

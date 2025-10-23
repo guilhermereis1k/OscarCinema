@@ -1,5 +1,4 @@
 ﻿using OscarCinema.Domain.Enums;
-using OscarCinema.Domain.ENUMs;
 using System;
 using System.Collections.Generic;
 using System.Linq;

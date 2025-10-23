@@ -1,4 +1,4 @@
-﻿using OscarCinema.Domain.ENUMs;
+﻿using OscarCinema.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,11 +29,17 @@ namespace OscarCinema.Domain.Entities
         public void OccupySeat(int id)
         {
             if (IsOccupied)
-            {
                 throw new InvalidOperationException("Seat already occupied");
-            }
 
             IsOccupied = true;
+        }
+
+        public void FreeSeat(int id)
+        {
+            if (!IsOccupied)
+                throw new InvalidOperationException("Seat is already free.");
+
+            IsOccupied = false;
         }
     }
 }

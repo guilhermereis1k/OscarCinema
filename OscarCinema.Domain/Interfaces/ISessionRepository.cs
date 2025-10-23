@@ -9,7 +9,7 @@ namespace OscarCinema.Domain.Interfaces
 {
     public interface ISessionRepository
     {
-        Task<Session> AddAsync(Session session);
+        Task<Session> CreateAsync(Session session);
         Task<Session> UpdateAsync(Session session);
         Task DeleteByIdAsync(int id);
         Task<IEnumerable<Session>> GetAllAsync();
