@@ -1,4 +1,4 @@
-﻿using OscarCinema.Domain.Enums;
+﻿using OscarCinema.Domain.Enums.Movie;
 using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
@@ -25,6 +25,18 @@ namespace OscarCinema.Domain.Entities
         public Movie() { }
 
         public Movie(string title, string description, string imageUrl, int duration, MovieGenre genre, AgeRating ageRating)
+        {
+            ValidateDomain(title, description, imageUrl, duration, genre, ageRating);
+
+            Title = title;
+            Description = description;
+            ImageUrl = imageUrl;
+            Duration = duration;
+            Genre = genre;
+            AgeRating = ageRating;
+        }
+
+        public void Update(string title, string description, string imageUrl, int duration, MovieGenre genre, AgeRating ageRating)
         {
             ValidateDomain(title, description, imageUrl, duration, genre, ageRating);
 

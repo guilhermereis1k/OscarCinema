@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OscarCinema.Domain.Enums
+namespace OscarCinema.Domain.Enums.User
 {
     public enum UserRole
     {

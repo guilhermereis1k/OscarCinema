@@ -39,18 +39,18 @@ namespace OscarCinema.Application.Services
             return room;
         }
 
-        public async Task<Room> UpdateAsync(int id, Room room)
+        public async Task<Room> UpdateAsync(int id, int number, string? name, List<int> seats)
         {
             var existentRoom = await _roomRepository.GetByIdAsync(id);
 
-            if (room == null)
+            if (existentRoom == null)
                 return null;
 
-            var updatedRoom = new Room(number, name, seats);
-                
-            await _roomRepository.UpdateAsync(id, room);
+            existentRoom.Update(number, name, seats);
 
-            return alteredRoom;
+            await _roomRepository.UpdateAsync(existentRoom);
+
+            return existentRoom;
         }
 
         public async Task<bool> DeleteByIdAsync(int id)

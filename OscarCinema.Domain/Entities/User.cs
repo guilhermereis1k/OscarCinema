@@ -1,4 +1,5 @@
-﻿using OscarCinema.Domain.Enums;
+﻿using OscarCinema.Domain.Enums.Movie;
+using OscarCinema.Domain.Enums.User;
 using OscarCinema.Domain.Validation;
 using System.Text.RegularExpressions;
 
@@ -16,6 +17,17 @@ namespace OscarCinema.Domain.Entities
         public User() { }
 
         public User(string name, string documentNumber, string email, string password, UserRole role)
+        {
+            ValidateDomain(name, documentNumber, email, password, role);
+
+            Name = name;
+            DocumentNumber = documentNumber;
+            Email = email;
+            Password = password;
+            Role = role;
+        }
+
+        public void Update(string name, string documentNumber, string email, string password, UserRole role)
         {
             ValidateDomain(name, documentNumber, email, password, role);
 
@@ -49,7 +61,7 @@ namespace OscarCinema.Domain.Entities
             DomainExceptionValidation.When(password.Length < 6,
                 "Password must be at least 6 characters long.");
 
-            DomainExceptionValidation.When(string.IsNullOrWhiteSpace(role),
+            DomainExceptionValidation.When(!Enum.IsDefined(typeof(UserRole), role),
                 "Role is required.");
         }
     }

@@ -11,7 +11,8 @@ namespace OscarCinema.Domain.Interfaces
     {
         Task<Session> CreateAsync(Session session);
         Task<Session> UpdateAsync(Session session);
-        Task DeleteByIdAsync(int id);
+        Task<Session> GetByIdAsync(int id);
+        Task<bool> DeleteByIdAsync(int id);
         Task<IEnumerable<Session>> GetAllAsync();
         Task<IEnumerable<Session>> GetAllByMovieId( int movieId);
     }

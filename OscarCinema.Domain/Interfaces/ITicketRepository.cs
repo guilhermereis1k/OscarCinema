@@ -11,7 +11,7 @@ namespace OscarCinema.Domain.Interfaces
     {
         Task<Ticket> CreateAsync(Ticket ticket);
         Task<Ticket> UpdateAsync(Ticket ticket);
-        Task<Ticket> DeleteByIdAsync(int id);
+        Task<bool> DeleteByIdAsync(int id);
         Task<Ticket> GetByIdAsync(int id);
         Task<IEnumerable<Ticket>> GetAllAsync();
         Task<IEnumerable<Ticket>> GetAllByUserIdAsync(int userId);

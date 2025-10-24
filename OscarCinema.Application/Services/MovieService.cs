@@ -1,5 +1,5 @@
 ﻿using OscarCinema.Domain.Entities;
-using OscarCinema.Domain.Enums;
+using OscarCinema.Domain.Enums.Movie;
 using OscarCinema.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -21,10 +21,10 @@ namespace OscarCinema.Application.Services
 
         public async Task<Movie> CreateAsync(
             string title,
-            string? description,
+            string description,
             string imageUrl, 
-            int? duration, 
-            string? genre, 
+            int duration,
+            MovieGenre genre, 
             AgeRating ageRating)
         {
             var movie = new Movie(title, description, imageUrl, duration, genre, ageRating);
@@ -43,11 +43,12 @@ namespace OscarCinema.Application.Services
             return movie;
         }
 
-        public async Task<Movie> UpdateAsync(int id, string title,
-            string? description,
+        public async Task<Movie> UpdateAsync(int id, 
+            string title,
+            string description,
             string imageUrl,
-            int? duration,
-            string? genre,
+            int duration,
+            MovieGenre genre,
             AgeRating ageRating)
         {
             var existentMovie = await _movieRepository.GetByIdAsync(id);
@@ -55,16 +56,18 @@ namespace OscarCinema.Application.Services
             if (existentMovie == null) 
                 return null;
 
-            existentMovie.Update(string title,
-            string ? description,
-            string imageUrl,
-            int ? duration,
-            string ? genre,
-            AgeRating ageRating);
+            existentMovie.Update(
+                title,
+                description,
+                imageUrl,
+                duration,
+                genre,
+                ageRating
+            );
 
-            await _movieRepository.UpdateAsync(id, updatedMovie);
-            
-            return updatedMovie;
+            await _movieRepository.UpdateAsync(existentMovie);
+
+            return existentMovie;
         }
 
         public async Task<bool> DeleteByIdAsync(int id)

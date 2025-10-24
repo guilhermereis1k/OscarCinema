@@ -1,4 +1,4 @@
-﻿using OscarCinema.Domain.Enums;
+﻿using OscarCinema.Domain.Enums.Ticket;
 using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
@@ -21,11 +21,19 @@ namespace OscarCinema.Domain.Entities
 
         public PaymentStatus PaymentStatus { get; private set; }
         public float TotalValue { get; private set; }
-        public bool Paid { get; private set; }
+        public bool Paid = false;
 
         public Ticket() { }
 
-        public Ticket(DateTime date, int userId, int movieId, int roomId, IEnumerable<Seat> seatsId, IEnumerable<TicketType> type, PaymentMethod method, float totalValue, bool paid)
+        public Ticket(
+            DateTime date, 
+            int userId, 
+            int movieId, 
+            int roomId, 
+            IEnumerable<Seat> seatsId, 
+            IEnumerable<TicketType> type, 
+            PaymentMethod method, 
+            float totalValue)
         {
             ValidateDomain(date, userId, movieId, roomId, seatsId, type, method, totalValue);
 
@@ -37,7 +45,28 @@ namespace OscarCinema.Domain.Entities
             Type = type;
             Method = method;
             TotalValue = totalValue;
-            Paid = paid;
+        }
+
+        public void Update(
+           DateTime date,
+           int userId,
+           int movieId,
+           int roomId,
+           IEnumerable<Seat> seatsId,
+           IEnumerable<TicketType> type,
+           PaymentMethod method,
+           float totalValue)
+        {
+            ValidateDomain(date, userId, movieId, roomId, seatsId, type, method, totalValue);
+
+            Date = date;
+            UserId = userId;
+            MovieId = movieId;
+            RoomId = roomId;
+            SeatsId = seatsId;
+            Type = type;
+            Method = method;
+            TotalValue = totalValue;
         }
 
         private void ValidateDomain(DateTime date, int userId, int movieId, int roomId,

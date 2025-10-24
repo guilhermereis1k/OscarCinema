@@ -14,13 +14,13 @@ namespace OscarCinema.Domain.Entities
 
         [Required]
         public int Number { get; private set; }
-        public string? Name { get; private set; }
+        public string Name { get; private set; }
         private List<int> _seats = new();
         public IReadOnlyList<int> Seats => _seats.AsReadOnly();
 
-        Room() { }
+        public Room() { }
 
-        public Room(int number, string? name, List<int> seats)
+        public Room(int number, string name, List<int> seats)
         {
             ValidateDomain(number, name, seats);
 
@@ -29,7 +29,16 @@ namespace OscarCinema.Domain.Entities
             _seats = seats;
         }
 
-        private void ValidateDomain(int number, string? name, List<int> seats)
+        public void Update(int number, string name, List<int> seats)
+        {
+            ValidateDomain(number, name, seats);
+
+            Number = number;
+            Name = name;
+            _seats = seats;
+        }
+
+        private void ValidateDomain(int number, string name, List<int> seats)
         {
             DomainExceptionValidation.When(number <= 0,
                 "Room number must be greater than 0.");

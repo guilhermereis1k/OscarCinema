@@ -1,4 +1,4 @@
-﻿using OscarCinema.Domain.Enums;
+﻿using OscarCinema.Domain.Enums.Movie;
 using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
@@ -28,6 +28,16 @@ namespace OscarCinema.Domain.Entities
         public Session() { }
 
         public Session(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition)
+        {
+            ValidateDomain(movieId, startTime, rooms, exhibition);
+
+            MovieId = movieId;
+            StartTime = startTime;
+            _rooms = rooms;
+            Exhibition = exhibition;
+        }
+
+        public void Update(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition)
         {
             ValidateDomain(movieId, startTime, rooms, exhibition);
 
