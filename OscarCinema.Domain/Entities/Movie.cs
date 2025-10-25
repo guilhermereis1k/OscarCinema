@@ -15,7 +15,6 @@ namespace OscarCinema.Domain.Entities
 
         [Required]
         public string Title { get; private set; }
-
         public string Description { get; private set; }
         public string ImageUrl { get; private set; }
         public int Duration { get; private set; }
