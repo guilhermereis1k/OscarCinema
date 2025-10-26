@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using OscarCinema.Application.DTOs.Room;
 using OscarCinema.Application.DTOs.Seat;
 using OscarCinema.Domain.Entities;
 using System;

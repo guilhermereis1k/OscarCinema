@@ -20,14 +20,14 @@ namespace OscarCinema.Domain.Entities
         public ExhibitionType Exhibition { get; private set; }
 
         public DateTime StartTime { get; private set; }
-        public TimeSpan TrailerTime { get; private set; } = TimeSpan.FromMinutes(15);
-        public TimeSpan CleaningTime { get; private set; } = TimeSpan.FromMinutes(10);
+        public TimeSpan TrailerTime { get; private set; }
+        public TimeSpan CleaningTime { get; private set; }
 
         public DateTime EndTime => StartTime + TimeSpan.FromMinutes(Movie.Duration) + TrailerTime + CleaningTime;
 
         public Session() { }
 
-        public Session(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition)
+        public Session(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition, TimeSpan? trailerTime, TimeSpan? cleaningTime)
         {
             ValidateDomain(movieId, startTime, rooms, exhibition);
 
@@ -35,9 +35,13 @@ namespace OscarCinema.Domain.Entities
             StartTime = startTime;
             _rooms = rooms;
             Exhibition = exhibition;
+
+            TrailerTime = trailerTime ?? TimeSpan.FromMinutes(15);
+            CleaningTime = cleaningTime ?? TimeSpan.FromMinutes(10);
+
         }
 
-        public void Update(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition)
+        public void Update(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition, TimeSpan? trailerTime = null, TimeSpan? cleaningTime = null)
         {
             ValidateDomain(movieId, startTime, rooms, exhibition);
 
@@ -45,9 +49,15 @@ namespace OscarCinema.Domain.Entities
             StartTime = startTime;
             _rooms = rooms;
             Exhibition = exhibition;
+
+            if (trailerTime.HasValue)
+                TrailerTime = trailerTime.Value;
+
+            if (cleaningTime.HasValue)
+                CleaningTime = cleaningTime.Value;
         }
 
-        private void ValidateDomain(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition)
+        private void ValidateDomain(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition, TimeSpan? trailerTime, TimeSpan? cleaningTime)
         {
             DomainExceptionValidation.When(movieId <= 0,
                 "Movie ID must be greater than 0.");
@@ -63,6 +73,12 @@ namespace OscarCinema.Domain.Entities
 
             DomainExceptionValidation.When(!Enum.IsDefined(typeof(ExhibitionType), exhibition),
                 "Invalid exhibition type.");
+
+            DomainExceptionValidation.When(trailerTime.HasValue && trailerTime <= TimeSpan.Zero,
+            "Trailer time must be greater than zero.");
+
+            DomainExceptionValidation.When(cleaningTime.HasValue && cleaningTime <= TimeSpan.Zero,
+                "Cleaning time must be greater than zero.");
         }
     }
 }

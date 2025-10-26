@@ -16,6 +16,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddAutoMapper(typeof(MovieDTOMappingProfile));
 builder.Services.AddAutoMapper(typeof(SeatDTOMappingProfile));
 builder.Services.AddAutoMapper(typeof(RoomDTOMappingProfile));
+builder.Services.AddAutoMapper(typeof(SessionDTOMappingProfile));
+builder.Services.AddAutoMapper(typeof(TicketDTOMappingProfile));
+builder.Services.AddAutoMapper(typeof(UserDTOMappingProfile));
 
 var app = builder.Build();
 
