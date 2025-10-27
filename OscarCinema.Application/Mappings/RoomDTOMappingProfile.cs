@@ -14,7 +14,8 @@ namespace OscarCinema.Application.Mappings
         public RoomDTOMappingProfile()
         {
             CreateMap<CreateRoomDTO, Room>();
-            CreateMap<UpdateRoomDTO, Room>();
+            CreateMap<UpdateRoomDTO, Room>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
 
             CreateMap<Room, RoomResponseDTO>();
         }

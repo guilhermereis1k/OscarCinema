@@ -12,10 +12,20 @@ namespace OscarCinema.Domain.Entities
     {
         public int Id { get; private set; }
         public DateTime Date { get; private set; }
+
+        public User User { get; private set; }
         public int UserId { get; private set; }
+
+        public Movie Movie { get; private set; }
         public int MovieId { get; private set; }
+       
+        public Room Room { get; private set; }
         public int RoomId { get; private set; }
-        public IEnumerable<Seat> SeatsId { get; private set; }
+
+        public Session Session { get; private set; }
+        public int SessionId { get; private set; }
+
+        public ICollection<Seat> Seats { get; private set; } = new List<Seat>();
         public IEnumerable<TicketType> Type { get; private set; }
         public PaymentMethod Method { get; private set; }
 
@@ -30,18 +40,18 @@ namespace OscarCinema.Domain.Entities
             int userId, 
             int movieId, 
             int roomId, 
-            IEnumerable<Seat> seatsId, 
+            ICollection<Seat> seats, 
             IEnumerable<TicketType> type, 
             PaymentMethod method, 
             float totalValue)
         {
-            ValidateDomain(date, userId, movieId, roomId, seatsId, type, method, totalValue);
+            ValidateDomain(date, userId, movieId, roomId, seats, type, method, totalValue);
 
             Date = date;
             UserId = userId;
             MovieId = movieId;
             RoomId = roomId;
-            SeatsId = seatsId;
+            Seats = seats;
             Type = type;
             Method = method;
             TotalValue = totalValue;
@@ -52,25 +62,25 @@ namespace OscarCinema.Domain.Entities
            int userId,
            int movieId,
            int roomId,
-           IEnumerable<Seat> seatsId,
+           ICollection<Seat> seats,
            IEnumerable<TicketType> type,
            PaymentMethod method,
            float totalValue)
         {
-            ValidateDomain(date, userId, movieId, roomId, seatsId, type, method, totalValue);
+            ValidateDomain(date, userId, movieId, roomId, seats, type, method, totalValue);
 
             Date = date;
             UserId = userId;
             MovieId = movieId;
             RoomId = roomId;
-            SeatsId = seatsId;
+            Seats = seats;
             Type = type;
             Method = method;
             TotalValue = totalValue;
         }
 
         private void ValidateDomain(DateTime date, int userId, int movieId, int roomId,
-            IEnumerable<Seat> seatsId, IEnumerable<TicketType> type, PaymentMethod method, float totalValue)
+            IEnumerable<Seat> seats, IEnumerable<TicketType> type, PaymentMethod method, float totalValue)
         {
             DomainExceptionValidation.When(date < DateTime.Now,
                 "Ticket date cannot be in the past.");
@@ -84,7 +94,7 @@ namespace OscarCinema.Domain.Entities
             DomainExceptionValidation.When(roomId <= 0,
                 "Room ID must be greater than 0.");
 
-            DomainExceptionValidation.When(seatsId == null || !seatsId.Any(),
+            DomainExceptionValidation.When(seats == null || !seats.Any(),
                 "At least one seat must be selected.");
 
             DomainExceptionValidation.When(type == null || !type.Any(),

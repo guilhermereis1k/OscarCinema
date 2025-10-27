@@ -14,7 +14,9 @@ namespace OscarCinema.Application.Mappings
         public MovieDTOMappingProfile()
         {
             CreateMap<CreateMovieDTO, Movie>();
-            CreateMap<UpdateMovieDTO, Movie>();
+            CreateMap<UpdateMovieDTO, Movie>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
+
 
             CreateMap<Movie, MovieResponseDTO>();
         }

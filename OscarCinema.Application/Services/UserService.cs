@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using OscarCinema.Application.DTOs.User;
+using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.User;
 using OscarCinema.Domain.Interfaces;
@@ -11,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace OscarCinema.Application.Services
 {
-    public class UserService
+    public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;

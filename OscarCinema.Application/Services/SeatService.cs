@@ -59,5 +59,29 @@ namespace OscarCinema.Application.Services
             var seats = await _seatRepository.GetSeatsByRoomIdAsync(roomId);
             return seats == null ? null : _mapper.Map<IEnumerable<SeatResponseDTO>>(seats);
         }
+
+        public async Task<SeatResponseDTO?> OccupySeatAsync(int id)
+        {
+            var seat = await _seatRepository.GetByIdAsync(id);
+            if (seat == null)
+                return null;
+
+            seat.OccupySeat(id);
+
+            await _seatRepository.UpdateAsync(seat);
+            return _mapper.Map<SeatResponseDTO>(seat);
+        }
+
+        public async Task<SeatResponseDTO?> FreeSeatAsync(int id)
+        {
+            var seat = await _seatRepository.GetByIdAsync(id);
+            if (seat == null)
+                return null;
+
+            seat.FreeSeat(id);
+
+            await _seatRepository.UpdateAsync(seat);
+            return _mapper.Map<SeatResponseDTO>(seat);
+        }
     }
 }

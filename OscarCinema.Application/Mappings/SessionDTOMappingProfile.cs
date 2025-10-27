@@ -14,7 +14,8 @@ namespace OscarCinema.Application.Mappings
         public SessionDTOMappingProfile()
         {
             CreateMap<CreateSessionDTO, Session>();
-            CreateMap<UpdateSessionDTO, Session>();
+            CreateMap<UpdateSessionDTO, Session>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
 
             CreateMap<Session, SessionResponseDTO>();
         }

@@ -11,9 +11,7 @@ namespace OscarCinema.Domain.Entities
 {
     public class Movie
     {
-        public int MovieId { get; private set; }
-
-        [Required]
+        public int Id { get; private set; }
         public string Title { get; private set; }
         public string Description { get; private set; }
         public string ImageUrl { get; private set; }

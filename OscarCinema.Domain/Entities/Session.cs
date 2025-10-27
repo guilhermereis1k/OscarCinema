@@ -11,12 +11,17 @@ namespace OscarCinema.Domain.Entities
 {
     public class Session
     {
-        public int SessionId { get; private set; }
-        public Movie Movie { get; private set; }
+        public int Id { get; private set; }
 
+        public Movie Movie { get; private set; }
         public int MovieId { get; private set; }
-        private List<int> _rooms = new();
-        public IReadOnlyList<int> Rooms => _rooms.AsReadOnly();
+
+        public Room Room { get; private set; }
+        public int RoomId { get; private set; }
+
+        private readonly List<Seat> _seats = new();
+        public IReadOnlyList<Seat> Seats => _seats.AsReadOnly();
+
         public ExhibitionType Exhibition { get; private set; }
 
         public DateTime StartTime { get; private set; }
@@ -29,7 +34,7 @@ namespace OscarCinema.Domain.Entities
 
         public Session(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition, TimeSpan? trailerTime, TimeSpan? cleaningTime)
         {
-            ValidateDomain(movieId, startTime, rooms, exhibition);
+            ValidateDomain(movieId, startTime, rooms, exhibition, trailerTime, cleaningTime);
 
             MovieId = movieId;
             StartTime = startTime;
@@ -43,7 +48,7 @@ namespace OscarCinema.Domain.Entities
 
         public void Update(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition, TimeSpan? trailerTime = null, TimeSpan? cleaningTime = null)
         {
-            ValidateDomain(movieId, startTime, rooms, exhibition);
+            ValidateDomain(movieId, startTime, rooms, exhibition, trailerTime, cleaningTime);
 
             MovieId = movieId;
             StartTime = startTime;

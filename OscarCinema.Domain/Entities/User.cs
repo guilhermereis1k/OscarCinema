@@ -7,7 +7,7 @@ namespace OscarCinema.Domain.Entities
 {
     public class User
     {
-        public int UserId { get; private set; }
+        public int Id { get; private set; }
         public string Name { get; private set; }
         public string DocumentNumber { get; private set; }
         public string Email { get; private set; }

@@ -1,28 +1,64 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using OscarCinema.Application.Interfaces;
 using OscarCinema.Application.Mappings;
+using OscarCinema.Application.Services;
 using OscarCinema.Domain.Entities;
+using OscarCinema.Domain.Interfaces;
+using OscarCinema.Infrastructure.Context;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var automapperSettings = builder.Configuration.GetSection("AutoMapper");
-var autoMapperLicenseKey = automapperSettings["LicenseKey"];
-
-// Add services to the container.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddAutoMapper(typeof(MovieDTOMappingProfile));
-builder.Services.AddAutoMapper(typeof(SeatDTOMappingProfile));
-builder.Services.AddAutoMapper(typeof(RoomDTOMappingProfile));
-builder.Services.AddAutoMapper(typeof(SessionDTOMappingProfile));
-builder.Services.AddAutoMapper(typeof(TicketDTOMappingProfile));
-builder.Services.AddAutoMapper(typeof(UserDTOMappingProfile));
+builder.Services.AddAutoMapper(cfg => {
+    cfg.AddProfile<MovieDTOMappingProfile>();
+});
+builder.Services.AddAutoMapper(cfg => {
+    cfg.AddProfile<RoomDTOMappingProfile>();
+});
+builder.Services.AddAutoMapper(cfg => {
+    cfg.AddProfile<SeatDTOMappingProfile>();
+});
+builder.Services.AddAutoMapper(cfg => {
+    cfg.AddProfile<SessionDTOMappingProfile>();
+});
+builder.Services.AddAutoMapper(cfg => {
+    cfg.AddProfile<TicketDTOMappingProfile>();
+});
+builder.Services.AddAutoMapper(cfg => {
+    cfg.AddProfile<UserDTOMappingProfile>();
+});
+
+builder.Services.AddScoped<IUserService, UserService>();
+//builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+builder.Services.AddScoped<IMovieService, MovieService>();
+//builder.Services.AddScoped<IMovieRepository, MovieRepository>();
+
+builder.Services.AddScoped<IRoomService, RoomService>();
+//builder.Services.AddScoped<IRoomRepository, RoomRepository>();
+
+builder.Services.AddScoped<ISeatService, SeatService>();
+//builder.Services.AddScoped<ISeatRepository, SeatRepository>();
+
+builder.Services.AddScoped<ISessionService, SessionService>();
+//builder.Services.AddScoped<ISessionRepository, SessionRepository>();
+
+builder.Services.AddScoped<ITicketService, TicketService>();
+//builder.Services.AddScoped<ITicketRepository, TicketRepository>();
+
+WebApplicationBuilder builder1 = builder;
+
+builder1.Services.AddDbContext<OscarCinemaContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

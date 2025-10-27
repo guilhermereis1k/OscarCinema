@@ -1,4 +1,5 @@
 ﻿using OscarCinema.Application.DTOs.Seat;
+using OscarCinema.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,5 +15,7 @@ namespace OscarCinema.Application.Interfaces
         Task<bool> DeleteByIdAsync(int id);
         Task<SeatResponseDTO?> GetByRowAndNumberAsync(char row, int number);
         Task<IEnumerable<SeatResponseDTO>?> GetSeatsByRoomIdAsync(int roomId);
+        Task<SeatResponseDTO?> OccupySeatAsync(Seat seat);
+        Task<SeatResponseDTO?> FreeSeatAsync(Seat seat);
     }
 }

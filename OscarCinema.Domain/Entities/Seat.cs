@@ -9,8 +9,11 @@ namespace OscarCinema.Domain.Entities
 {
     public class Seat
     {
-        public int SeatId { get; private set; }
+        public int Id { get; private set; }
+
+        public Room Room { get; private set; }
         public int RoomId { get; private set; }
+
         public bool IsOccupied { get; private set; }
 
         public char Row { get; private set; }
