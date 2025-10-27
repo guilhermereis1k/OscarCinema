@@ -11,7 +11,7 @@ namespace OscarCinema.Domain.Entities
     {
         public int SeatId { get; private set; }
         public int RoomId { get; private set; }
-        private bool IsOccupied { get; set; }
+        public bool IsOccupied { get; private set; }
 
         public char Row { get; private set; }
         public int Number { get; private set; }

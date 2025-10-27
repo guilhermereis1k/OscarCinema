@@ -1,4 +1,6 @@
-﻿using OscarCinema.Domain.Entities;
+﻿using AutoMapper;
+using OscarCinema.Application.DTOs.User;
+using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.User;
 using OscarCinema.Domain.Interfaces;
 using System;
@@ -11,57 +13,57 @@ namespace OscarCinema.Application.Services
 {
     public class UserService
     {
-        IUserRepository _userRepository;
-        public UserService(IUserRepository userRepository) 
+        private readonly IUserRepository _userRepository;
+        private readonly IMapper _mapper;
+
+        public UserService(IUserRepository userRepository, IMapper mapper)
         {
-            _userRepository = userRepository;        
+            _userRepository = userRepository;
+            _mapper = mapper;
         }
 
-        public async Task<User> CreateAsync(
-            string name, 
-            string documentNumber, 
-            string email, 
-            string password, 
-            UserRole role) 
+        public async Task<UserResponseDTO> CreateAsync(CreateUserDTO request)
         {
-            var user = new User(name, documentNumber, email, password, role);
+            var user = _mapper.Map<User>(request);
             await _userRepository.CreateAsync(user);
-
-            return user;
+            return _mapper.Map<UserResponseDTO>(user);
         }
 
-        public async Task<User?> UpdateAsync(int id,
-            string name,
-            string documentNumber,
-            string email,
-            string password,
-            UserRole role)
+        public async Task<UserResponseDTO?> UpdateAsync(int id, UpdateUserDTO request)
         {
             var existentUser = await _userRepository.GetByIdAsync(id);
-
             if (existentUser == null)
                 return null;
 
-            existentUser.Update(name, documentNumber, email, password, role);
+            _mapper.Map(request, existentUser);
+            await _userRepository.UpdateAsync(existentUser);
 
-            return existentUser;
+            return _mapper.Map<UserResponseDTO>(existentUser);
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            await _userRepository.DeleteAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
+            if (user == null)
+                return false;
 
+            await _userRepository.DeleteAsync(id);
             return true;
         }
 
-        public async Task<User> GetByIdAsync(int id)
+        public async Task<UserResponseDTO?> GetByIdAsync(int id)
         {
             var user = await _userRepository.GetByIdAsync(id);
-
             if (user == null)
                 return null;
 
-            return user;
+            return _mapper.Map<UserResponseDTO>(user);
+        }
+
+        public async Task<IEnumerable<UserResponseDTO>> GetAllAsync()
+        {
+            var users = await _userRepository.GetAllAsync();
+            return _mapper.Map<IEnumerable<UserResponseDTO>>(users ?? Enumerable.Empty<User>());
         }
     }
 }

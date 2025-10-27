@@ -10,6 +10,6 @@ namespace OscarCinema.Application.DTOs.Room
     {
         public int Number { get; set; }
         public string Name { get; set; }
-        private List<int> Seats { get; set; }   
+        public List<int> Seats { get; set; }   
     }
 }

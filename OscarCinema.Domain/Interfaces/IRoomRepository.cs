@@ -11,10 +11,9 @@ namespace OscarCinema.Domain.Interfaces
     {
         Task<Room> CreateAsync(Room room);
         Task<Room> UpdateAsync(Room room);
-
-        Task<Room> GetByIdAsync(int id);
+        Task<Room?> GetByIdAsync(int id);
         Task<bool> DeleteByIdAsync(int id);
-        Task<Room> GetByNumberAsync(int number);
+        Task<Room?> GetByNumberAsync(int number);
         Task<IEnumerable<Room>> GetAllAsync();
     }
 }

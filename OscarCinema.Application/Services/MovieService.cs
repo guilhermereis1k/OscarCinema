@@ -1,4 +1,7 @@
-﻿using OscarCinema.Domain.Entities;
+﻿using AutoMapper;
+using OscarCinema.Application.DTOs.Movie;
+using OscarCinema.Application.Interfaces;
+using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.Movie;
 using OscarCinema.Domain.Interfaces;
 using System;
@@ -9,73 +12,54 @@ using System.Threading.Tasks;
 
 namespace OscarCinema.Application.Services
 {
-    public class MovieService
+    public class MovieService : IMovieService
     {
-
         private readonly IMovieRepository _movieRepository;
+        private readonly IMapper _mapper;
 
-        public MovieService(IMovieRepository movieRepository)
+        public MovieService(IMovieRepository movieRepository, IMapper mapper)
         {
             _movieRepository = movieRepository;
+            _mapper = mapper;
         }
 
-        public async Task<Movie> CreateAsync(
-            string title,
-            string description,
-            string imageUrl, 
-            int duration,
-            MovieGenre genre, 
-            AgeRating ageRating)
+        public async Task<MovieResponseDTO> CreateAsync(CreateMovieDTO dto)
         {
-            var movie = new Movie(title, description, imageUrl, duration, genre, ageRating);
+            var movie = _mapper.Map<Movie>(dto);
 
             await _movieRepository.CreateAsync(movie);
-            return movie;
+
+            return _mapper.Map<MovieResponseDTO>(movie);
         }
 
-        public async Task<Movie?> GetByIdAsync(int id)
+        public async Task<MovieResponseDTO?> GetByIdAsync(int id)
         {
             var movie = await _movieRepository.GetByIdAsync(id);
-
-            if (movie == null)
-                return null;
-
-            return movie;
+            return movie == null ? null : _mapper.Map<MovieResponseDTO>(movie);
         }
 
-        public async Task<Movie> UpdateAsync(int id, 
-            string title,
-            string description,
-            string imageUrl,
-            int duration,
-            MovieGenre genre,
-            AgeRating ageRating)
+        public async Task<IEnumerable<MovieResponseDTO>> GetAllAsync()
+        {
+            var movies = await _movieRepository.GetAllAsync();
+            return _mapper.Map<IEnumerable<MovieResponseDTO>>(movies ?? Enumerable.Empty<Movie>());
+        }
+
+        public async Task<MovieResponseDTO?> UpdateAsync(int id, UpdateMovieDTO dto)
         {
             var existentMovie = await _movieRepository.GetByIdAsync(id);
-
-            if (existentMovie == null) 
+            if (existentMovie == null)
                 return null;
 
-            existentMovie.Update(
-                title,
-                description,
-                imageUrl,
-                duration,
-                genre,
-                ageRating
-            );
+            _mapper.Map(dto, existentMovie);
 
             await _movieRepository.UpdateAsync(existentMovie);
-
-            return existentMovie;
+            return _mapper.Map<MovieResponseDTO>(existentMovie);
         }
 
         public async Task<bool> DeleteByIdAsync(int id)
         {
             var movie = await _movieRepository.GetByIdAsync(id);
-
-            if (movie == null)
-                return false;
+            if (movie == null) return false;
 
             await _movieRepository.DeleteByIdAsync(id);
             return true;

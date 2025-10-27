@@ -13,5 +13,11 @@ namespace OscarCinema.Infrastructure.Context
         public OscarCinemaContext(DbContextOptions<OscarCinemaContext> options) : base(options) { }
 
         public DbSet<Movie> Movies { get; set; }
+        public DbSet<Movie> Movies { get; set; }
+        public DbSet<Movie> Movies { get; set; }
+        public DbSet<Movie> Movies { get; set; }
+        public DbSet<Movie> Movies { get; set; }
+        public DbSet<Movie> Movies { get; set; }
+
     }
 }

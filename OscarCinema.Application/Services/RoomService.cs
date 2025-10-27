@@ -1,4 +1,8 @@
-﻿using OscarCinema.Domain.Entities;
+﻿using AutoMapper;
+using OscarCinema.Application.DTOs.Movie;
+using OscarCinema.Application.DTOs.Room;
+using OscarCinema.Application.Interfaces;
+using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -8,78 +12,74 @@ using System.Threading.Tasks;
 
 namespace OscarCinema.Application.Services
 {
-    public class RoomService
+    public class RoomService : IRoomService
     {
         private readonly IRoomRepository _roomRepository;
+        private readonly IMapper _mapper;
 
-        public RoomService(IRoomRepository roomRepository)
+        public RoomService(IRoomRepository roomRepository, IMapper mapper)
         {
             _roomRepository = roomRepository;
+            _mapper = mapper;
         }
 
-        public async Task<Room> CreateAsync(
-            int number,
-            string? name, 
-            List<int> seats) 
+        public async Task<RoomResponseDTO> CreateAsync(CreateRoomDTO dto) 
         {
-            var room = new Room(number, name, seats);
+            var room = _mapper.Map<Room>(dto);
 
             await _roomRepository.CreateAsync(room);
 
-            return room;
+            return _mapper.Map<RoomResponseDTO>(room);
         }
 
-        public async Task<Room> GetByIdAsync(int id)
+        public async Task<RoomResponseDTO?> GetByIdAsync(int id)
         {
             var room = await _roomRepository.GetByIdAsync(id);
-
-            if (room == null)
-                return null;
-
-            return room;
+            return room == null ? null : _mapper.Map<RoomResponseDTO>(room);
         }
 
-        public async Task<Room> UpdateAsync(int id, int number, string? name, List<int> seats)
+        public async Task<RoomResponseDTO?> UpdateAsync(int id, UpdateRoomDTO dto)
         {
             var existentRoom = await _roomRepository.GetByIdAsync(id);
 
             if (existentRoom == null)
                 return null;
 
-            existentRoom.Update(number, name, seats);
+            existentRoom.Update(
+                dto.Number,
+                dto.Name,
+                dto.Seats
+            );
 
             await _roomRepository.UpdateAsync(existentRoom);
 
-            return existentRoom;
+            return _mapper.Map<RoomResponseDTO>(existentRoom);
         }
 
         public async Task<bool> DeleteByIdAsync(int id)
         {
             var room = await _roomRepository.GetByIdAsync(id);
-
-            if (room == null)
-                return false;
+            if (room == null) return false;
             
             await _roomRepository.DeleteByIdAsync(id);
 
             return true;
         }
 
-        public async Task<Room> GetByNumberAsync(int number)
+        public async Task<RoomResponseDTO?> GetByNumberAsync(int number)
         {
             var room = await _roomRepository.GetByNumberAsync(number);
 
             if (room == null)
                 return null;
 
-            return room;
+            return _mapper.Map<RoomResponseDTO>(room);
         }
 
-        public async Task<IEnumerable<Room>> GetAllAsync()
+        public async Task<IEnumerable<RoomResponseDTO>> GetAllAsync()
         {
             var rooms = await _roomRepository.GetAllAsync();
-
-            return rooms ?? Enumerable.Empty<Room>();
+            return _mapper.Map<IEnumerable<RoomResponseDTO>>(rooms);
         }
 
     }

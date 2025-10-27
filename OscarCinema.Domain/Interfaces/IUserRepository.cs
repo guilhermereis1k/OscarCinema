@@ -13,5 +13,6 @@ namespace OscarCinema.Domain.Interfaces
         Task<User> UpdateAsync(User user);
         Task<bool> DeleteAsync(int id);
         Task<User> GetByIdAsync(int id);
+        Task<IEnumerable<User>> GetAllAsync();
     }
 }
