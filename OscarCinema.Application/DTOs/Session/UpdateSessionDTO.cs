@@ -10,7 +10,7 @@ namespace OscarCinema.Application.DTOs.Session
     public class UpdateSessionDTO
     {
         public int MovieId { get; set; }
-        public List<int> Rooms { get; set; } = new();
+        public int RoomId { get; set; } = new();
         public ExhibitionType Exhibition { get; set; }
         public DateTime StartTime { get; set; }
         public TimeSpan? TrailerTime { get; set; }

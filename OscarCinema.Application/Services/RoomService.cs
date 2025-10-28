@@ -41,15 +41,37 @@ namespace OscarCinema.Application.Services
         public async Task<RoomResponseDTO?> UpdateAsync(int id, UpdateRoomDTO dto)
         {
             var existentRoom = await _roomRepository.GetByIdAsync(id);
-
             if (existentRoom == null)
                 return null;
 
-            existentRoom.Update(
-                dto.Number,
-                dto.Name,
-                dto.Seats
-            );
+            existentRoom.Update(dto.Number, dto.Name);
+
+            var updatedSeats = new List<Seat>();
+
+            foreach (var seatDto in dto.Seats)
+            {
+                var existingSeat = existentRoom.Seats.FirstOrDefault(s => s.Id == seatDto.Id);
+
+                if (existingSeat != null)
+                {
+                    existingSeat.Update(seatDto.Id, seatDto.Row, seatDto.Number, seatDto.IsOccupied);
+                    updatedSeats.Add(existingSeat);
+                }
+                else
+                {
+                    var newSeat = new Seat(seatDto.Row, seatDto.Number, seatDto.IsOccupied);
+                    updatedSeats.Add(newSeat);
+                }
+            }
+
+            var seatsToRemove = existentRoom.Seats
+                .Where(s => !dto.Seats.Any(dtoSeat => dtoSeat.Id == s.Id))
+                .ToList();
+
+            foreach (var seat in seatsToRemove)
+                existentRoom.RemoveSeat(seat);
+
+            existentRoom.SetSeats(updatedSeats);
 
             await _roomRepository.UpdateAsync(existentRoom);
 
@@ -82,5 +104,17 @@ namespace OscarCinema.Application.Services
             return _mapper.Map<IEnumerable<RoomResponseDTO>>(rooms);
         }
 
+        public async Task<RoomResponseDTO?> AddSeatsAsync(int roomId, AddSeatsToRoomDTO dto)
+        {
+            var room = await _roomRepository.GetByIdAsync(roomId);
+            if (room == null)
+                return null;
+
+            var newSeats = _mapper.Map<IEnumerable<Seat>>(dto.Seats);
+            room.AddSeats(newSeats);
+
+            await _roomRepository.UpdateAsync(room);
+            return _mapper.Map<RoomResponseDTO>(room);
+        }
     }
 }

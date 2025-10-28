@@ -13,13 +13,13 @@ namespace OscarCinema.Domain.Entities
     {
         public int Id { get; private set; }
 
-        public Movie Movie { get; private set; }
+        public Movie Movie { get; private set; } = null!;
         public int MovieId { get; private set; }
 
-        public Room Room { get; private set; }
+        public Room Room { get; private set; } = null!;
         public int RoomId { get; private set; }
 
-        private readonly List<Seat> _seats = new();
+        private List<Seat> _seats = new();
         public IReadOnlyList<Seat> Seats => _seats.AsReadOnly();
 
         public ExhibitionType Exhibition { get; private set; }
@@ -32,27 +32,56 @@ namespace OscarCinema.Domain.Entities
 
         public Session() { }
 
-        public Session(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition, TimeSpan? trailerTime, TimeSpan? cleaningTime)
+        public Session(
+        int id,
+        Movie movie,
+        Room room,
+        ExhibitionType exhibition,
+        DateTime startTime,
+        TimeSpan trailerTime,
+        TimeSpan cleaningTime)
         {
-            ValidateDomain(movieId, startTime, rooms, exhibition, trailerTime, cleaningTime);
+            ValidateDomain(Movie.Id, StartTime, Room.Id, Exhibition, TrailerTime, CleaningTime);
 
-            MovieId = movieId;
-            StartTime = startTime;
-            _rooms = rooms;
+            Id = id;
+            Movie = movie;
+            Room = room;
             Exhibition = exhibition;
+            StartTime = startTime;
+            TrailerTime = trailerTime;
+            CleaningTime = cleaningTime;
 
-            TrailerTime = trailerTime ?? TimeSpan.FromMinutes(15);
-            CleaningTime = cleaningTime ?? TimeSpan.FromMinutes(10);
+            MovieId = movie.Id;
+            RoomId = room.Id;
+        }
+        public Session(
+        Movie movie,
+        Room room,
+        ExhibitionType exhibition,
+        DateTime startTime,
+        TimeSpan trailerTime,
+        TimeSpan cleaningTime)
+        {
+            ValidateDomain(Movie.Id, StartTime, Room.Id, Exhibition, TrailerTime, CleaningTime);
 
+            Movie = movie;
+            Room = room;
+            Exhibition = exhibition;
+            StartTime = startTime;
+            TrailerTime = trailerTime;
+            CleaningTime = cleaningTime;
+
+            MovieId = movie.Id;
+            RoomId = room.Id;
         }
 
-        public void Update(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition, TimeSpan? trailerTime = null, TimeSpan? cleaningTime = null)
+        public void Update(int movieId, DateTime startTime, int roomId, ExhibitionType exhibition, TimeSpan? trailerTime = null, TimeSpan? cleaningTime = null)
         {
-            ValidateDomain(movieId, startTime, rooms, exhibition, trailerTime, cleaningTime);
+            ValidateDomain(movieId, startTime, roomId, exhibition, trailerTime, cleaningTime);
 
             MovieId = movieId;
             StartTime = startTime;
-            _rooms = rooms;
+            RoomId = roomId;
             Exhibition = exhibition;
 
             if (trailerTime.HasValue)
@@ -62,7 +91,13 @@ namespace OscarCinema.Domain.Entities
                 CleaningTime = cleaningTime.Value;
         }
 
-        private void ValidateDomain(int movieId, DateTime startTime, List<int> rooms, ExhibitionType exhibition, TimeSpan? trailerTime, TimeSpan? cleaningTime)
+        private void ValidateDomain(
+        int movieId,
+        DateTime startTime,
+        int roomId,
+        ExhibitionType exhibition,
+        TimeSpan? trailerTime = null,
+        TimeSpan? cleaningTime = null)
         {
             DomainExceptionValidation.When(movieId <= 0,
                 "Movie ID must be greater than 0.");
@@ -70,17 +105,14 @@ namespace OscarCinema.Domain.Entities
             DomainExceptionValidation.When(startTime <= DateTime.Now,
                 "Session start time must be in the future.");
 
-            DomainExceptionValidation.When(rooms == null || rooms.Count == 0,
-                "Session must have at least one room.");
-
-            DomainExceptionValidation.When(rooms.Any(r => r <= 0),
-                "All room IDs must be positive.");
+            DomainExceptionValidation.When(roomId < 1,
+                "Room is required.");
 
             DomainExceptionValidation.When(!Enum.IsDefined(typeof(ExhibitionType), exhibition),
                 "Invalid exhibition type.");
 
             DomainExceptionValidation.When(trailerTime.HasValue && trailerTime <= TimeSpan.Zero,
-            "Trailer time must be greater than zero.");
+                "Trailer time must be greater than zero.");
 
             DomainExceptionValidation.When(cleaningTime.HasValue && cleaningTime <= TimeSpan.Zero,
                 "Cleaning time must be greater than zero.");

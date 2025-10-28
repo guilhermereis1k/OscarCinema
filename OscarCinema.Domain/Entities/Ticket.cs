@@ -25,8 +25,9 @@ namespace OscarCinema.Domain.Entities
         public Session Session { get; private set; }
         public int SessionId { get; private set; }
 
-        public ICollection<Seat> Seats { get; private set; } = new List<Seat>();
-        public IEnumerable<TicketType> Type { get; private set; }
+        private List<Seat> _seats = new();
+        public IReadOnlyList<Seat> Seats => _seats.AsReadOnly();
+        public IEnumerable<TicketType> Type { get; private set; } = new List<TicketType>();
         public PaymentMethod Method { get; private set; }
 
         public PaymentStatus PaymentStatus { get; private set; }
@@ -40,7 +41,7 @@ namespace OscarCinema.Domain.Entities
             int userId, 
             int movieId, 
             int roomId, 
-            ICollection<Seat> seats, 
+            List<Seat> seats, 
             IEnumerable<TicketType> type, 
             PaymentMethod method, 
             float totalValue)

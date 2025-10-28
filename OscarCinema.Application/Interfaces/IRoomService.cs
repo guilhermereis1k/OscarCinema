@@ -16,5 +16,6 @@ namespace OscarCinema.Application.Interfaces
         Task<bool> DeleteByIdAsync(int id);
         Task<RoomResponseDTO> GetByNumberAsync(int number);
         Task<IEnumerable<RoomResponseDTO>> GetAllAsync();
+        Task<RoomResponseDTO?> AddSeatsAsync(int roomId, AddSeatsToRoomDTO dto);
     }
 }

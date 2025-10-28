@@ -62,7 +62,7 @@ namespace OscarCinema.Application.Services
                 dto.UserId,
                 dto.MovieId,
                 dto.RoomId,
-                _mapper.Map<IEnumerable<Seat>>(dto.SeatsId),
+                _mapper.Map<List<Seat>>(dto.SeatsId),
                 dto.Type,
                 dto.Method,
                 dto.TotalValue

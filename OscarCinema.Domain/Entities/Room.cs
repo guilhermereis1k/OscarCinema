@@ -13,30 +13,26 @@ namespace OscarCinema.Domain.Entities
         public int Id { get; private set; }
         public int Number { get; private set; }
         public string Name { get; private set; }
-        private List<int> _seats = new();
-        public IReadOnlyList<int> Seats => _seats.AsReadOnly();
+        private List<Seat> _seats = new();
+        public IReadOnlyList<Seat> Seats => _seats.AsReadOnly();
 
         public Room() { }
 
-        public Room(int number, string name, List<int> seats)
+        public Room(int number, string name)
         {
-            ValidateDomain(number, name, seats);
+            Number = number;
+            Name = name;
+        }
+
+        public void Update(int number, string name)
+        {
+            ValidateDomain(number, name);
 
             Number = number;
             Name = name;
-            _seats = seats;
         }
 
-        public void Update(int number, string name, List<int> seats)
-        {
-            ValidateDomain(number, name, seats);
-
-            Number = number;
-            Name = name;
-            _seats = seats;
-        }
-
-        private void ValidateDomain(int number, string name, List<int> seats)
+        private void ValidateDomain(int number, string name)
         {
             DomainExceptionValidation.When(number <= 0,
                 "Room number must be greater than 0.");
@@ -44,11 +40,29 @@ namespace OscarCinema.Domain.Entities
             DomainExceptionValidation.When(!string.IsNullOrWhiteSpace(name) && name.Length < 2,
                 "Room name must be at least 2 characters long if provided.");
 
-            DomainExceptionValidation.When(seats == null || seats.Count == 0,
-                "Room must have at least one seat.");
+        }
 
-            DomainExceptionValidation.When(seats.Any(s => s <= 0),
-                "All seats must have a positive number.");
+        public void AddSeats(IEnumerable<Seat> seats)
+        {
+            foreach (var seat in seats)
+            {
+                if (!_seats.Any(s => s.Id == seat.Id))
+                    _seats.Add(seat);
+            }
+        }
+
+        public void RemoveSeat(Seat seat)
+        {
+            var existingSeat = _seats.FirstOrDefault(s => s.Id == seat.Id);
+            if (existingSeat != null)
+                _seats.Remove(existingSeat);
+        }
+
+        public void SetSeats(IEnumerable<Seat> seats)
+        {
+            _seats.Clear();
+            foreach (var seat in seats)
+                _seats.Add(seat);
         }
     }
 }

@@ -1,16 +1,16 @@
 ﻿using OscarCinema.Application.DTOs.Seat;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace OscarCinema.Application.DTOs.Room
 {
-    public class UpdateRoomDTO
+    public class AddSeatsToRoomDTO
     {
-        public int Number { get; set; }
-        public string Name { get; set; }
-        public List<UpdateSeatDTO> Seats { get; set; } = new();
+        [Required]
+        public List<CreateSeatDTO> Seats { get; set; } = new();
     }
 }

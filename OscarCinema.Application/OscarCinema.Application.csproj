@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OscarCinema.Domain\OscarCinema.Domain.csproj" />
+	  <ProjectReference Include="..\OscarCinema.Infrastructure\OscarCinema.Infrastructure.csproj" />
   </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="AutoMapper" Version="15.1.0" />
+	</ItemGroup>
 
 </Project>

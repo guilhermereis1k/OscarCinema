@@ -11,10 +11,20 @@ namespace OscarCinema.Domain.Entities
 {
     public class Movie
     {
+        [Required]
         public int Id { get; private set; }
-        public string Title { get; private set; }
-        public string Description { get; private set; }
-        public string ImageUrl { get; private set; }
+
+        [Required]
+        [StringLength(100)]
+        public string Title { get; private set; } = string.Empty;
+
+        [Required]
+        [StringLength(60)]
+        public string Description { get; private set; } = string.Empty;
+
+        [Required]
+        [Url]
+        public string ImageUrl { get; private set; } = string.Empty;
         public int Duration { get; private set; }
         public MovieGenre Genre { get; private set; }
         public AgeRating AgeRating { get; private set; }

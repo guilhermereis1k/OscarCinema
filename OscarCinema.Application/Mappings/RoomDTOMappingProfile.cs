@@ -17,6 +17,12 @@ namespace OscarCinema.Application.Mappings
             CreateMap<UpdateRoomDTO, Room>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
 
+            CreateMap<AddSeatsToRoomDTO, Room>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.Number, opt => opt.Ignore())
+                .ForMember(dest => dest.Name, opt => opt.Ignore())
+                .ForMember(dest => dest.Seats, opt => opt.Ignore());
+
             CreateMap<Room, RoomResponseDTO>();
         }
     }

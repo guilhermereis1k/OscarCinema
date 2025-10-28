@@ -28,6 +28,22 @@ namespace OscarCinema.Domain.Entities
             Number = number;
         }
 
+        public Seat(int id, int roomId, bool isOccupied, char row, int number)
+        {
+            Id = id;
+            RoomId = roomId;
+            IsOccupied = isOccupied;
+            Row = row;
+            Number = number;
+        }
+
+        public Seat(char row, int number, bool isOccupied)
+        {
+            Row = row;
+            Number = number;
+            IsOccupied = isOccupied;
+        }
+
         public void OccupySeat(int id)
         {
             if (IsOccupied)
@@ -42,6 +58,14 @@ namespace OscarCinema.Domain.Entities
                 throw new InvalidOperationException("Seat is already free.");
 
             IsOccupied = false;
+        }
+
+        public void Update(int id, char row, int number, bool isOccupied)
+        {
+            Id = id;
+            Row = row;
+            Number = number;
+            IsOccupied = isOccupied;
         }
     }
 }
