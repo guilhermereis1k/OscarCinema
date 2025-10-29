@@ -17,29 +17,11 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
             builder.ToTable("Tickets");
             builder.HasKey(t => t.Id);
 
-            builder.Property(t => t.Id)
-                .ValueGeneratedOnAdd();
-
-            builder.Property(t => t.Date)
-                .IsRequired();
-
-            builder.Property(t => t.Method)
-                .HasConversion<string>()
-                .HasMaxLength(20)
-                .IsRequired();
-
-            builder.Property(t => t.PaymentStatus)
-                .HasConversion<string>()
-                .HasMaxLength(20)
-                .IsRequired();
-
-            builder.Property(t => t.TotalValue)
-                .HasPrecision(10, 2)
-                .IsRequired();
-
-            builder.Property(t => t.Paid)
-                .IsRequired()
-                .HasDefaultValue(false);
+            builder.Property(t => t.Date).IsRequired();
+            builder.Property(t => t.Method).HasConversion<string>().HasMaxLength(20).IsRequired();
+            builder.Property(t => t.PaymentStatus).HasConversion<string>().HasMaxLength(20).IsRequired();
+            builder.Property(t => t.TotalValue).HasPrecision(10, 2).IsRequired();
+            builder.Property(t => t.Paid).IsRequired().HasDefaultValue(false);
 
             builder.Property(t => t.Type)
                 .HasConversion(
@@ -48,39 +30,32 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
                           .Select(Enum.Parse<TicketType>)
                           .ToList()
                 )
-                .HasColumnName("TicketTypes")
-                .IsRequired();
+                .HasColumnName("TicketTypes");
 
+            builder.HasOne(t => t.User)
+                .WithMany(u => u.Tickets)
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasData(
-                new
-                {
-                    UserId = 2,
-                    MovieId = 1,
-                    RoomId = 1,
-                    SessionId = 1,
-                    Date = DateTime.Now,
-                    Type = "Standard",
-                    Method = PaymentMethod.CreditCard,
-                    PaymentStatus = PaymentStatus.Approved,
-                    TotalValue = 25.50f,
-                    Paid = true
-                },
+            builder.HasOne(t => t.Movie)
+                .WithMany()
+                .HasForeignKey(t => t.MovieId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-                new
-                {
-                    UserId = 2,
-                    MovieId = 2,
-                    RoomId = 2,
-                    SessionId = 2,
-                    Date = DateTime.Now.AddHours(1),
-                    Type = "VIP",
-                    Method = PaymentMethod.Pix,
-                    PaymentStatus = PaymentStatus.Pending,
-                    TotalValue = 35.00f,
-                    Paid = false
-                }
-            );
+            builder.HasOne(t => t.Room)
+                .WithMany()
+                .HasForeignKey(t => t.RoomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(t => t.Session)
+                .WithMany(s => s.Tickets)
+                .HasForeignKey(t => t.SessionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasMany(t => t.TicketSeats)
+                .WithOne(ts => ts.Ticket)
+                .HasForeignKey(ts => ts.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

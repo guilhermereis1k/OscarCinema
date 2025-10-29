@@ -16,19 +16,21 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
             builder.ToTable("Seats");
             builder.HasKey(s => s.Id);
 
-            builder.Property(s => s.Id)
-                .ValueGeneratedOnAdd();
+            builder.Property(s => s.Row).HasMaxLength(1).IsRequired();
+            builder.Property(s => s.Number).IsRequired();
+            builder.Property(s => s.IsOccupied).IsRequired().HasDefaultValue(false);
 
-            builder.Property(s => s.Row)
-                .HasMaxLength(1)
-                .IsRequired();
+            builder.HasOne(s => s.Room)
+                .WithMany(r => r.Seats)
+                .HasForeignKey(s => s.RoomId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Property(s => s.Number)
-                .IsRequired();
+            builder.HasMany(s => s.TicketSeats)
+                .WithOne(ts => ts.Seat)
+                .HasForeignKey(ts => ts.SeatId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            builder.Property(s => s.IsOccupied)
-                .IsRequired()
-                .HasDefaultValue(false);
+            builder.HasIndex(s => new { s.RoomId, s.Row, s.Number }).IsUnique();
 
             builder.HasData(
                 new {RoomId = 1, Row = 'A', Number = 1, IsOccupied = false },

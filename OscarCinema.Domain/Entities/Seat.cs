@@ -18,6 +18,10 @@ namespace OscarCinema.Domain.Entities
 
         public char Row { get; private set; }
         public int Number { get; private set; }
+
+        private List<TicketSeat> _ticketSeats = new();
+        public IReadOnlyList<TicketSeat> TicketSeats => _ticketSeats.AsReadOnly();
+
         public Seat() { }
 
         public Seat(int roomId, bool isOccupied, char row, int number)

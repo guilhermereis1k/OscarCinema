@@ -99,19 +99,9 @@ namespace OscarCinema.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(1)");
 
-                    b.Property<int?>("SessionId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("TicketId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("RoomId");
-
-                    b.HasIndex("SessionId");
-
-                    b.HasIndex("TicketId");
 
                     b.ToTable("Seats");
                 });
@@ -168,6 +158,9 @@ namespace OscarCinema.Infrastructure.Migrations
                     b.Property<int>("MovieId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("Paid")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<int>("PaymentStatus")
                         .HasColumnType("int");
 
@@ -177,8 +170,8 @@ namespace OscarCinema.Infrastructure.Migrations
                     b.Property<int>("SessionId")
                         .HasColumnType("int");
 
-                    b.Property<float>("TotalValue")
-                        .HasColumnType("float");
+                    b.Property<decimal>("TotalValue")
+                        .HasColumnType("decimal(65,30)");
 
                     b.PrimitiveCollection<string>("Type")
                         .IsRequired()
@@ -198,6 +191,35 @@ namespace OscarCinema.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Tickets");
+                });
+
+            modelBuilder.Entity("OscarCinema.Domain.Entities.TicketSeat", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<int>("SeatId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TicketId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeatId");
+
+                    b.HasIndex("TicketId");
+
+                    b.ToTable("TicketSeats");
                 });
 
             modelBuilder.Entity("OscarCinema.Domain.Entities.User", b =>
@@ -240,14 +262,6 @@ namespace OscarCinema.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("OscarCinema.Domain.Entities.Session", null)
-                        .WithMany("Seats")
-                        .HasForeignKey("SessionId");
-
-                    b.HasOne("OscarCinema.Domain.Entities.Ticket", null)
-                        .WithMany("Seats")
-                        .HasForeignKey("TicketId");
-
                     b.Navigation("Room");
                 });
 
@@ -285,13 +299,13 @@ namespace OscarCinema.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("OscarCinema.Domain.Entities.Session", "Session")
-                        .WithMany()
+                        .WithMany("Tickets")
                         .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("OscarCinema.Domain.Entities.User", "User")
-                        .WithMany()
+                        .WithMany("Tickets")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -305,19 +319,48 @@ namespace OscarCinema.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("OscarCinema.Domain.Entities.TicketSeat", b =>
+                {
+                    b.HasOne("OscarCinema.Domain.Entities.Seat", "Seat")
+                        .WithMany("TicketSeats")
+                        .HasForeignKey("SeatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OscarCinema.Domain.Entities.Ticket", "Ticket")
+                        .WithMany("TicketSeats")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Seat");
+
+                    b.Navigation("Ticket");
+                });
+
             modelBuilder.Entity("OscarCinema.Domain.Entities.Room", b =>
                 {
                     b.Navigation("Seats");
                 });
 
+            modelBuilder.Entity("OscarCinema.Domain.Entities.Seat", b =>
+                {
+                    b.Navigation("TicketSeats");
+                });
+
             modelBuilder.Entity("OscarCinema.Domain.Entities.Session", b =>
                 {
-                    b.Navigation("Seats");
+                    b.Navigation("Tickets");
                 });
 
             modelBuilder.Entity("OscarCinema.Domain.Entities.Ticket", b =>
                 {
-                    b.Navigation("Seats");
+                    b.Navigation("TicketSeats");
+                });
+
+            modelBuilder.Entity("OscarCinema.Domain.Entities.User", b =>
+                {
+                    b.Navigation("Tickets");
                 });
 #pragma warning restore 612, 618
         }

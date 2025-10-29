@@ -76,6 +76,30 @@ namespace OscarCinema.Infrastructure.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "Seats",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    RoomId = table.Column<int>(type: "int", nullable: false),
+                    IsOccupied = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    Row = table.Column<string>(type: "varchar(1)", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Number = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Seats", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Seats_Rooms_RoomId",
+                        column: x => x.RoomId,
+                        principalTable: "Rooms",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Sessions",
                 columns: table => new
                 {
@@ -121,7 +145,8 @@ namespace OscarCinema.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Method = table.Column<int>(type: "int", nullable: false),
                     PaymentStatus = table.Column<int>(type: "int", nullable: false),
-                    TotalValue = table.Column<float>(type: "float", nullable: false)
+                    TotalValue = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    Paid = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -154,38 +179,31 @@ namespace OscarCinema.Infrastructure.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "Seats",
+                name: "TicketSeats",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    RoomId = table.Column<int>(type: "int", nullable: false),
-                    IsOccupied = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Row = table.Column<string>(type: "varchar(1)", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Number = table.Column<int>(type: "int", nullable: false),
-                    SessionId = table.Column<int>(type: "int", nullable: true),
-                    TicketId = table.Column<int>(type: "int", nullable: true)
+                    TicketId = table.Column<int>(type: "int", nullable: false),
+                    SeatId = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(65,30)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Seats", x => x.Id);
+                    table.PrimaryKey("PK_TicketSeats", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Seats_Rooms_RoomId",
-                        column: x => x.RoomId,
-                        principalTable: "Rooms",
+                        name: "FK_TicketSeats_Seats_SeatId",
+                        column: x => x.SeatId,
+                        principalTable: "Seats",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Seats_Sessions_SessionId",
-                        column: x => x.SessionId,
-                        principalTable: "Sessions",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Seats_Tickets_TicketId",
+                        name: "FK_TicketSeats_Tickets_TicketId",
                         column: x => x.TicketId,
                         principalTable: "Tickets",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -193,16 +211,6 @@ namespace OscarCinema.Infrastructure.Migrations
                 name: "IX_Seats_RoomId",
                 table: "Seats",
                 column: "RoomId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Seats_SessionId",
-                table: "Seats",
-                column: "SessionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Seats_TicketId",
-                table: "Seats",
-                column: "TicketId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_MovieId",
@@ -233,11 +241,24 @@ namespace OscarCinema.Infrastructure.Migrations
                 name: "IX_Tickets_UserId",
                 table: "Tickets",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TicketSeats_SeatId",
+                table: "TicketSeats",
+                column: "SeatId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TicketSeats_TicketId",
+                table: "TicketSeats",
+                column: "TicketId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "TicketSeats");
+
             migrationBuilder.DropTable(
                 name: "Seats");
 

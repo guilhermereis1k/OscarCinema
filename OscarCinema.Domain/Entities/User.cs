@@ -26,6 +26,10 @@ namespace OscarCinema.Domain.Entities
         public string Password { get; private set; }
         public UserRole Role { get; private set; }
 
+
+        private List<Ticket> _tickets = new();
+        public IReadOnlyList<Ticket> Tickets => _tickets.AsReadOnly();
+
         public User() { }
 
         public User(string name, string documentNumber, string email, string password, UserRole role)
@@ -48,6 +52,12 @@ namespace OscarCinema.Domain.Entities
             Email = email;
             Password = password;
             Role = role;
+        }
+
+        public void AddTicket(Ticket ticket)
+        {
+            DomainExceptionValidation.When(ticket == null, "Ticket cannot be null");
+            _tickets.Add(ticket);
         }
 
         private void ValidateDomain(string name, string documentNumber, string email, string password, UserRole role)

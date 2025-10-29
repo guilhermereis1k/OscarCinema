@@ -68,6 +68,9 @@ builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 
+builder.Services.AddScoped<ITicketSeatRepository, TicketSeatRepository>();
+builder.Services.AddScoped<ITicketSeatService, TicketSeatService>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
