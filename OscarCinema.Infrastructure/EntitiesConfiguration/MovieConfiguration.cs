@@ -22,7 +22,7 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
                 .IsRequired();
 
             builder.Property(m => m.Description)
-                .HasMaxLength(500)
+                .HasMaxLength(1000)
                 .IsRequired();
 
             builder.Property(m => m.ImageUrl)
@@ -41,13 +41,6 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
                 .HasConversion<string>()
                 .HasMaxLength(20)
                 .IsRequired();
-
-            builder.HasData(
-                new Movie("The Matrix", "A computer hacker learns about the true nature of reality...",
-                         "https://example.com/matrix.jpg", 136, MovieGenre.SciFi, AgeRating.Age12),
-                new Movie("Inception", "A thief who steals corporate secrets through dream-sharing technology...",
-                         "https://example.com/inception.jpg", 148, MovieGenre.Action, AgeRating.Age14)
-            );
         }
     }
 }

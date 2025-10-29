@@ -35,38 +35,6 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
                 .IsRequired();
 
             builder.Ignore(s => s.EndTime);
-
-            builder.HasData(
-                new
-                {
-                    MovieId = 1,
-                    RoomId = 1,
-                    Exhibition = ExhibitionType.TwoD,
-                    StartTime = DateTime.Now.AddHours(2),
-                    TrailerTime = TimeSpan.FromMinutes(15),
-                    CleaningTime = TimeSpan.FromMinutes(10)
-                },
-
-                new
-                {
-                    MovieId = 2,
-                    RoomId = 2,
-                    Exhibition = ExhibitionType.TwoD,
-                    StartTime = DateTime.Now.AddHours(4),
-                    TrailerTime = TimeSpan.FromMinutes(20),
-                    CleaningTime = TimeSpan.FromMinutes(15)
-                },
-
-                new
-                {
-                    MovieId = 1,
-                    RoomId = 3,
-                    Exhibition = ExhibitionType.IMAX2D,
-                    StartTime = DateTime.Now.AddHours(6),
-                    TrailerTime = TimeSpan.FromMinutes(10),
-                    CleaningTime = TimeSpan.FromMinutes(5)
-                }
-            );
         }
     }
 }

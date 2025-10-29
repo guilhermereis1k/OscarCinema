@@ -23,15 +23,6 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
             builder.Property(t => t.TotalValue).HasPrecision(10, 2).IsRequired();
             builder.Property(t => t.Paid).IsRequired().HasDefaultValue(false);
 
-            builder.Property(t => t.Type)
-                .HasConversion(
-                    v => string.Join(',', v),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                          .Select(Enum.Parse<TicketType>)
-                          .ToList()
-                )
-                .HasColumnName("TicketTypes");
-
             builder.HasOne(t => t.User)
                 .WithMany(u => u.Tickets)
                 .HasForeignKey(t => t.UserId)

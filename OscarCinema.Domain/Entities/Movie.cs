@@ -19,7 +19,6 @@ namespace OscarCinema.Domain.Entities
         public string Title { get; private set; } = string.Empty;
 
         [Required]
-        [StringLength(60)]
         public string Description { get; private set; } = string.Empty;
 
         [Required]
@@ -66,7 +65,7 @@ namespace OscarCinema.Domain.Entities
             DomainExceptionValidation.When(string.IsNullOrWhiteSpace(description),
                 "Description is required.");
 
-            DomainExceptionValidation.When(description.Length < 20,
+            DomainExceptionValidation.When(description.Length < 2,
                 "Description must be at least 20 characters long.");
 
             DomainExceptionValidation.When(string.IsNullOrWhiteSpace(imageUrl),

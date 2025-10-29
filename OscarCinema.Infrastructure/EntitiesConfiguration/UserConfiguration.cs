@@ -20,25 +20,6 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
 
             builder.Property(u => u.Id)
                 .ValueGeneratedOnAdd();
-
-            builder.HasData(
-                new
-                {
-                    Name = "Admin User",
-                    DocumentNumber = "12345678900",
-                    Email = "admin@oscarcinema.com",
-                    Password = "hashed_password",
-                    Role = UserRole.ADMIN
-                },
-                new
-                {
-                    Name = "John Doe",
-                    DocumentNumber = "98765432100",
-                    Email = "john@example.com",
-                    Password = "hashed_password",
-                    Role = UserRole.ADMIN
-                }
-            );
         }
     }
 }

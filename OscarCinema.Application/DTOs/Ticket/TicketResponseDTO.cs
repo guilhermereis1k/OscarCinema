@@ -1,4 +1,5 @@
-﻿using OscarCinema.Domain.Enums.Ticket;
+﻿using OscarCinema.Application.DTOs.TicketSeat;
+using OscarCinema.Domain.Enums.Ticket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +15,11 @@ namespace OscarCinema.Application.DTOs.Ticket
         public int UserId { get; set; }
         public int MovieId { get; set; }
         public int RoomId { get; set; }
-        public IEnumerable<int> SeatsId { get; set; } = new List<int>();
-        public IEnumerable<TicketType> Type { get; set; } = new List<TicketType>();
+        public int SessionId { get; set; }
         public PaymentMethod Method { get; set; }
-        public float TotalValue { get; set; }
-        public bool Paid { get; set; }
+        public PaymentStatus PaymentStatus { get; set; }
+        public decimal TotalValue { get; set; }
+        public IEnumerable<TicketSeatResponseDTO> TicketSeats { get; set; } = new List<TicketSeatResponseDTO>();
+        public bool Paid;
     }
 }

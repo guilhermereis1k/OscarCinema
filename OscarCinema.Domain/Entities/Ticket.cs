@@ -28,10 +28,10 @@ namespace OscarCinema.Domain.Entities
         private List<TicketSeat> _ticketSeats = new();
         public IReadOnlyList<TicketSeat> TicketSeats => _ticketSeats.AsReadOnly();
 
-        public IEnumerable<TicketType> Type { get; private set; } = new List<TicketType>();
         public PaymentMethod Method { get; private set; }
         public PaymentStatus PaymentStatus { get; private set; }
         public decimal TotalValue { get; private set; }
+
         public bool Paid { get; private set; } = false;
 
         public Ticket() { }
@@ -42,21 +42,21 @@ namespace OscarCinema.Domain.Entities
             int movieId,
             int roomId,
             int sessionId,
-            IEnumerable<TicketType> type,
             PaymentMethod method,
-            decimal totalValue)
+            PaymentStatus paymentStatus,
+            bool paid)
         {
-            ValidateDomain(date, userId, movieId, roomId, sessionId, type, method, totalValue);
+            ValidateDomain(date, userId, movieId, roomId, sessionId, method);
 
             Date = date;
             UserId = userId;
             MovieId = movieId;
             RoomId = roomId;
             SessionId = sessionId;
-            Type = type;
             Method = method;
-            TotalValue = totalValue;
-            PaymentStatus = PaymentStatus.Pending;
+            PaymentStatus = paymentStatus;
+            Paid = paid;
+            TotalValue = 0;
         }
 
         public void Update(
@@ -65,25 +65,43 @@ namespace OscarCinema.Domain.Entities
            int movieId,
            int roomId,
            int sessionId,
-           IEnumerable<TicketType> type,
            PaymentMethod method,
-           decimal totalValue)
+           PaymentStatus paymentStatus,
+           decimal totalValue,
+           bool paid)
         {
-            ValidateDomain(date, userId, movieId, roomId, sessionId, type, method, totalValue);
+            ValidateDomain(date, userId, movieId, roomId, sessionId, method);
 
             Date = date;
             UserId = userId;
             MovieId = movieId;
             RoomId = roomId;
             SessionId = sessionId;
-            Type = type;
             Method = method;
-            TotalValue = totalValue;
+            PaymentStatus = paymentStatus;
+            Paid = paid;
         }
+
         public void AddTicketSeat(TicketSeat ticketSeat)
         {
             DomainExceptionValidation.When(ticketSeat == null, "TicketSeat cannot be null");
             _ticketSeats.Add(ticketSeat);
+
+            UpdateTotalBasedOnSeats();
+        }
+
+        public void RemoveTicketSeat(TicketSeat ticketSeat)
+        {
+            DomainExceptionValidation.When(ticketSeat == null, "TicketSeat cannot be null");
+            DomainExceptionValidation.When(!_ticketSeats.Contains(ticketSeat), "TicketSeat not found");
+
+            _ticketSeats.Remove(ticketSeat);
+            UpdateTotalBasedOnSeats();
+        }
+
+        public void UpdateTotalBasedOnSeats()
+        {
+            TotalValue = _ticketSeats.Sum(ts => ts.Price);
         }
 
         public decimal CalculateTotalFromSeats()
@@ -91,8 +109,25 @@ namespace OscarCinema.Domain.Entities
             return _ticketSeats.Sum(ts => ts.Price);
         }
 
-        private void ValidateDomain(DateTime date, int userId, int movieId, int roomId, int sessionId,
-            IEnumerable<TicketType> type, PaymentMethod method, decimal totalValue)
+        public void MarkAsPaid()
+        {
+            Paid = true;
+            PaymentStatus = PaymentStatus.Approved;
+        }
+
+        public void MarkAsPending()
+        {
+            Paid = false;
+            PaymentStatus = PaymentStatus.Pending;
+        }
+
+        public void UpdatePaymentStatus(PaymentStatus status)
+        {
+            PaymentStatus = status;
+            Paid = (status == PaymentStatus.Approved);
+        }
+
+        private void ValidateDomain(DateTime date, int userId, int movieId, int roomId, int sessionId, PaymentMethod method)
         {
             DomainExceptionValidation.When(date < DateTime.Now,
                 "Ticket date cannot be in the past.");
@@ -102,14 +137,8 @@ namespace OscarCinema.Domain.Entities
             DomainExceptionValidation.When(roomId <= 0, "Room ID must be greater than 0.");
             DomainExceptionValidation.When(sessionId <= 0, "Session ID must be greater than 0.");
 
-            DomainExceptionValidation.When(type == null || !type.Any(),
-                "At least one ticket type must be selected.");
-
             DomainExceptionValidation.When(!Enum.IsDefined(typeof(PaymentMethod), method),
                 "Invalid payment method.");
-
-            DomainExceptionValidation.When(totalValue <= 0,
-                "Total value must be greater than 0.");
         }
 
     }

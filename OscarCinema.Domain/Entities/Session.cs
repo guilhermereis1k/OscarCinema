@@ -34,24 +34,21 @@ namespace OscarCinema.Domain.Entities
 
 
         public Session(
-            Movie movie,
-            Room room,
+            int movieId,
+            int roomId,
             ExhibitionType exhibition,
             DateTime startTime,
             TimeSpan trailerTime,
             TimeSpan cleaningTime)
         {
-            ValidateDomain(movie.Id, startTime, room.Id, exhibition, trailerTime, cleaningTime);
+            ValidateDomain(movieId, startTime, roomId, exhibition, trailerTime, cleaningTime);
 
-            Movie = movie;
-            Room = room;
+            MovieId = movieId;
+            RoomId = roomId;
             Exhibition = exhibition;
             StartTime = startTime;
             TrailerTime = trailerTime;
             CleaningTime = cleaningTime;
-
-            MovieId = movie.Id;
-            RoomId = room.Id;
         }
 
         public void Update(

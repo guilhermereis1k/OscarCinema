@@ -31,24 +31,6 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasIndex(s => new { s.RoomId, s.Row, s.Number }).IsUnique();
-
-            builder.HasData(
-                new {RoomId = 1, Row = 'A', Number = 1, IsOccupied = false },
-                new {RoomId = 1, Row = 'A', Number = 2, IsOccupied = false },
-                new {RoomId = 1, Row = 'A', Number = 3, IsOccupied = false },
-                new {RoomId = 1, Row = 'A', Number = 4, IsOccupied = false },
-                new {RoomId = 1, Row = 'A', Number = 5, IsOccupied = false },
-
-                new {RoomId = 2, Row = 'A', Number = 1, IsOccupied = false },
-                new {RoomId = 2, Row = 'A', Number = 2, IsOccupied = false },
-                new {RoomId = 2, Row = 'A', Number = 3, IsOccupied = false },
-                new {RoomId = 2, Row = 'A', Number = 4, IsOccupied = false },
-
-                new {RoomId = 3, Row = 'V', Number = 1, IsOccupied = false },
-                new {RoomId = 3, Row = 'V', Number = 2, IsOccupied = false },
-                new {RoomId = 3, Row = 'V', Number = 3, IsOccupied = false },
-                new {RoomId = 3, Row = 'V', Number = 4, IsOccupied = false }
-            );
         }
     }
 }

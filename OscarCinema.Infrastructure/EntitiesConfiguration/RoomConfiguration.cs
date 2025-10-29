@@ -30,12 +30,6 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
                 .WithOne(s => s.Room)
                 .HasForeignKey(s => s.RoomId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasData(
-                new { Id = 1, Number = 1, Name = "Sala 1" },
-                new { Id = 2, Number = 2, Name = "Sala 2" },
-                new { Id = 3, Number = 3, Name = "Sala VIP" }
-            );
         }
     }
 }
