@@ -54,12 +54,12 @@ namespace OscarCinema.Application.Services
 
                 if (existingSeat != null)
                 {
-                    existingSeat.Update(seatDto.Id, seatDto.Row, seatDto.Number, seatDto.IsOccupied);
+                    existingSeat.Update(seatDto.Id, seatDto.Row, seatDto.Number, seatDto.IsOccupied, seatDto.SeatTypeId);
                     updatedSeats.Add(existingSeat);
                 }
                 else
                 {
-                    var newSeat = new Seat(seatDto.Row, seatDto.Number, seatDto.IsOccupied);
+                    var newSeat = new Seat(seatDto.Row, seatDto.Number, seatDto.IsOccupied, seatDto.SeatTypeId);
                     updatedSeats.Add(newSeat);
                 }
             }

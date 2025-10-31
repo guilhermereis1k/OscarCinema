@@ -57,6 +57,64 @@ namespace OscarCinema.Infrastructure.Migrations
                     b.ToTable("Movies");
                 });
 
+            modelBuilder.Entity("OscarCinema.Domain.Entities.Pricing.ExhibitionType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<string>("TechnicalSpecs")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ExhibitionTypes");
+                });
+
+            modelBuilder.Entity("OscarCinema.Domain.Entities.Pricing.SeatType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SeatTypes");
+                });
+
             modelBuilder.Entity("OscarCinema.Domain.Entities.Room", b =>
                 {
                     b.Property<int>("Id")
@@ -98,9 +156,14 @@ namespace OscarCinema.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(1)");
 
+                    b.Property<int>("SeatTypeId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RoomId");
+
+                    b.HasIndex("SeatTypeId");
 
                     b.ToTable("Seats");
                 });
@@ -116,7 +179,7 @@ namespace OscarCinema.Infrastructure.Migrations
                     b.Property<TimeSpan>("CleaningTime")
                         .HasColumnType("time(6)");
 
-                    b.Property<int>("Exhibition")
+                    b.Property<int>("ExhibitionTypeId")
                         .HasColumnType("int");
 
                     b.Property<int>("MovieId")
@@ -132,6 +195,8 @@ namespace OscarCinema.Infrastructure.Migrations
                         .HasColumnType("time(6)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ExhibitionTypeId");
 
                     b.HasIndex("MovieId");
 
@@ -257,11 +322,25 @@ namespace OscarCinema.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("OscarCinema.Domain.Entities.Pricing.SeatType", "SeatType")
+                        .WithMany()
+                        .HasForeignKey("SeatTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Room");
+
+                    b.Navigation("SeatType");
                 });
 
             modelBuilder.Entity("OscarCinema.Domain.Entities.Session", b =>
                 {
+                    b.HasOne("OscarCinema.Domain.Entities.Pricing.ExhibitionType", "ExhibitionType")
+                        .WithMany()
+                        .HasForeignKey("ExhibitionTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("OscarCinema.Domain.Entities.Movie", "Movie")
                         .WithMany()
                         .HasForeignKey("MovieId")
@@ -273,6 +352,8 @@ namespace OscarCinema.Infrastructure.Migrations
                         .HasForeignKey("RoomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ExhibitionType");
 
                     b.Navigation("Movie");
 

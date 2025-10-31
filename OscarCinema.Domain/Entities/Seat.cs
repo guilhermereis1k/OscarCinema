@@ -1,4 +1,5 @@
-﻿using OscarCinema.Domain.Enums;
+﻿using OscarCinema.Domain.Entities.Pricing;
+using OscarCinema.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,33 +20,37 @@ namespace OscarCinema.Domain.Entities
         public char Row { get; private set; }
         public int Number { get; private set; }
 
+        public SeatType SeatType { get; private set; }
+        public int SeatTypeId { get; private set; }
+
         private List<TicketSeat> _ticketSeats = new();
         public IReadOnlyList<TicketSeat> TicketSeats => _ticketSeats.AsReadOnly();
 
         public Seat() { }
 
-        public Seat(int roomId, bool isOccupied, char row, int number)
+        public Seat(int roomId, bool isOccupied, char row, int number, int seatTypeId)
         {
             RoomId = roomId;
             IsOccupied = isOccupied;
             Row = row;
             Number = number;
+            SeatTypeId = seatTypeId;
         }
 
-        public Seat(int id, int roomId, bool isOccupied, char row, int number)
+        public Seat(int roomId,char row, int number, int seatTypeId)
         {
-            Id = id;
             RoomId = roomId;
-            IsOccupied = isOccupied;
             Row = row;
             Number = number;
+            SeatTypeId = seatTypeId;
         }
 
-        public Seat(char row, int number, bool isOccupied)
+        public Seat(char row, int number, bool isOccupied, int seatTypeId)
         {
             Row = row;
             Number = number;
             IsOccupied = isOccupied;
+            SeatTypeId = seatTypeId;
         }
 
         public void OccupySeat(int id)
@@ -64,12 +69,13 @@ namespace OscarCinema.Domain.Entities
             IsOccupied = false;
         }
 
-        public void Update(int id, char row, int number, bool isOccupied)
+        public void Update(int id, char row, int number, bool isOccupied, int seatTypeId)
         {
             Id = id;
             Row = row;
             Number = number;
             IsOccupied = isOccupied;
+            SeatTypeId = seatTypeId;
         }
     }
 }

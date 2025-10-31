@@ -29,9 +29,13 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
             builder.Property(s => s.CleaningTime)
                 .IsRequired();
 
-            builder.Property(s => s.Exhibition)
-                .HasConversion<string>()
-                .HasMaxLength(20)
+            builder.HasOne(s => s.ExhibitionType)
+                .WithMany() 
+                .HasForeignKey(s => s.ExhibitionTypeId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            builder.Property(s => s.ExhibitionTypeId)
                 .IsRequired();
 
             builder.Ignore(s => s.EndTime);

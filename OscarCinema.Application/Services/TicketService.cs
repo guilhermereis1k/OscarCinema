@@ -5,6 +5,7 @@ using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.Ticket;
 using OscarCinema.Domain.Interfaces;
+using OscarCinema.Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,23 +18,31 @@ namespace OscarCinema.Application.Services
     {
         private readonly ITicketRepository _ticketRepository;
         private readonly ISeatRepository _seatRepository;
+        private readonly ISessionRepository _sessionRepository;
         private readonly ITicketSeatService _ticketSeatService;
+        private readonly IPricingService _pricingService;
         private readonly IMapper _mapper;
 
         public TicketService(
             ITicketRepository ticketRepository,
             ISeatRepository seatRepository,
+            ISessionRepository sessionRepository,
             ITicketSeatService ticketSeatService,
+            IPricingService pricingService,
             IMapper mapper)
         {
             _ticketRepository = ticketRepository;
             _seatRepository = seatRepository;
+            _sessionRepository = sessionRepository;
             _ticketSeatService = ticketSeatService;
+            _pricingService = pricingService;
             _mapper = mapper;
         }
 
         public async Task<TicketResponseDTO> CreateAsync(CreateTicketDTO dto)
         {
+            var session = await _sessionRepository.GetByIdAsync(dto.SessionId);
+
             var ticket = new Ticket(
                 dto.Date,
                 dto.UserId,
@@ -42,35 +51,32 @@ namespace OscarCinema.Application.Services
                 dto.SessionId,
                 dto.Method,
                 dto.PaymentStatus,
-                dto.TotalValue,
                 dto.Paid
             );
 
+            foreach (var seatDto in dto.TicketSeats)
+            {
+                var seat = await _seatRepository.GetByIdAsync(seatDto.SeatId);
+
+                var price = _pricingService.CalculateSeatPrice(
+                    session.ExhibitionType,
+                    seat.SeatType
+                );
+
+                var ticketSeat = new TicketSeat(
+                    ticketId: ticket.Id,
+                    seatId: seatDto.SeatId,
+                    type: seatDto.Type,
+                    price: price
+                );
+
+                ticket.AddTicketSeat(ticketSeat);
+            }
+
             await _ticketRepository.CreateAsync(ticket);
+            var response = _mapper.Map<TicketResponseDTO>(ticket);
 
-            var ticketSeatDtos = new List<CreateTicketSeatDTO>();
-
-            foreach (var seatInfo in dto.TicketSeats)
-            {
-                var seat = await _seatRepository.GetByIdAsync(seatInfo.SeatId);
-                if (seat != null)
-                {
-                    ticketSeatDtos.Add(new CreateTicketSeatDTO
-                    {
-                        TicketId = ticket.Id,
-                        SeatId = seatInfo.SeatId,
-                        Type = seatInfo.Type,
-                        Price = CalculateSeatPrice(seatInfo.Type, seat)
-                    });
-                }
-            }
-
-            if (ticketSeatDtos.Any())
-            {
-                await _ticketSeatService.CreateMultipleAsync(ticketSeatDtos);
-            }
-
-            return await GetByIdAsync(ticket.Id);
+            return response;
         }
 
         public async Task<TicketResponseDTO?> UpdateAsync(int id, UpdateTicketDTO dto)
@@ -87,7 +93,6 @@ namespace OscarCinema.Application.Services
                 dto.SessionId,
                 dto.Method,
                 dto.PaymentStatus,
-                dto.TotalValue,
                 dto.Paid
             );
 
@@ -160,17 +165,6 @@ namespace OscarCinema.Application.Services
             }
 
             return response;
-        }
-
-        private decimal CalculateSeatPrice(TicketType ticketType, Seat seat)
-        {
-            return ticketType switch
-            {
-                TicketType.Full => 25.00m,
-                TicketType.Half => 12.50m,
-                TicketType.StudentHalf => 12.50m,
-                _ => 25.00m
-            };
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using OscarCinema.Domain.Enums.Movie;
+﻿using OscarCinema.Domain.Entities.Pricing;
+using OscarCinema.Domain.Enums.Movie;
 using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
@@ -22,7 +23,8 @@ namespace OscarCinema.Domain.Entities
         private List<Ticket> _tickets = new();
         public IReadOnlyList<Ticket> Tickets => _tickets.AsReadOnly();
 
-        public ExhibitionType Exhibition { get; private set; }
+        public ExhibitionType ExhibitionType { get; private set; }
+        public int ExhibitionTypeId { get; private set; }
 
         public DateTime StartTime { get; private set; }
         public TimeSpan TrailerTime { get; private set; }
@@ -36,16 +38,16 @@ namespace OscarCinema.Domain.Entities
         public Session(
             int movieId,
             int roomId,
-            ExhibitionType exhibition,
+            int exhibitionTypeId,
             DateTime startTime,
             TimeSpan trailerTime,
             TimeSpan cleaningTime)
         {
-            ValidateDomain(movieId, startTime, roomId, exhibition, trailerTime, cleaningTime);
+            ValidateDomain(movieId, startTime, roomId, exhibitionTypeId, trailerTime, cleaningTime);
 
             MovieId = movieId;
             RoomId = roomId;
-            Exhibition = exhibition;
+            ExhibitionTypeId = exhibitionTypeId;
             StartTime = startTime;
             TrailerTime = trailerTime;
             CleaningTime = cleaningTime;
@@ -55,16 +57,16 @@ namespace OscarCinema.Domain.Entities
             int movieId,
             DateTime startTime,
             int roomId,
-            ExhibitionType exhibition,
+            int exhibitionTypeId,
             TimeSpan? trailerTime = null,
             TimeSpan? cleaningTime = null)
         {
-            ValidateDomain(movieId, startTime, roomId, exhibition, trailerTime, cleaningTime);
+            ValidateDomain(movieId, startTime, roomId, exhibitionTypeId, trailerTime, cleaningTime);
 
             MovieId = movieId;
             StartTime = startTime;
             RoomId = roomId;
-            Exhibition = exhibition;
+            ExhibitionTypeId = exhibitionTypeId;
 
             if (trailerTime.HasValue)
                 TrailerTime = trailerTime.Value;
@@ -94,7 +96,7 @@ namespace OscarCinema.Domain.Entities
             int movieId,
             DateTime startTime,
             int roomId,
-            ExhibitionType exhibition,
+            int exhibitionTypeId,
             TimeSpan? trailerTime = null,
             TimeSpan? cleaningTime = null)
         {
@@ -107,8 +109,8 @@ namespace OscarCinema.Domain.Entities
             DomainExceptionValidation.When(roomId <= 0,
                 "Room ID must be greater than 0.");
 
-            DomainExceptionValidation.When(!Enum.IsDefined(typeof(ExhibitionType), exhibition),
-                "Invalid exhibition type.");
+            DomainExceptionValidation.When(exhibitionTypeId <= 0,
+                "Room ID must be greater than 0.");
 
             DomainExceptionValidation.When(trailerTime.HasValue && trailerTime <= TimeSpan.Zero,
                 "Trailer time must be greater than zero.");

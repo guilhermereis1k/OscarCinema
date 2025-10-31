@@ -8,8 +8,8 @@ namespace OscarCinema.Domain.Enums.Ticket
 {
     public enum TicketType
     {
-        Full, // Inteira
-        Half, // Meia
-        StudentHalf // Meia de estudante (necessita validação de documento de estudante)
+        Full,
+        Half,
+        StudentHalf
     }
 }

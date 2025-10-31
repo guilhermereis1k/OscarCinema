@@ -57,6 +57,8 @@ namespace OscarCinema.Domain.Entities
             PaymentStatus = paymentStatus;
             Paid = paid;
             TotalValue = 0;
+
+            CalculateTotalFromSeats();
         }
 
         public void Update(
@@ -67,7 +69,6 @@ namespace OscarCinema.Domain.Entities
            int sessionId,
            PaymentMethod method,
            PaymentStatus paymentStatus,
-           decimal totalValue,
            bool paid)
         {
             ValidateDomain(date, userId, movieId, roomId, sessionId, method);
@@ -80,6 +81,8 @@ namespace OscarCinema.Domain.Entities
             Method = method;
             PaymentStatus = paymentStatus;
             Paid = paid;
+
+            UpdateTotalBasedOnSeats();
         }
 
         public void AddTicketSeat(TicketSeat ticketSeat)

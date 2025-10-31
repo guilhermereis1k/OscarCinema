@@ -30,6 +30,15 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
                 .HasForeignKey(ts => ts.SeatId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(s => s.SeatType)
+                .WithMany()
+                .HasForeignKey(s => s.SeatTypeId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            builder.Property(s => s.SeatTypeId)
+                .IsRequired();
+
             builder.HasIndex(s => new { s.RoomId, s.Row, s.Number }).IsUnique();
         }
     }

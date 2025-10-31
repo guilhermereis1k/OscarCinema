@@ -12,5 +12,6 @@ namespace OscarCinema.Application.DTOs.Seat
         public char Row { get; set; }
         public int Number { get; set; }
         public bool IsOccupied { get; set; }
+        public int SeatTypeId { get; set; }
     }
 }

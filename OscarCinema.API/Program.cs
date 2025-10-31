@@ -54,6 +54,14 @@ builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<ITicketSeatService, TicketSeatService>();
 builder.Services.AddScoped<ITicketSeatRepository, TicketSeatRepository>();
 
+builder.Services.AddScoped<IExhibitionTypeService, ExhibitionTypeService>();
+builder.Services.AddScoped<IExhibitionTypeRepository, ExhibitionTypeRepository>();
+
+builder.Services.AddScoped<ISeatTypeService, SeatTypeService>();
+builder.Services.AddScoped<ISeatTypeRepository, SeatTypeRepository>();
+
+builder.Services.AddScoped<IPricingService, PricingService>();
+
 Console.WriteLine("🚀 Starting application...");
 
 try

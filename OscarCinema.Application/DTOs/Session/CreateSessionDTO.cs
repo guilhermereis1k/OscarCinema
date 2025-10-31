@@ -1,4 +1,5 @@
-﻿using OscarCinema.Domain.Enums.Movie;
+﻿using OscarCinema.Domain.Entities.Pricing;
+using OscarCinema.Domain.Enums.Movie;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,7 @@ namespace OscarCinema.Application.DTOs.Session
     {
         public int MovieId { get; set; }
         public int RoomId { get; set; } = new();
-        public ExhibitionType Exhibition { get; set; }
+        public int ExhibitionTypeId { get; set; }
         public DateTime StartTime { get; set; }
         public TimeSpan? TrailerTime { get; set; }
         public TimeSpan? CleaningTime { get; set; }

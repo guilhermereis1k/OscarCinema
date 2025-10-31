@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OscarCinema.Domain.Entities;
+using OscarCinema.Domain.Entities.Pricing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,10 @@ namespace OscarCinema.Infrastructure.Context
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<TicketSeat> TicketSeats { get; set; }
+
+
+        public DbSet<SeatType> SeatTypes { get; set; }
+        public DbSet<ExhibitionType> ExhibitionTypes { get; set; }
 
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OscarCinema.Domain.Entities.Pricing;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,5 +13,6 @@ namespace OscarCinema.Application.DTOs.Seat
         private bool IsOccupied { get; set; }
         public char Row { get; set; }
         public int Number { get; set; }
+        public int SeatTypeId { get; set; }
     }
 }

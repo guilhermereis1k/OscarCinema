@@ -33,7 +33,7 @@ namespace OscarCinema.Application.Services
             var existentSession = await _sessionRepository.GetByIdAsync(id);
             if (existentSession == null) return null;
 
-            existentSession.Update(dto.MovieId, dto.StartTime, dto.RoomId, dto.Exhibition);
+            existentSession.Update(dto.MovieId, dto.StartTime, dto.RoomId, dto.ExhibitionTypeId);
             await _sessionRepository.UpdateAsync(existentSession);
 
             return _mapper.Map<SessionResponseDTO>(existentSession);
