@@ -33,11 +33,10 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.AddProfile<TicketSeatMappingProfile>();
 });
 
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
 
-builder.Services.AddScoped<IMovieService, MovieService>();
-builder.Services.AddScoped<IMovieRepository, MovieRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IRoomRepository, RoomRepository>();
@@ -55,10 +54,12 @@ builder.Services.AddScoped<ITicketSeatService, TicketSeatService>();
 builder.Services.AddScoped<ITicketSeatRepository, TicketSeatRepository>();
 
 builder.Services.AddScoped<IExhibitionTypeService, ExhibitionTypeService>();
-builder.Services.AddScoped<IExhibitionTypeRepository, ExhibitionTypeRepository>();
+
+builder.Services.AddScoped<IUserService, UserService>();
+
+builder.Services.AddScoped<IMovieService, MovieService>();
 
 builder.Services.AddScoped<ISeatTypeService, SeatTypeService>();
-builder.Services.AddScoped<ISeatTypeRepository, SeatTypeRepository>();
 
 builder.Services.AddScoped<IPricingService, PricingService>();
 

@@ -4,6 +4,7 @@ using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Entities.Pricing;
 using OscarCinema.Domain.Interfaces;
+using OscarCinema.Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,52 +15,59 @@ namespace OscarCinema.Application.Services
 {
     public class SeatTypeService : ISeatTypeService
     {
-        private readonly IGenericRepository<SeatType> _repository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
-        public SeatTypeService(IGenericRepository<SeatType> repository, IMapper mapper)
+        public SeatTypeService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _repository = repository;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
 
         public async Task<IEnumerable<SeatTypeResponseDTO>> GetAllAsync()
         {
-            var entities = await _repository.GetAllAsync();
+            var entities = await _unitOfWork.SeatTypeRepository.GetAllAsync();
             return _mapper.Map<IEnumerable<SeatTypeResponseDTO>>(entities);
         }
 
         public async Task<SeatTypeResponseDTO?> GetByIdAsync(int id)
         {
-            var entity = await _repository.GetByIdAsync(id);
+            var entity = await _unitOfWork.SeatTypeRepository.GetByIdAsync(id);
             return entity == null ? null : _mapper.Map<SeatTypeResponseDTO>(entity);
         }
 
         public async Task<SeatTypeResponseDTO> CreateAsync(CreateSeatTypeDTO dto)
         {
             var entity = _mapper.Map<SeatType>(dto);
-            await _repository.AddAsync(entity);
+            await _unitOfWork.SeatTypeRepository.AddAsync(entity);
+            await _unitOfWork.CommitAsync();
+
             return _mapper.Map<SeatTypeResponseDTO>(entity);
         }
 
-        public async Task UpdateAsync(int id, CreateSeatTypeDTO dto)
+        public async Task<SeatTypeResponseDTO> UpdateAsync(int id, CreateSeatTypeDTO dto)
         {
-            var entity = await _repository.GetByIdAsync(id);
+            var entity = await _unitOfWork.SeatTypeRepository.GetByIdAsync(id);
             if (entity == null)
                 throw new KeyNotFoundException($"SeatType with ID {id} not found.");
 
             entity.Update(dto.Name, dto.Description, dto.IsActive);
             entity.UpdatePrice(dto.Price);
 
-            await _repository.UpdateAsync(entity);
+            await _unitOfWork.SeatTypeRepository.UpdateAsync(entity);
+            await _unitOfWork.CommitAsync();
+
+            return _mapper.Map<SeatTypeResponseDTO>(entity);
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var seatType = await _repository.GetByIdAsync(id);
-            if (seatType == null) return false;
+            var entity = await _unitOfWork.SeatTypeRepository.GetByIdAsync(id);
+            if (entity == null) return false;
 
-            await _repository.DeleteAsync(id);
+            await _unitOfWork.SeatTypeRepository.DeleteAsync(id);
+            await _unitOfWork.CommitAsync();
+
             return true;
         }
     }

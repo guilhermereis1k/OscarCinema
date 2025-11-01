@@ -4,6 +4,7 @@ using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.Movie;
 using OscarCinema.Domain.Interfaces;
+using OscarCinema.Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,59 +15,64 @@ namespace OscarCinema.Application.Services
 {
     public class SessionService : ISessionService
     {
-        private readonly ISessionRepository _repository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        public SessionService(ISessionRepository sessionRepository, IMapper mapper) {
-            _repository = sessionRepository;
+        public SessionService(IUnitOfWork unitOfWork, IMapper mapper) {
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
 
         public async Task<SessionResponseDTO> CreateAsync(CreateSessionDTO dto)
         {
-            var session = _mapper.Map<Session>(dto);
-            await _repository.AddAsync(session);
-            return _mapper.Map<SessionResponseDTO>(session);
+            var entity = _mapper.Map<Session>(dto);
+            await _unitOfWork.SessionRepository.AddAsync(entity);
+            await _unitOfWork.CommitAsync();
+
+            return _mapper.Map<SessionResponseDTO>(entity);
         }
 
         public async Task<SessionResponseDTO?> UpdateAsync(int id, UpdateSessionDTO dto)
         {
-            var existentSession = await _repository.GetByIdAsync(id);
-            if (existentSession == null) return null;
+            var entity = await _unitOfWork.SessionRepository.GetByIdAsync(id);
+            if (entity == null) return null;
 
-            existentSession.Update(dto.MovieId, dto.StartTime, dto.RoomId, dto.ExhibitionTypeId);
-            await _repository.UpdateAsync(existentSession);
+            entity.Update(dto.MovieId, dto.StartTime, dto.RoomId, dto.ExhibitionTypeId);
+            await _unitOfWork.SessionRepository.UpdateAsync(entity);
+            await _unitOfWork.CommitAsync();
 
-            return _mapper.Map<SessionResponseDTO>(existentSession);
+            return _mapper.Map<SessionResponseDTO>(entity);
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var session = await _repository.GetByIdAsync(id);
-            if (session == null) return false;
+            var entity = await _unitOfWork.SessionRepository.GetByIdAsync(id);
+            if (entity == null) return false;
 
-            await _repository.DeleteAsync(id);
+            await _unitOfWork.SessionRepository.DeleteAsync(id);
+            await _unitOfWork.CommitAsync();
+
             return true;
         }
 
         public async Task<IEnumerable<SessionResponseDTO>> GetAllAsync()
         {
-            var sessions = await _repository.GetAllAsync();
-            return _mapper.Map<IEnumerable<SessionResponseDTO>>(sessions ?? Enumerable.Empty<Session>());
+            var entity = await _unitOfWork.SessionRepository.GetAllAsync();
+            return _mapper.Map<IEnumerable<SessionResponseDTO>>(entity ?? Enumerable.Empty<Session>());
         }
 
         public async Task<IEnumerable<SessionResponseDTO>> GetAllByMovieIdAsync(int movieId)
         {
-            var sessions = await _repository.GetAllByMovieId(movieId);
-            return _mapper.Map<IEnumerable<SessionResponseDTO>>(sessions ?? Enumerable.Empty<Session>());
+            var entity = await _unitOfWork.SessionRepository.GetAllByMovieId(movieId);
+            return _mapper.Map<IEnumerable<SessionResponseDTO>>(entity ?? Enumerable.Empty<Session>());
         }
 
         public async Task<SessionResponseDTO?> GetByIdAsync(int id)
         {
-            var session = await _repository.GetByIdAsync(id);
-            if (session == null)
+            var entity = await _unitOfWork.SessionRepository.GetByIdAsync(id);
+            if (entity == null)
                 return null;
 
-            return _mapper.Map<SessionResponseDTO>(session);
+            return _mapper.Map<SessionResponseDTO>(entity);
         }
     }
 }

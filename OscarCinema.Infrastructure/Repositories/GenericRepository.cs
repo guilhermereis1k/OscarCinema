@@ -52,3 +52,4 @@ namespace OscarCinema.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
     }
+}

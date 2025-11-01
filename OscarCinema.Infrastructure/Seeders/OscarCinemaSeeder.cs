@@ -343,18 +343,16 @@ namespace OscarCinema.Infrastructure.Seeders
             var ticket1 = await context.Tickets.FirstOrDefaultAsync(t => t.Paid == true);
             var ticket2 = await context.Tickets.FirstOrDefaultAsync(t => t.Paid == false);
 
-            var seat1 = await context.Seats.FirstOrDefaultAsync(s => s.Id == 1);
-            var seat2 = await context.Seats.FirstOrDefaultAsync(s => s.Id == 2);
-            var seat5 = await context.Seats.FirstOrDefaultAsync(s => s.Id == 5);
-            var seat7 = await context.Seats.FirstOrDefaultAsync(s => s.Id == 7);
+            var seat1 = await context.Seats.FirstOrDefaultAsync(s => s.Row == 'B');
+            var seat2 = await context.Seats.FirstOrDefaultAsync(s => s.Row == 'A');
+            var seat3 = await context.Seats.FirstOrDefaultAsync(s => s.Row == 'B');
+
 
             var ticketSeats = new[]
             {
                 new TicketSeat(ticketId: ticket1.Id, seatId: seat1.Id, type: TicketType.Full, price: 55.00m),
                 new TicketSeat(ticketId: ticket1.Id, seatId: seat2.Id, type: TicketType.Half, price: 35.00m),
-                new TicketSeat(ticketId: ticket2.Id, seatId: seat5.Id, type: TicketType.Full, price: 35.00m),
-                new TicketSeat(ticketId: ticket2.Id, seatId: seat7.Id, type: TicketType.Half, price: 30.00m)
-            };
+                new TicketSeat(ticketId: ticket2.Id, seatId: seat3.Id, type: TicketType.Full, price: 35.00m),            };
 
             await context.TicketSeats.AddRangeAsync(ticketSeats);
             await context.SaveChangesAsync();

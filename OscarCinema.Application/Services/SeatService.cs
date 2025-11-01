@@ -14,74 +14,81 @@ namespace OscarCinema.Application.Services
 {
     public class SeatService : ISeatService
     {
-        private readonly ISeatRepository _repository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
-        public SeatService(ISeatRepository seatRepository, IMapper mapper)
+        public SeatService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _repository = seatRepository;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
 
         public async Task<SeatResponseDTO> CreateAsync(CreateSeatDTO dto)
         {
-            var seat = _mapper.Map<Seat>(dto);
-            await _repository.AddAsync(seat);
+            var entity = _mapper.Map<Seat>(dto);
+            await _unitOfWork.SeatRepository.AddAsync(entity);
+            await _unitOfWork.CommitAsync();
 
-            return _mapper.Map<SeatResponseDTO>(seat);
+            return _mapper.Map<SeatResponseDTO>(entity);
         }
 
         public async Task<SeatResponseDTO?> GetByIdAsync(int id)
         {
-            var seat = await _repository.GetByIdAsync(id);
-            return seat == null ? null : _mapper.Map<SeatResponseDTO>(seat);
+            var entity = await _unitOfWork.SeatRepository.GetByIdAsync(id);
+            return entity == null ? null : _mapper.Map<SeatResponseDTO>(entity);
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var seat = await _repository.GetByIdAsync(id);
-            if (seat == null) return false;
+            var entity = await _unitOfWork.SeatRepository.GetByIdAsync(id);
+            if (entity == null) return false;
 
-            await _repository.DeleteAsync(id);
+            await _unitOfWork.SeatRepository.DeleteAsync(id);
+            await _unitOfWork.CommitAsync();
+
             return true;
         }
         public async Task<SeatResponseDTO?> GetByRowAndNumberAsync(char row, int number)
         {
-            var seat = await _repository.GetByRowAndNumberAsync(row, number);
-            if (seat == null)
+            var entity = await _unitOfWork.SeatRepository.GetByRowAndNumberAsync(row, number);
+            if (entity == null)
                 return null;
 
-            return _mapper.Map<SeatResponseDTO>(seat);
+            return _mapper.Map<SeatResponseDTO>(entity);
         }
 
         public async Task<IEnumerable<SeatResponseDTO>?> GetSeatsByRoomIdAsync(int roomId)
         {
-            var seats = await _repository.GetSeatsByRoomIdAsync(roomId);
-            return seats == null ? null : _mapper.Map<IEnumerable<SeatResponseDTO>>(seats);
+            var entity = await _unitOfWork.SeatRepository.GetSeatsByRoomIdAsync(roomId);
+            return entity == null ? null : _mapper.Map<IEnumerable<SeatResponseDTO>>(entity);
         }
 
         public async Task<SeatResponseDTO?> OccupySeatAsync(int id)
         {
-            var seat = await _repository.GetByIdAsync(id);
-            if (seat == null)
+            var entity = await _unitOfWork.SeatRepository.GetByIdAsync(id);
+            if (entity == null)
                 return null;
 
-            seat.OccupySeat(id);
+            entity.OccupySeat(id);
 
-            await _repository.UpdateAsync(seat);
-            return _mapper.Map<SeatResponseDTO>(seat);
+            await _unitOfWork.SeatRepository.UpdateAsync(entity);
+            await _unitOfWork.CommitAsync();
+
+            return _mapper.Map<SeatResponseDTO>(entity);
         }
 
         public async Task<SeatResponseDTO?> FreeSeatAsync(int id)
         {
-            var seat = await _repository.GetByIdAsync(id);
-            if (seat == null)
+            var entity = await _unitOfWork.SeatRepository.GetByIdAsync(id);
+            if (entity == null)
                 return null;
 
-            seat.FreeSeat(id);
+            entity.FreeSeat(id);
 
-            await _repository.UpdateAsync(seat);
-            return _mapper.Map<SeatResponseDTO>(seat);
+            await _unitOfWork.SeatRepository.UpdateAsync(entity);
+            await _unitOfWork.CommitAsync();
+
+            return _mapper.Map<SeatResponseDTO>(entity);
         }
     }
 }

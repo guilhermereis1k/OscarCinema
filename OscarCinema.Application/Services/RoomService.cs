@@ -14,33 +14,34 @@ namespace OscarCinema.Application.Services
 {
     public class RoomService : IRoomService
     {
-        private readonly IRoomRepository _repository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
-        public RoomService(IRoomRepository roomRepository, IMapper mapper)
+        public RoomService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _repository = roomRepository;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
 
         public async Task<RoomResponseDTO> CreateAsync(CreateRoomDTO dto) 
         {
-            var room = _mapper.Map<Room>(dto);
+            var entity = _mapper.Map<Room>(dto);
 
-            await _repository.AddAsync(room);
+            await _unitOfWork.RoomRepository.AddAsync(entity);
+            await _unitOfWork.CommitAsync();
 
-            return _mapper.Map<RoomResponseDTO>(room);
+            return _mapper.Map<RoomResponseDTO>(entity);
         }
 
         public async Task<RoomResponseDTO?> GetByIdAsync(int id)
         {
-            var room = await _repository.GetByIdAsync(id);
-            return room == null ? null : _mapper.Map<RoomResponseDTO>(room);
+            var entity = await _unitOfWork.RoomRepository.GetByIdAsync(id);
+            return entity == null ? null : _mapper.Map<RoomResponseDTO>(entity);
         }
 
         public async Task<RoomResponseDTO?> UpdateAsync(int id, UpdateRoomDTO dto)
         {
-            var existentRoom = await _repository.GetByIdAsync(id);
+            var existentRoom = await _unitOfWork.RoomRepository.GetByIdAsync(id);
             if (existentRoom == null)
                 return null;
 
@@ -73,48 +74,52 @@ namespace OscarCinema.Application.Services
 
             existentRoom.SetSeats(updatedSeats);
 
-            await _repository.UpdateAsync(existentRoom);
+            await _unitOfWork.RoomRepository.UpdateAsync(existentRoom);
+            await _unitOfWork.CommitAsync();
 
             return _mapper.Map<RoomResponseDTO>(existentRoom);
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var room = await _repository.GetByIdAsync(id);
-            if (room == null) return false;
+            var entity = await _unitOfWork.RoomRepository.GetByIdAsync(id);
+            if (entity == null) return false;
             
-            await _repository.DeleteAsync(id);
+            await _unitOfWork.RoomRepository.DeleteAsync(id);
+            await _unitOfWork.CommitAsync();
 
             return true;
         }
 
         public async Task<RoomResponseDTO?> GetByNumberAsync(int number)
         {
-            var room = await _repository.GetByNumberAsync(number);
+            var entity = await _unitOfWork.RoomRepository.GetByNumberAsync(number);
 
-            if (room == null)
+            if (entity == null)
                 return null;
 
-            return _mapper.Map<RoomResponseDTO>(room);
+            return _mapper.Map<RoomResponseDTO>(entity);
         }
 
         public async Task<IEnumerable<RoomResponseDTO>> GetAllAsync()
         {
-            var rooms = await _repository.GetAllAsync();
-            return _mapper.Map<IEnumerable<RoomResponseDTO>>(rooms);
+            var entity = await _unitOfWork.RoomRepository.GetAllAsync();
+            return _mapper.Map<IEnumerable<RoomResponseDTO>>(entity);
         }
 
         public async Task<RoomResponseDTO?> AddSeatsAsync(int roomId, AddSeatsToRoomDTO dto)
         {
-            var room = await _repository.GetByIdAsync(roomId);
-            if (room == null)
+            var entity = await _unitOfWork.RoomRepository.GetByIdAsync(roomId);
+            if (entity == null)
                 return null;
 
             var newSeats = _mapper.Map<IEnumerable<Seat>>(dto.Seats);
-            room.AddSeats(newSeats);
+            entity.AddSeats(newSeats);
 
-            await _repository.UpdateAsync(room);
-            return _mapper.Map<RoomResponseDTO>(room);
+            await _unitOfWork.RoomRepository.UpdateAsync(entity);
+            await _unitOfWork.CommitAsync();
+
+            return _mapper.Map<RoomResponseDTO>(entity);
         }
     }
 }
