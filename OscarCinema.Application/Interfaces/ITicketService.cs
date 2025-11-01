@@ -11,7 +11,7 @@ namespace OscarCinema.Application.Interfaces
     {
         Task<TicketResponseDTO> CreateAsync(CreateTicketDTO dto);
         Task<TicketResponseDTO?> UpdateAsync(int id, UpdateTicketDTO dto);
-        Task<bool> DeleteByIdAsync(int id);
+        Task<bool> DeleteAsync(int id);
         Task<TicketResponseDTO?> GetByIdAsync(int id);
         Task<IEnumerable<TicketResponseDTO>> GetAllAsync();
         Task<IEnumerable<TicketResponseDTO>> GetAllByUserIdAsync(int userId);

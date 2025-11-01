@@ -13,10 +13,10 @@ namespace OscarCinema.Application.Services
 {
     public class ExhibitionTypeService : IExhibitionTypeService
     {
-        private readonly IExhibitionTypeRepository _repository;
+        private readonly IGenericRepository<ExhibitionType> _repository;
         private readonly IMapper _mapper;
 
-        public ExhibitionTypeService(IExhibitionTypeRepository repository, IMapper mapper)
+        public ExhibitionTypeService(IGenericRepository<ExhibitionType> repository, IMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -53,9 +53,13 @@ namespace OscarCinema.Application.Services
             await _repository.UpdateAsync(entity);
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
+            var exhibitionType = await _repository.GetByIdAsync(id);
+            if (exhibitionType == null) return false;
+
             await _repository.DeleteAsync(id);
+            return true
         }
     }
 }

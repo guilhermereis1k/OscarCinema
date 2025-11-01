@@ -1,4 +1,6 @@
-﻿using OscarCinema.Domain.Interfaces;
+﻿using OscarCinema.Domain.Entities;
+using OscarCinema.Domain.Entities.Pricing;
+using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Context;
 using System;
 using System.Collections.Generic;
@@ -10,97 +12,54 @@ namespace OscarCinema.Infrastructure.Repositories
 {
     public class UnitOfWork : IUnitOfWork
     {
-        private  IExhibitionTypeRepository _exhibitionTypeRepo;
-        private  IMovieRepository _movieRepo;
-        private  IRoomRepository _roomRepo;
-        private  ISeatRepository _seatRepo;
-        private  ISeatTypeRepository _seatTypeRepo;
-        private  ISessionRepository _sessionRepo;
-        private  IUserRepository _userRepo;
-        private  ITicketRepository _ticketRepo;
-        private  ITicketSeatRepository _ticketSeatRepo;
+        private IGenericRepository<ExhibitionType>? _exhibitionTypeRepo;
+        private IGenericRepository<SeatType>? _seatTypeRepo;
+        private IGenericRepository<Movie>? _movieRepo;
+        private IGenericRepository<User>? _userRepo;
 
-        public OscarCinemaContext _context;
+        private IRoomRepository? _roomRepo;
+        private ISeatRepository? _seatRepo;
+        private ISessionRepository? _sessionRepo;
+        private ITicketRepository? _ticketRepo;
+        private ITicketSeatRepository? _ticketSeatRepo;
+
+        private readonly OscarCinemaContext _context;
 
         public UnitOfWork(OscarCinemaContext context)
         {
             _context = context;
         }
 
-        public IExhibitionTypeRepository ExhibitionTypeRepository
-        {
-            get
-            {
-                return _exhibitionTypeRepo = _exhibitionTypeRepo ?? new ExhibitionTypeRepository(_context);
-            }
-        }
-        public IMovieRepository MovieRepository
-        {
-            get
-            {
-                return _movieRepo = _movieRepo ?? new MovieRepository(_context);
-            }
-        }
+        public IGenericRepository<ExhibitionType> ExhibitionTypeRepository
+            => _exhibitionTypeRepo ??= new GenericRepository<ExhibitionType>(_context);
+
+        public IGenericRepository<SeatType> SeatTypeRepository
+            => _seatTypeRepo ??= new GenericRepository<SeatType>(_context);
+
+        public IGenericRepository<Movie> MovieRepository
+            => _movieRepo ??= new GenericRepository<Movie>(_context);
 
         public IRoomRepository RoomRepository
-        {
-            get
-            {
-                return _roomRepo = _roomRepo ?? new RoomRepository(_context);
-            }
-        }
+            => _roomRepo ??= new RoomRepository(_context);
 
         public ISeatRepository SeatRepository
-        {
-            get
-            {
-                return _seatRepo = _seatRepo ?? new SeatRepository(_context);
-            }
-        }
-
-        public ISeatTypeRepository SeatTypeRepository
-        {
-            get
-            {
-                return _seatTypeRepo = _seatTypeRepo ?? new SeatTypeRepository(_context);
-            }
-        }
+            => _seatRepo ??= new SeatRepository(_context);
 
         public ISessionRepository SessionRepository
-        {
-            get
-            {
-                return _sessionRepo = _sessionRepo ?? new SessionRepository(_context);
-            }
-        }
+            => _sessionRepo ??= new SessionRepository(_context);
 
-        public IUserRepository UserRepository
-        {
-            get
-            {
-                return _userRepo = _userRepo ?? new UserRepository(_context);
-            }
-        }
+        public IGenericRepository<User> UserRepository
+            => _userRepo ??= new GenericRepository<User> (_context);
 
         public ITicketRepository TicketRepository
-        {
-            get
-            {
-                return _ticketRepo = _ticketRepo ?? new TicketRepository(_context);
-            }
-        }
+            => _ticketRepo ??= new TicketRepository(_context);
 
         public ITicketSeatRepository TicketSeatRepository
-        {
-            get
-            {
-                return _ticketSeatRepo = _ticketSeatRepo ?? new TicketSeatRepository(_context);
-            }
-        }
+            => _ticketSeatRepo ??= new TicketSeatRepository(_context);
 
-        public void Commit()
+        public async Task CommitAsync()
         {
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
         public void Dispose()

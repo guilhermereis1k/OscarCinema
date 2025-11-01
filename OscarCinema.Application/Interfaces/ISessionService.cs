@@ -11,7 +11,7 @@ namespace OscarCinema.Application.Interfaces
     {
         Task<SessionResponseDTO> CreateAsync(CreateSessionDTO dto);
         Task<SessionResponseDTO?> UpdateAsync(int id, UpdateSessionDTO dto);
-        Task<bool> DeleteByIdAsync(int id);
+        Task<bool> DeleteAsync(int id);
         Task<IEnumerable<SessionResponseDTO>> GetAllAsync();
         Task<IEnumerable<SessionResponseDTO>> GetAllByMovieIdAsync(int movieId);
         Task<SessionResponseDTO?> GetByIdAsync(int id);

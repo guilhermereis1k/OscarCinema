@@ -2,6 +2,7 @@
 using OscarCinema.Application.DTOs.User;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
+using OscarCinema.Domain.Entities.Pricing;
 using OscarCinema.Domain.Enums.User;
 using OscarCinema.Domain.Interfaces;
 using System;
@@ -14,10 +15,10 @@ namespace OscarCinema.Application.Services
 {
     public class UserService : IUserService
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IGenericRepository<User> _userRepository;
         private readonly IMapper _mapper;
 
-        public UserService(IUserRepository userRepository, IMapper mapper)
+        public UserService(IGenericRepository<User> userRepository, IMapper mapper)
         {
             _userRepository = userRepository;
             _mapper = mapper;
@@ -26,7 +27,7 @@ namespace OscarCinema.Application.Services
         public async Task<UserResponseDTO> CreateAsync(CreateUserDTO request)
         {
             var user = _mapper.Map<User>(request);
-            await _userRepository.CreateAsync(user);
+            await _userRepository.AddAsync(user);
             return _mapper.Map<UserResponseDTO>(user);
         }
 

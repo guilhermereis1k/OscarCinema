@@ -14,12 +14,12 @@ namespace OscarCinema.Application.Services
 {
     public class RoomService : IRoomService
     {
-        private readonly IRoomRepository _roomRepository;
+        private readonly IRoomRepository _repository;
         private readonly IMapper _mapper;
 
         public RoomService(IRoomRepository roomRepository, IMapper mapper)
         {
-            _roomRepository = roomRepository;
+            _repository = roomRepository;
             _mapper = mapper;
         }
 
@@ -27,20 +27,20 @@ namespace OscarCinema.Application.Services
         {
             var room = _mapper.Map<Room>(dto);
 
-            await _roomRepository.CreateAsync(room);
+            await _repository.AddAsync(room);
 
             return _mapper.Map<RoomResponseDTO>(room);
         }
 
         public async Task<RoomResponseDTO?> GetByIdAsync(int id)
         {
-            var room = await _roomRepository.GetByIdAsync(id);
+            var room = await _repository.GetByIdAsync(id);
             return room == null ? null : _mapper.Map<RoomResponseDTO>(room);
         }
 
         public async Task<RoomResponseDTO?> UpdateAsync(int id, UpdateRoomDTO dto)
         {
-            var existentRoom = await _roomRepository.GetByIdAsync(id);
+            var existentRoom = await _repository.GetByIdAsync(id);
             if (existentRoom == null)
                 return null;
 
@@ -73,24 +73,24 @@ namespace OscarCinema.Application.Services
 
             existentRoom.SetSeats(updatedSeats);
 
-            await _roomRepository.UpdateAsync(existentRoom);
+            await _repository.UpdateAsync(existentRoom);
 
             return _mapper.Map<RoomResponseDTO>(existentRoom);
         }
 
-        public async Task<bool> DeleteByIdAsync(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            var room = await _roomRepository.GetByIdAsync(id);
+            var room = await _repository.GetByIdAsync(id);
             if (room == null) return false;
             
-            await _roomRepository.DeleteByIdAsync(id);
+            await _repository.DeleteAsync(id);
 
             return true;
         }
 
         public async Task<RoomResponseDTO?> GetByNumberAsync(int number)
         {
-            var room = await _roomRepository.GetByNumberAsync(number);
+            var room = await _repository.GetByNumberAsync(number);
 
             if (room == null)
                 return null;
@@ -100,20 +100,20 @@ namespace OscarCinema.Application.Services
 
         public async Task<IEnumerable<RoomResponseDTO>> GetAllAsync()
         {
-            var rooms = await _roomRepository.GetAllAsync();
+            var rooms = await _repository.GetAllAsync();
             return _mapper.Map<IEnumerable<RoomResponseDTO>>(rooms);
         }
 
         public async Task<RoomResponseDTO?> AddSeatsAsync(int roomId, AddSeatsToRoomDTO dto)
         {
-            var room = await _roomRepository.GetByIdAsync(roomId);
+            var room = await _repository.GetByIdAsync(roomId);
             if (room == null)
                 return null;
 
             var newSeats = _mapper.Map<IEnumerable<Seat>>(dto.Seats);
             room.AddSeats(newSeats);
 
-            await _roomRepository.UpdateAsync(room);
+            await _repository.UpdateAsync(room);
             return _mapper.Map<RoomResponseDTO>(room);
         }
     }

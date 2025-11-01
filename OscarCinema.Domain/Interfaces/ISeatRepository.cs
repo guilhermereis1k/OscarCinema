@@ -7,13 +7,9 @@ using System.Threading.Tasks;
 
 namespace OscarCinema.Domain.Interfaces
 {
-    public interface ISeatRepository
+    public interface ISeatRepository : IGenericRepository<Seat>
     {
-        Task<Seat> CreateAsync(Seat seat);
-        Task<Seat> GetByIdAsync(int id);
-        Task<bool> DeleteByIdAsync(int id);
         Task<Seat> GetByRowAndNumberAsync(char row, int number);
         Task<IEnumerable<Seat>> GetSeatsByRoomIdAsync(int roomId);
-        Task<Seat> UpdateAsync(Seat seat);
     }
 }

@@ -11,47 +11,9 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OscarCinema.Infrastructure.Repositories
 {
-    public class SeatRepository : ISeatRepository
+    public class SeatRepository : GenericRepository<Seat>, ISeatRepository
     {
-        private readonly OscarCinemaContext _context;
-
-        public SeatRepository(OscarCinemaContext context)
-        {
-            _context = context;
-        }
-
-        public async Task<Seat> CreateAsync(Seat seat)
-        {
-            _context.Seats.Add(seat);
-            await _context.SaveChangesAsync();
-
-            return seat;
-        }
-
-        public async Task<bool> DeleteByIdAsync(int id)
-        {
-            var seat = await _context.Seats.FindAsync(id);
-
-            if (seat == null)
-                return false;
-
-            _context.Seats.Remove(seat);
-            await _context.SaveChangesAsync();
-
-            return true;
-        }
-
-        public async Task<Seat> UpdateAsync(Seat seat)
-        {
-            _context.Seats.Update(seat);
-            await _context.SaveChangesAsync();
-            return seat;
-        }
-
-        public async Task<Seat?> GetByIdAsync(int id)
-        {
-            return await _context.Seats.FindAsync(id);
-        }
+        public SeatRepository(OscarCinemaContext context) : base(context){ }
 
         public async Task<Seat?> GetByRowAndNumberAsync(char row, int number)
         {

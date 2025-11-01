@@ -1,4 +1,6 @@
-﻿using System;
+﻿using OscarCinema.Domain.Entities;
+using OscarCinema.Domain.Entities.Pricing;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,15 +10,17 @@ namespace OscarCinema.Domain.Interfaces
 {
     public interface IUnitOfWork
     {
-        IMovieRepository MovieRepository { get; }
+        IGenericRepository<ExhibitionType> ExhibitionTypeRepository { get; }
+        IGenericRepository<SeatType> SeatTypeRepository { get; }
+        IGenericRepository<Movie> MovieRepository { get; }
+        IGenericRepository<User> UserRepository { get; }
+
         IRoomRepository RoomRepository { get; }
         ISeatRepository SeatRepository { get; }
-        ISeatTypeRepository SeatTypeRepository { get; }
-        IUserRepository UserRepository { get; }
         ISessionRepository SessionRepository { get; }
         ITicketRepository TicketRepository { get; }
         ITicketSeatRepository TicketSeatRepository { get; }
 
-        void Commit();
+        Task CommitAsync();
     }
 }

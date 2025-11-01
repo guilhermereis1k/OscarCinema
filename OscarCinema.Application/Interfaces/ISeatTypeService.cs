@@ -14,6 +14,6 @@ namespace OscarCinema.Application.Interfaces
         Task<SeatTypeResponseDTO?> GetByIdAsync(int id);
         Task<SeatTypeResponseDTO> CreateAsync(CreateSeatTypeDTO dto);
         Task UpdateAsync(int id, CreateSeatTypeDTO dto);
-        Task DeleteAsync(int id);
+        Task<bool> DeleteAsync(int id);
     }
 }

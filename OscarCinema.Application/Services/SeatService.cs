@@ -14,40 +14,40 @@ namespace OscarCinema.Application.Services
 {
     public class SeatService : ISeatService
     {
-        private readonly ISeatRepository _seatRepository;
+        private readonly ISeatRepository _repository;
         private readonly IMapper _mapper;
 
         public SeatService(ISeatRepository seatRepository, IMapper mapper)
         {
-            _seatRepository = seatRepository;
+            _repository = seatRepository;
             _mapper = mapper;
         }
 
         public async Task<SeatResponseDTO> CreateAsync(CreateSeatDTO dto)
         {
             var seat = _mapper.Map<Seat>(dto);
-            await _seatRepository.CreateAsync(seat);
+            await _repository.AddAsync(seat);
 
             return _mapper.Map<SeatResponseDTO>(seat);
         }
 
         public async Task<SeatResponseDTO?> GetByIdAsync(int id)
         {
-            var seat = await _seatRepository.GetByIdAsync(id);
+            var seat = await _repository.GetByIdAsync(id);
             return seat == null ? null : _mapper.Map<SeatResponseDTO>(seat);
         }
 
-        public async Task<bool> DeleteByIdAsync(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            var seat = await _seatRepository.GetByIdAsync(id);
+            var seat = await _repository.GetByIdAsync(id);
             if (seat == null) return false;
 
-            await _seatRepository.DeleteByIdAsync(id);
+            await _repository.DeleteAsync(id);
             return true;
         }
         public async Task<SeatResponseDTO?> GetByRowAndNumberAsync(char row, int number)
         {
-            var seat = await _seatRepository.GetByRowAndNumberAsync(row, number);
+            var seat = await _repository.GetByRowAndNumberAsync(row, number);
             if (seat == null)
                 return null;
 
@@ -56,31 +56,31 @@ namespace OscarCinema.Application.Services
 
         public async Task<IEnumerable<SeatResponseDTO>?> GetSeatsByRoomIdAsync(int roomId)
         {
-            var seats = await _seatRepository.GetSeatsByRoomIdAsync(roomId);
+            var seats = await _repository.GetSeatsByRoomIdAsync(roomId);
             return seats == null ? null : _mapper.Map<IEnumerable<SeatResponseDTO>>(seats);
         }
 
         public async Task<SeatResponseDTO?> OccupySeatAsync(int id)
         {
-            var seat = await _seatRepository.GetByIdAsync(id);
+            var seat = await _repository.GetByIdAsync(id);
             if (seat == null)
                 return null;
 
             seat.OccupySeat(id);
 
-            await _seatRepository.UpdateAsync(seat);
+            await _repository.UpdateAsync(seat);
             return _mapper.Map<SeatResponseDTO>(seat);
         }
 
         public async Task<SeatResponseDTO?> FreeSeatAsync(int id)
         {
-            var seat = await _seatRepository.GetByIdAsync(id);
+            var seat = await _repository.GetByIdAsync(id);
             if (seat == null)
                 return null;
 
             seat.FreeSeat(id);
 
-            await _seatRepository.UpdateAsync(seat);
+            await _repository.UpdateAsync(seat);
             return _mapper.Map<SeatResponseDTO>(seat);
         }
     }

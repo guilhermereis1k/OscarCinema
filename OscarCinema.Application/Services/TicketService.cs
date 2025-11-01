@@ -73,7 +73,7 @@ namespace OscarCinema.Application.Services
                 ticket.AddTicketSeat(ticketSeat);
             }
 
-            await _ticketRepository.CreateAsync(ticket);
+            await _ticketRepository.AddAsync(ticket);
             var response = _mapper.Map<TicketResponseDTO>(ticket);
 
             return response;
@@ -100,13 +100,13 @@ namespace OscarCinema.Application.Services
             return await GetByIdAsync(id);
         }
 
-        public async Task<bool> DeleteByIdAsync(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
             var ticket = await _ticketRepository.GetByIdAsync(id);
             if (ticket == null)
                 return false;
 
-            await _ticketRepository.DeleteByIdAsync(id);
+            await _ticketRepository.DeleteAsync(id);
             return true;
         }
 

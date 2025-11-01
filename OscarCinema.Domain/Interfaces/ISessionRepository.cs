@@ -7,13 +7,8 @@ using System.Threading.Tasks;
 
 namespace OscarCinema.Domain.Interfaces
 {
-    public interface ISessionRepository
+    public interface ISessionRepository : IGenericRepository<Session>
     {
-        Task<Session> CreateAsync(Session session);
-        Task<Session> UpdateAsync(Session session);
-        Task<Session> GetByIdAsync(int id);
-        Task<bool> DeleteByIdAsync(int id);
-        Task<IEnumerable<Session>> GetAllAsync();
         Task<IEnumerable<Session>> GetAllByMovieId( int movieId);
     }
 }

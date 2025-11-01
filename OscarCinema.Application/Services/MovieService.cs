@@ -2,6 +2,7 @@
 using OscarCinema.Application.DTOs.Movie;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
+using OscarCinema.Domain.Entities.Pricing;
 using OscarCinema.Domain.Enums.Movie;
 using OscarCinema.Domain.Interfaces;
 using System;
@@ -14,12 +15,12 @@ namespace OscarCinema.Application.Services
 {
     public class MovieService : IMovieService
     {
-        private readonly IMovieRepository _movieRepository;
+        private readonly IGenericRepository<Movie> _repository;
         private readonly IMapper _mapper;
 
-        public MovieService(IMovieRepository movieRepository, IMapper mapper)
+        public MovieService(IGenericRepository<Movie> movieRepository, IMapper mapper)
         {
-            _movieRepository = movieRepository;
+            _repository = movieRepository;
             _mapper = mapper;
         }
 
@@ -27,41 +28,41 @@ namespace OscarCinema.Application.Services
         {
             var movie = _mapper.Map<Movie>(dto);
 
-            await _movieRepository.CreateAsync(movie);
+            await _repository.AddAsync(movie);
 
             return _mapper.Map<MovieResponseDTO>(movie);
         }
 
         public async Task<MovieResponseDTO?> GetByIdAsync(int id)
         {
-            var movie = await _movieRepository.GetByIdAsync(id);
+            var movie = await _repository.GetByIdAsync(id);
             return movie == null ? null : _mapper.Map<MovieResponseDTO>(movie);
         }
 
         public async Task<IEnumerable<MovieResponseDTO>> GetAllAsync()
         {
-            var movies = await _movieRepository.GetAllAsync();
+            var movies = await _repository.GetAllAsync();
             return _mapper.Map<IEnumerable<MovieResponseDTO>>(movies ?? Enumerable.Empty<Movie>());
         }
 
         public async Task<MovieResponseDTO?> UpdateAsync(int id, UpdateMovieDTO dto)
         {
-            var existentMovie = await _movieRepository.GetByIdAsync(id);
+            var existentMovie = await _repository.GetByIdAsync(id);
             if (existentMovie == null)
                 return null;
 
             _mapper.Map(dto, existentMovie);
 
-            await _movieRepository.UpdateAsync(existentMovie);
+            await _repository.UpdateAsync(existentMovie);
             return _mapper.Map<MovieResponseDTO>(existentMovie);
         }
 
-        public async Task<bool> DeleteByIdAsync(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            var movie = await _movieRepository.GetByIdAsync(id);
+            var movie = await _repository.GetByIdAsync(id);
             if (movie == null) return false;
 
-            await _movieRepository.DeleteByIdAsync(id);
+            await _repository.DeleteAsync(id);
             return true;
         }
     }

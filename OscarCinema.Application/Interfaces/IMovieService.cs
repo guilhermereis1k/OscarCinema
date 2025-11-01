@@ -15,6 +15,6 @@ namespace OscarCinema.Application.Interfaces
         Task<MovieResponseDTO?> GetByIdAsync(int id);
         Task<IEnumerable<MovieResponseDTO>> GetAllAsync();
         Task<MovieResponseDTO?> UpdateAsync(int id, UpdateMovieDTO dto);
-        Task<bool> DeleteByIdAsync(int id);
+        Task<bool> DeleteAsync(int id);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using OscarCinema.Application.DTOs.SeatType;
 using OscarCinema.Application.Interfaces;
+using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Entities.Pricing;
 using OscarCinema.Domain.Interfaces;
 using System;
@@ -13,10 +14,10 @@ namespace OscarCinema.Application.Services
 {
     public class SeatTypeService : ISeatTypeService
     {
-        private readonly ISeatTypeRepository _repository;
+        private readonly IGenericRepository<SeatType> _repository;
         private readonly IMapper _mapper;
 
-        public SeatTypeService(ISeatTypeRepository repository, IMapper mapper)
+        public SeatTypeService(IGenericRepository<SeatType> repository, IMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -53,9 +54,13 @@ namespace OscarCinema.Application.Services
             await _repository.UpdateAsync(entity);
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
+            var seatType = await _repository.GetByIdAsync(id);
+            if (seatType == null) return false;
+
             await _repository.DeleteAsync(id);
+            return true;
         }
     }
 }
