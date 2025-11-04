@@ -48,9 +48,9 @@ namespace OscarCinema.Application.Services
 
             return true;
         }
-        public async Task<SeatResponseDTO?> GetByRowAndNumberAsync(char row, int number)
+        public async Task<SeatResponseDTO?> GetByRowAndNumberAsync(GetSeatByRowAndNumberDTO dto)
         {
-            var entity = await _unitOfWork.SeatRepository.GetByRowAndNumberAsync(row, number);
+            var entity = await _unitOfWork.SeatRepository.GetByRowAndNumberAsync(dto.Row, dto.Number);
             if (entity == null)
                 return null;
 
@@ -65,30 +65,26 @@ namespace OscarCinema.Application.Services
 
         public async Task<SeatResponseDTO?> OccupySeatAsync(int id)
         {
-            var entity = await _unitOfWork.SeatRepository.GetByIdAsync(id);
-            if (entity == null)
-                return null;
+            var seat = await _unitOfWork.SeatRepository.GetByIdAsync(id);
+            if (seat == null) return null;
 
-            entity.OccupySeat(id);
-
-            await _unitOfWork.SeatRepository.UpdateAsync(entity);
+            seat.OccupySeat(id);
+            await _unitOfWork.SeatRepository.UpdateAsync(seat);
             await _unitOfWork.CommitAsync();
 
-            return _mapper.Map<SeatResponseDTO>(entity);
+            return _mapper.Map<SeatResponseDTO>(seat);
         }
 
         public async Task<SeatResponseDTO?> FreeSeatAsync(int id)
         {
-            var entity = await _unitOfWork.SeatRepository.GetByIdAsync(id);
-            if (entity == null)
-                return null;
+            var seat = await _unitOfWork.SeatRepository.GetByIdAsync(id);
+            if (seat == null) return null;
 
-            entity.FreeSeat(id);
-
-            await _unitOfWork.SeatRepository.UpdateAsync(entity);
+            seat.FreeSeat(id);
+            await _unitOfWork.SeatRepository.UpdateAsync(seat);
             await _unitOfWork.CommitAsync();
 
-            return _mapper.Map<SeatResponseDTO>(entity);
+            return _mapper.Map<SeatResponseDTO>(seat);
         }
     }
 }

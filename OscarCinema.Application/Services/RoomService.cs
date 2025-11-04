@@ -91,6 +91,12 @@ namespace OscarCinema.Application.Services
             return true;
         }
 
+        public async Task<IEnumerable<RoomResponseDTO>> GetAllAsync()
+        {
+            var entity = await _unitOfWork.RoomRepository.GetAllAsync();
+            return _mapper.Map<IEnumerable<RoomResponseDTO>>(entity);
+        }
+
         public async Task<RoomResponseDTO?> GetByNumberAsync(int number)
         {
             var entity = await _unitOfWork.RoomRepository.GetByNumberAsync(number);
@@ -99,12 +105,6 @@ namespace OscarCinema.Application.Services
                 return null;
 
             return _mapper.Map<RoomResponseDTO>(entity);
-        }
-
-        public async Task<IEnumerable<RoomResponseDTO>> GetAllAsync()
-        {
-            var entity = await _unitOfWork.RoomRepository.GetAllAsync();
-            return _mapper.Map<IEnumerable<RoomResponseDTO>>(entity);
         }
 
         public async Task<RoomResponseDTO?> AddSeatsAsync(int roomId, AddSeatsToRoomDTO dto)

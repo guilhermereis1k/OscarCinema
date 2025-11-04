@@ -82,7 +82,7 @@ namespace OscarCinema.Domain.Entities
             PaymentStatus = paymentStatus;
             Paid = paid;
 
-            UpdateTotalBasedOnSeats();
+            CalculateTotalFromSeats();
         }
 
         public void AddTicketSeat(TicketSeat ticketSeat)
@@ -90,7 +90,7 @@ namespace OscarCinema.Domain.Entities
             DomainExceptionValidation.When(ticketSeat == null, "TicketSeat cannot be null");
             _ticketSeats.Add(ticketSeat);
 
-            UpdateTotalBasedOnSeats();
+            CalculateTotalFromSeats();
         }
 
         public void RemoveTicketSeat(TicketSeat ticketSeat)
@@ -99,17 +99,12 @@ namespace OscarCinema.Domain.Entities
             DomainExceptionValidation.When(!_ticketSeats.Contains(ticketSeat), "TicketSeat not found");
 
             _ticketSeats.Remove(ticketSeat);
-            UpdateTotalBasedOnSeats();
+            CalculateTotalFromSeats();
         }
 
-        public void UpdateTotalBasedOnSeats()
+        public void CalculateTotalFromSeats()
         {
             TotalValue = _ticketSeats.Sum(ts => ts.Price);
-        }
-
-        public decimal CalculateTotalFromSeats()
-        {
-            return _ticketSeats.Sum(ts => ts.Price);
         }
 
         public void MarkAsPaid()

@@ -11,6 +11,6 @@ namespace OscarCinema.Application.DTOs.Room
     {
         public int Number { get; set; }
         public string Name { get; set; }
-        public List<UpdateSeatDTO> Seats { get; set; } = new();
+        public List<SeatResponseDTO> Seats { get; set; } = new();
     }
 }

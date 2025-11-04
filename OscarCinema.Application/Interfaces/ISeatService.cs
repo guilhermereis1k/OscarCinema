@@ -13,7 +13,7 @@ namespace OscarCinema.Application.Interfaces
         Task<SeatResponseDTO> CreateAsync(CreateSeatDTO dto);
         Task<SeatResponseDTO?> GetByIdAsync(int id);
         Task<bool> DeleteAsync(int id);
-        Task<SeatResponseDTO?> GetByRowAndNumberAsync(char row, int number);
+        Task<SeatResponseDTO?> GetByRowAndNumberAsync(GetSeatByRowAndNumberDTO dto);
         Task<IEnumerable<SeatResponseDTO>?> GetSeatsByRoomIdAsync(int roomId);
         Task<SeatResponseDTO?> OccupySeatAsync(int id);
         Task<SeatResponseDTO?> FreeSeatAsync(int  id);

@@ -14,9 +14,7 @@ namespace OscarCinema.Application.Mappings
         public SeatDTOMappingProfile() 
         {
             CreateMap<CreateSeatDTO, Seat>();
-            CreateMap<FreeSeatDTO, Seat>();
-            CreateMap<OccupySeatDTO, Seat>();
-            CreateMap<UpdateSeatDTO, Seat>();
+            CreateMap<GetSeatByRowAndNumberDTO, Seat>();
 
             CreateMap<Seat, SeatResponseDTO>();
         }

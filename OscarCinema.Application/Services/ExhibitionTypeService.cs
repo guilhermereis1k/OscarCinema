@@ -45,7 +45,7 @@ namespace OscarCinema.Application.Services
             return _mapper.Map<ExhibitionTypeResponseDTO>(entity);
         }
 
-        public async Task<ExhibitionTypeResponseDTO> UpdateAsync(int id, CreateExhibitionTypeDTO dto)
+        public async Task<ExhibitionTypeResponseDTO> UpdateAsync(int id, UpdateExhibitionTypeDTO dto)
         {
             var entity = await _unitOfWork.ExhibitionTypeRepository.GetByIdAsync(id);
             if (entity == null)

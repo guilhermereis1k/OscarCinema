@@ -12,7 +12,7 @@ namespace OscarCinema.Application.Interfaces
         Task<IEnumerable<ExhibitionTypeResponseDTO>> GetAllAsync();
         Task<ExhibitionTypeResponseDTO?> GetByIdAsync(int id);
         Task<ExhibitionTypeResponseDTO> CreateAsync(CreateExhibitionTypeDTO dto);
-        Task<ExhibitionTypeResponseDTO> UpdateAsync(int id, CreateExhibitionTypeDTO dto);
+        Task<ExhibitionTypeResponseDTO> UpdateAsync(int id, UpdateExhibitionTypeDTO dto);
         Task<bool> DeleteAsync(int id);
     }
 }

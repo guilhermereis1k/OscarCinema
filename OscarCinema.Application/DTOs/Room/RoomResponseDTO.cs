@@ -11,10 +11,10 @@ namespace OscarCinema.Application.DTOs.Room
 {
     public class RoomResponseDTO
     {
-        public int RoomId { get; set; }
+        public int Id { get; set; }
 
         public int Number { get; set; }
         public string Name { get; set; }
-        private List<UpdateSeatDTO> Seats { get; set; }
+        public List<SeatResponseDTO> Seats { get; set; }
     }
 }

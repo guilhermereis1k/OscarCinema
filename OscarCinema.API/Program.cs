@@ -8,13 +8,20 @@ using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Context;
 using OscarCinema.Infrastructure.Repositories;
-using OscarCinema.Infrastructure.Seeders;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Oscar Cinema API",
+        Version = "v1",
+        Description = "API do projeto Oscar Cinema"
+    });
+});
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 Console.WriteLine($"🔍 Connection String: {connectionString}");
@@ -63,96 +70,19 @@ builder.Services.AddScoped<ISeatTypeService, SeatTypeService>();
 
 builder.Services.AddScoped<IPricingService, PricingService>();
 
-Console.WriteLine("🚀 Starting application...");
+var app = builder.Build();
 
-try
+if (app.Environment.IsDevelopment())
 {
-    var app = builder.Build();
-    Console.WriteLine("✅ App built successfully");
-
-    using (var scope = app.Services.CreateScope())
-    {
-        Console.WriteLine("🔌 Testing database connection...");
-
-        var context = scope.ServiceProvider.GetRequiredService<OscarCinemaContext>();
-
-        try
-        {
-            var canConnect = await context.Database.CanConnectAsync();
-            Console.WriteLine(canConnect ? "✅ Database: CONNECTED" : "❌ Database: FAILED");
-
-            if (canConnect)
-            {
-                var tables = await context.Database.SqlQueryRaw<string>(
-                    "SHOW TABLES"
-                ).ToListAsync();
-
-                Console.WriteLine($"📊 Tables found: {tables.Count}");
-                foreach (var table in tables)
-                {
-                    Console.WriteLine($"   - {table}");
-                }
-
-                Console.WriteLine("👥 Counting entities...");
-                Console.WriteLine($"   Users: {await context.Users.CountAsync()}");
-                Console.WriteLine($"   Movies: {await context.Movies.CountAsync()}");
-                Console.WriteLine($"   Rooms: {await context.Rooms.CountAsync()}");
-                Console.WriteLine($"   Seats: {await context.Seats.CountAsync()}");
-                Console.WriteLine($"   Sessions: {await context.Sessions.CountAsync()}");
-                Console.WriteLine($"   Tickets: {await context.Tickets.CountAsync()}");
-                Console.WriteLine($"   TicketSeats: {await context.TicketSeats.CountAsync()}");
-            }
-        }
-        catch (Exception dbEx)
-        {
-            Console.WriteLine($"❌ Database test failed: {dbEx.Message}");
-            if (dbEx.InnerException != null)
-            {
-                Console.WriteLine($"   Inner: {dbEx.InnerException.Message}");
-            }
-            throw;
-        }
-    }
-
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-        Console.WriteLine("📚 Swagger: ENABLED");
-    }
-
-    app.UseHttpsRedirection();
-    app.UseAuthorization();
-    app.MapControllers();
-
-    Console.WriteLine("🌐 Starting web server...");
-    Console.WriteLine("📍 URLs: https://localhost:7023 | http://localhost:5028");
-    Console.WriteLine("🎯 Application is READY!");
-
-    using (var scope = app.Services.CreateScope())
-    {
-        await OscarCinemaSeeder.SeedAsync(scope.ServiceProvider);
-    }
-
-    app.Run();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
-catch (Exception ex)
-{
-    Console.WriteLine($"💥 CRITICAL ERROR DURING STARTUP:");
-    Console.WriteLine($"Message: {ex.Message}");
-    Console.WriteLine($"Type: {ex.GetType().Name}");
 
-    if (ex.InnerException != null)
-    {
-        Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
-        Console.WriteLine($"Inner Type: {ex.InnerException.GetType().Name}");
-    }
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
 
-    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
 
-    // Mantém o console aberto para ver o erro
-    Console.WriteLine("Press any key to exit...");
-    Console.ReadKey();
+app.Run();
 
-    throw;
-}
+

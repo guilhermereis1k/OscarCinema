@@ -8,6 +8,7 @@ namespace OscarCinema.Application.DTOs.ExhibitionType
 {
     public class ExhibitionTypeResponseDTO
     {
+        public string Id { get; set; }
         public string Name { get; private set; }
         public string Description { get; private set; }
         public string TechnicalSpecs { get; private set; }

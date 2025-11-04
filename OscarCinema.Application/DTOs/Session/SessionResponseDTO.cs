@@ -9,7 +9,7 @@ namespace OscarCinema.Application.DTOs.Session
 {
     public class SessionResponseDTO
     {
-        public int SessionId { get; set; }
+        public int Id { get; set; }
 
         public int MovieId { get; set; }
         private int RoomId { get; set; }

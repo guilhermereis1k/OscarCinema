@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using OscarCinema.Application.DTOs;
 using OscarCinema.Application.DTOs.SeatType;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
@@ -45,7 +46,7 @@ namespace OscarCinema.Application.Services
             return _mapper.Map<SeatTypeResponseDTO>(entity);
         }
 
-        public async Task<SeatTypeResponseDTO> UpdateAsync(int id, CreateSeatTypeDTO dto)
+        public async Task<SeatTypeResponseDTO> UpdateAsync(int id, UpdateSeatTypeDTO dto)
         {
             var entity = await _unitOfWork.SeatTypeRepository.GetByIdAsync(id);
             if (entity == null)

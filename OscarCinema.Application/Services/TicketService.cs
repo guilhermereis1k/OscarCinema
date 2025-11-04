@@ -55,7 +55,7 @@ namespace OscarCinema.Application.Services
                     session.ExhibitionType,
                     seat.SeatType
                 );
-
+                
                 var ticketSeat = new TicketSeat(
                     ticketId: ticket.Id,
                     seatId: seatDto.SeatId,
@@ -65,6 +65,8 @@ namespace OscarCinema.Application.Services
 
                 ticket.AddTicketSeat(ticketSeat);
             }
+
+            ticket.CalculateTotalFromSeats();
 
             await _unitOfWork.TicketRepository.AddAsync(ticket);
             await _unitOfWork.CommitAsync();
