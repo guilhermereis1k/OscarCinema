@@ -12,13 +12,10 @@ namespace OscarCinema.Application.DTOs.Ticket
     {
         public DateTime Date { get; set; }
         public int UserId { get; set; }
-        public int MovieId { get; set; }
-        public int RoomId { get; set; }
         public int SessionId { get; set; }
         public PaymentMethod Method { get; set; }
         public PaymentStatus PaymentStatus { get; set; }
-        public List<int> SeatsId { get; set; } = new();
-        public IEnumerable<TicketSeatResponseDTO> TicketSeats { get; set; } = new List<TicketSeatResponseDTO>();
-        public bool Paid;
+        public bool Paid { get; set; }
+        public List<CreateTicketSeatOnTicketDTO> TicketSeats { get; set; }
     }
 }

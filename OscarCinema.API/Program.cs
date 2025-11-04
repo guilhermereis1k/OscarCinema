@@ -11,7 +11,12 @@ using OscarCinema.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -24,7 +29,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-Console.WriteLine($"🔍 Connection String: {connectionString}");
+Console.WriteLine($"Connection String: {connectionString}");
 
 builder.Services.AddDbContext<OscarCinemaContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
@@ -37,7 +42,9 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.AddProfile<SessionDTOMappingProfile>();
     cfg.AddProfile<TicketDTOMappingProfile>();
     cfg.AddProfile<UserDTOMappingProfile>();
-    cfg.AddProfile<TicketSeatMappingProfile>();
+    cfg.AddProfile<TicketSeatDTOMappingProfile>();
+    cfg.AddProfile<SeatTypeDTOMappingProfile>();
+    cfg.AddProfile<ExhibitionTypeDTOMappingProfile>();
 });
 
 

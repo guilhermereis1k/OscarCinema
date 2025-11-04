@@ -57,8 +57,6 @@ namespace OscarCinema.Domain.Entities
             PaymentStatus = paymentStatus;
             Paid = paid;
             TotalValue = 0;
-
-            CalculateTotalFromSeats();
         }
 
         public void Update(
@@ -81,13 +79,12 @@ namespace OscarCinema.Domain.Entities
             Method = method;
             PaymentStatus = paymentStatus;
             Paid = paid;
-
-            CalculateTotalFromSeats();
         }
 
         public void AddTicketSeat(TicketSeat ticketSeat)
         {
             DomainExceptionValidation.When(ticketSeat == null, "TicketSeat cannot be null");
+
             _ticketSeats.Add(ticketSeat);
 
             CalculateTotalFromSeats();

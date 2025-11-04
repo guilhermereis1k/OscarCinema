@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace OscarCinema.Application.Mappings
 {
-    public class TicketSeatMappingProfile : Profile
+    public class TicketSeatDTOMappingProfile : Profile
     {
-        public TicketSeatMappingProfile()
+        public TicketSeatDTOMappingProfile()
         {
             CreateMap<CreateTicketSeatDTO, TicketSeat>();
             CreateMap<TicketSeat, TicketSeatResponseDTO>();

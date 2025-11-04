@@ -5,6 +5,7 @@ using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.Ticket;
 using OscarCinema.Domain.Interfaces;
+using OscarCinema.Domain.Validation;
 using OscarCinema.Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
@@ -35,17 +36,21 @@ namespace OscarCinema.Application.Services
         public async Task<TicketResponseDTO> CreateAsync(CreateTicketDTO dto)
         {
             var session = await _unitOfWork.SessionRepository.GetByIdAsync(dto.SessionId);
+            DomainExceptionValidation.When(session == null, "Session not found");
 
             var ticket = new Ticket(
                 dto.Date,
                 dto.UserId,
-                dto.MovieId,
-                dto.RoomId,
+                session.MovieId,
+                session.RoomId,
                 dto.SessionId,
                 dto.Method,
                 dto.PaymentStatus,
                 dto.Paid
             );
+
+            await _unitOfWork.TicketRepository.AddAsync(ticket);
+            await _unitOfWork.CommitAsync();
 
             foreach (var seatDto in dto.TicketSeats)
             {
@@ -55,7 +60,7 @@ namespace OscarCinema.Application.Services
                     session.ExhibitionType,
                     seat.SeatType
                 );
-                
+
                 var ticketSeat = new TicketSeat(
                     ticketId: ticket.Id,
                     seatId: seatDto.SeatId,
@@ -64,11 +69,12 @@ namespace OscarCinema.Application.Services
                 );
 
                 ticket.AddTicketSeat(ticketSeat);
+                await _unitOfWork.TicketSeatRepository.AddAsync(ticketSeat);
             }
 
             ticket.CalculateTotalFromSeats();
 
-            await _unitOfWork.TicketRepository.AddAsync(ticket);
+            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
             await _unitOfWork.CommitAsync();
 
             return _mapper.Map<TicketResponseDTO>(ticket);
