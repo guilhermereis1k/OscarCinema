@@ -10,9 +10,14 @@ namespace OscarCinema.Application.DTOs.TicketSeat
 {
     public class CreateTicketSeatDTO
     {
-        public int TicketId {  get; set; }
+        [Required]
+        public int TicketId { get; set; }
+
+        [Required]
         public int SeatId { get; set; }
+
+        [Required]
         public TicketType Type { get; set; }
-        public decimal Price { get; set; }  
+        public decimal Price { get; set; }
     }
 }

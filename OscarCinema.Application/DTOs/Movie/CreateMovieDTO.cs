@@ -10,13 +10,22 @@ namespace OscarCinema.Application.DTOs.Movie
 {
     public class CreateMovieDTO
     {
-        [Required, StringLength(100)]
+        [Required]
+        [StringLength(100, MinimumLength = 1)]
         public string Title { get; set; }
 
-        public string Description { get; set; }
-        public string ImageUrl { get; set; }
+        public string Description { get; set; } = string.Empty;
+
+        [Url]
+        public string ImageUrl { get; set; } = string.Empty;
+
+        [Range(1, int.MaxValue)]
         public int Duration { get; set; }
+
+        [Required]
         public MovieGenre Genre { get; set; }
+
+        [Required]
         public AgeRating AgeRating { get; set; }
     }
 }

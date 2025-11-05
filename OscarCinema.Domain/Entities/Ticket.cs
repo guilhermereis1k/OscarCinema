@@ -99,6 +99,12 @@ namespace OscarCinema.Domain.Entities
             CalculateTotalFromSeats();
         }
 
+        public void SetSessionData(int movieId, int roomId)
+        {
+            MovieId = movieId;
+            RoomId = roomId;
+        }
+
         public void CalculateTotalFromSeats()
         {
             TotalValue = _ticketSeats.Sum(ts => ts.Price);

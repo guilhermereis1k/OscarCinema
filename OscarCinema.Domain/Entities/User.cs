@@ -1,4 +1,5 @@
-﻿using OscarCinema.Domain.Enums.Movie;
+﻿using OscarCinema.Domain.Common.ValueObjects;
+using OscarCinema.Domain.Enums.Movie;
 using OscarCinema.Domain.Enums.User;
 using OscarCinema.Domain.Validation;
 using System.ComponentModel.DataAnnotations;
@@ -8,21 +9,14 @@ namespace OscarCinema.Domain.Entities
 {
     public class User
     {
-        [Required]
         public int Id { get; private set; }
 
-        [Required]
         public string Name { get; private set; }
 
-        [Required]
-        public string DocumentNumber { get; private set; }
+        public Cpf DocumentNumber { get; private set; }
 
-        [Required]
-        [EmailAddress]
         public string Email { get; private set; }
 
-        [Required]
-        [MinLength(8)]
         public string Password { get; private set; }
         public UserRole Role { get; private set; }
 
@@ -37,7 +31,7 @@ namespace OscarCinema.Domain.Entities
             ValidateDomain(name, documentNumber, email, password, role);
 
             Name = name;
-            DocumentNumber = documentNumber;
+            DocumentNumber = new Cpf(documentNumber);
             Email = email;
             Password = password;
             Role = role;
@@ -48,7 +42,7 @@ namespace OscarCinema.Domain.Entities
             ValidateDomain(name, documentNumber, email, password, role);
 
             Name = name;
-            DocumentNumber = documentNumber;
+            DocumentNumber = new Cpf(documentNumber);
             Email = email;
             Password = password;
             Role = role;

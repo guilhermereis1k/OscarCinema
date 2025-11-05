@@ -22,7 +22,8 @@ namespace OscarCinema.Application.Services
         private readonly ITicketSeatService _ticketSeatService;
         private readonly IPricingService _pricingService;
 
-        public TicketService(IUnitOfWork unitOfWork,
+        public TicketService(
+            IUnitOfWork unitOfWork,
             ITicketSeatService ticketSeatService,
             IPricingService pricingService,
             IMapper mapper)
@@ -38,16 +39,9 @@ namespace OscarCinema.Application.Services
             var session = await _unitOfWork.SessionRepository.GetByIdAsync(dto.SessionId);
             DomainExceptionValidation.When(session == null, "Session not found");
 
-            var ticket = new Ticket(
-                dto.Date,
-                dto.UserId,
-                session.MovieId,
-                session.RoomId,
-                dto.SessionId,
-                dto.Method,
-                dto.PaymentStatus,
-                dto.Paid
-            );
+            var ticket = _mapper.Map<Ticket>(dto);
+
+            ticket.SetSessionData(session.MovieId, session.RoomId);
 
             await _unitOfWork.TicketRepository.AddAsync(ticket);
             await _unitOfWork.CommitAsync();
@@ -55,11 +49,9 @@ namespace OscarCinema.Application.Services
             foreach (var seatDto in dto.TicketSeats)
             {
                 var seat = await _unitOfWork.SeatRepository.GetByIdAsync(seatDto.SeatId);
+                DomainExceptionValidation.When(seat == null, $"Seat {seatDto.SeatId} not found");
 
-                var price = _pricingService.CalculateSeatPrice(
-                    session.ExhibitionType,
-                    seat.SeatType
-                );
+                var price = _pricingService.CalculateSeatPrice(session.ExhibitionType, seat.SeatType);
 
                 var ticketSeat = new TicketSeat(
                     ticketId: ticket.Id,
@@ -73,34 +65,30 @@ namespace OscarCinema.Application.Services
             }
 
             ticket.CalculateTotalFromSeats();
-
             await _unitOfWork.TicketRepository.UpdateAsync(ticket);
             await _unitOfWork.CommitAsync();
 
-            return _mapper.Map<TicketResponseDTO>(ticket);
+            var response = _mapper.Map<TicketResponseDTO>(ticket);
+            response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
+
+            return response;
         }
 
         public async Task<TicketResponseDTO?> UpdateAsync(int id, UpdateTicketDTO dto)
         {
-            var existentTicket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
-            if (existentTicket == null)
+            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
+            if (ticket == null)
                 return null;
 
-            existentTicket.Update(
-                dto.Date,
-                dto.UserId,
-                dto.MovieId,
-                dto.RoomId,
-                dto.SessionId,
-                dto.Method,
-                dto.PaymentStatus,
-                dto.Paid
-            );
+            _mapper.Map(dto, ticket);
 
-            await _unitOfWork.TicketRepository.UpdateAsync(existentTicket);
+            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
             await _unitOfWork.CommitAsync();
 
-            return await GetByIdAsync(id);
+            var response = _mapper.Map<TicketResponseDTO>(ticket);
+            response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
+
+            return response;
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -111,7 +99,6 @@ namespace OscarCinema.Application.Services
 
             await _unitOfWork.TicketRepository.DeleteAsync(id);
             await _unitOfWork.CommitAsync();
-
             return true;
         }
 
@@ -122,8 +109,7 @@ namespace OscarCinema.Application.Services
                 return null;
 
             var response = _mapper.Map<TicketResponseDTO>(ticket);
-            response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(id);
-
+            response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
             return response;
         }
 
@@ -134,9 +120,9 @@ namespace OscarCinema.Application.Services
 
             foreach (var ticket in tickets)
             {
-                var ticketDto = _mapper.Map<TicketResponseDTO>(ticket);
-                ticketDto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
-                response.Add(ticketDto);
+                var dto = _mapper.Map<TicketResponseDTO>(ticket);
+                dto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
+                response.Add(dto);
             }
 
             return response;
@@ -149,9 +135,9 @@ namespace OscarCinema.Application.Services
 
             foreach (var ticket in tickets)
             {
-                var ticketDto = _mapper.Map<TicketResponseDTO>(ticket);
-                ticketDto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
-                response.Add(ticketDto);
+                var dto = _mapper.Map<TicketResponseDTO>(ticket);
+                dto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
+                response.Add(dto);
             }
 
             return response;
@@ -164,9 +150,9 @@ namespace OscarCinema.Application.Services
 
             foreach (var ticket in tickets)
             {
-                var ticketDto = _mapper.Map<TicketResponseDTO>(ticket);
-                ticketDto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
-                response.Add(ticketDto);
+                var dto = _mapper.Map<TicketResponseDTO>(ticket);
+                dto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
+                response.Add(dto);
             }
 
             return response;

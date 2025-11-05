@@ -11,12 +11,13 @@ namespace OscarCinema.Application.DTOs.Room
     public class CreateRoomDTO
     {
         [Required]
+        [Range(1, int.MaxValue)]
         public int Number { get; set; }
 
         [Required]
         [StringLength(50, MinimumLength = 2)]
         public string Name { get; set; } = string.Empty;
 
-        public List<CreateSeatFromRoomDTO>? Seats { get; set; }
+        public List<CreateSeatFromRoomDTO>? Seats { get; set; } = new();
     }
 }

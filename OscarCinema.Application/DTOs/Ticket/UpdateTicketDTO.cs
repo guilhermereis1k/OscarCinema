@@ -2,6 +2,7 @@
 using OscarCinema.Domain.Enums.Ticket;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,14 +11,9 @@ namespace OscarCinema.Application.DTOs.Ticket
 {
     public class UpdateTicketDTO
     {
-        public DateTime Date { get; set; }
-        public int UserId { get; set; }
-        public int MovieId { get; set; }
-        public int RoomId { get; set; }
-        public int SessionId { get; set; }
-        public PaymentMethod Method { get; set; }
+        [Required]
         public PaymentStatus PaymentStatus { get; set; }
-        public IEnumerable<TicketSeatResponseDTO> TicketSeats { get; set; } = new List<TicketSeatResponseDTO>();
-        public bool Paid;
+
+        public bool Paid { get; set; }
     }
 }
