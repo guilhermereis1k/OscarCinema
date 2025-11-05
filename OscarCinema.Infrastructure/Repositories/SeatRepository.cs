@@ -15,6 +15,13 @@ namespace OscarCinema.Infrastructure.Repositories
     {
         public SeatRepository(OscarCinemaContext context) : base(context){ }
 
+        public virtual async Task<Seat?> GetByIdAsync(int id)
+        {
+            return await _context.Seats
+                .Include(s => s.SeatType)
+                .FirstOrDefaultAsync(s => s.Id == id);
+        }
+
         public async Task<Seat?> GetByRowAndNumberAsync(char row, int number)
         {
             return await _context.Seats

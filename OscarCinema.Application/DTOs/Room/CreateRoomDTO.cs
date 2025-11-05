@@ -17,6 +17,6 @@ namespace OscarCinema.Application.DTOs.Room
         [StringLength(50, MinimumLength = 2)]
         public string Name { get; set; } = string.Empty;
 
-        public List<CreateSeatDTO>? Seats { get; set; }
+        public List<CreateSeatFromRoomDTO>? Seats { get; set; }
     }
 }

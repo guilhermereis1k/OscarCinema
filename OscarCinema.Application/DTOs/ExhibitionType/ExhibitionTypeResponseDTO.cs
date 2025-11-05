@@ -9,10 +9,10 @@ namespace OscarCinema.Application.DTOs.ExhibitionType
     public class ExhibitionTypeResponseDTO
     {
         public string Id { get; set; }
-        public string Name { get; private set; }
-        public string Description { get; private set; }
-        public string TechnicalSpecs { get; private set; }
-        public decimal Price { get; private set; }
-        public bool IsActive { get; private set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public string TechnicalSpecs { get; set; }
+        public decimal Price { get; set; }
+        public bool IsActive { get; set; }
     }
 }

@@ -14,6 +14,13 @@ namespace OscarCinema.Infrastructure.Repositories
     {
         public SessionRepository(OscarCinemaContext context) : base(context) { }
 
+        public virtual async Task<Session?> GetByIdAsync(int id)
+        {
+            return await _context.Sessions
+                .Include(s => s.ExhibitionType)
+                .FirstOrDefaultAsync(s => s.Id == id);
+        }
+
         public async Task<IEnumerable<Session>> GetAllByMovieId(int movieId)
         {
             return await _context.Sessions

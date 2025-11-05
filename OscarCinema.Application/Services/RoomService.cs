@@ -23,14 +23,20 @@ namespace OscarCinema.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<RoomResponseDTO> CreateAsync(CreateRoomDTO dto) 
+        public async Task<RoomResponseDTO> CreateAsync(CreateRoomDTO dto)
         {
-            var entity = _mapper.Map<Room>(dto);
+            var room = new Room(dto.Number, dto.Name);
 
-            await _unitOfWork.RoomRepository.AddAsync(entity);
+            foreach (var seatDto in dto.Seats)
+            {
+                var seat = new Seat(seatDto.Row, seatDto.Number, false, seatDto.SeatTypeId);
+                room.AddSeat(seat);
+            }
+
+            await _unitOfWork.RoomRepository.AddAsync(room);
             await _unitOfWork.CommitAsync();
 
-            return _mapper.Map<RoomResponseDTO>(entity);
+            return _mapper.Map<RoomResponseDTO>(room);
         }
 
         public async Task<RoomResponseDTO?> GetByIdAsync(int id)

@@ -13,6 +13,7 @@ namespace OscarCinema.Domain.Entities
         public int Id { get; private set; }
         public int Number { get; private set; }
         public string Name { get; private set; }
+       
         private List<Seat> _seats = new();
         public IReadOnlyList<Seat> Seats => _seats.AsReadOnly();
 
@@ -49,6 +50,11 @@ namespace OscarCinema.Domain.Entities
                 if (!_seats.Any(s => s.Id == seat.Id))
                     _seats.Add(seat);
             }
+        }
+
+        public void AddSeat(Seat seat)
+        {
+            _seats.Add(seat);
         }
 
         public void RemoveSeat(Seat seat)
