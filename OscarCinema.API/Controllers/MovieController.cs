@@ -13,38 +13,41 @@ namespace OscarCinema.API.Controllers
     public class MovieController : ControllerBase
     {
         private readonly IMovieService _movieService;
+        private readonly ILogger<MovieController> _logger;
 
-        public MovieController(IMovieService movieService)
+        public MovieController(IMovieService movieService, ILogger<MovieController> logger)
         {
             _movieService = movieService;
-
+            _logger = logger;
         }
 
         [HttpPost]
         public async Task<ActionResult<MovieResponseDTO>> Create([FromBody] CreateMovieDTO dto)
         {
-            try
-            {
-                var createdMovie = await _movieService.CreateAsync(dto);
+            _logger.LogInformation("Creating new movie: {Title}", dto.Title);
 
-                return CreatedAtAction(
-                    nameof(GetById),
-                    new { id = createdMovie.Id },
-                    createdMovie);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var createdMovie = await _movieService.CreateAsync(dto);
+
+            _logger.LogInformation("Movie created with ID: {Id}", createdMovie.Id);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = createdMovie.Id },
+                createdMovie);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<MovieResponseDTO>> GetById(int id)
         {
+            _logger.LogDebug("Searching movie by ID: {Id}", id);
+
             var movie = await _movieService.GetByIdAsync(id);
 
             if (movie == null)
+            {
+                _logger.LogWarning("Movie not found: {Id}", id);
                 return NotFound();
+            }
 
             return Ok(movie);
         }
@@ -52,7 +55,11 @@ namespace OscarCinema.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MovieResponseDTO>>> GetAll()
         {
+            _logger.LogDebug("Listing all movies");
+
             var movieList = await _movieService.GetAllAsync();
+
+            _logger.LogDebug("Returning {Count} movies", movieList.Count());
 
             return Ok(movieList);
         }
@@ -60,26 +67,29 @@ namespace OscarCinema.API.Controllers
         [HttpPut("{id:int}")]
         public async Task<ActionResult<MovieResponseDTO>> Update(int id, [FromBody] UpdateMovieDTO dto)
         {
-            try
-            {
-                var updatedMovie = await _movieService.UpdateAsync(id, dto);
-                return Ok(updatedMovie);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            _logger.LogInformation("Updating movie ID: {Id} with data: {@Dto}", id, dto);
 
+            var updatedMovie = await _movieService.UpdateAsync(id, dto);
+
+            _logger.LogInformation("Movie updated successfully: {Id}", id);
+
+            return Ok(updatedMovie);
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {
+            _logger.LogInformation("Deleting movie: {Id}", id);
+
             var deleted = await _movieService.DeleteAsync(id);
 
             if (!deleted)
+            {
+                _logger.LogWarning("Attempt to delete movie not found: {Id}", id);
                 return NotFound($"Movie with ID {id} not found");
+            }
 
+            _logger.LogInformation("Movie deleted successfully: {Id}", id);
             return NoContent();
         }
     }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
+using OscarCinema.API.Middleware;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Application.Mappings;
 using OscarCinema.Application.Services;
@@ -8,6 +9,8 @@ using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Context;
 using OscarCinema.Infrastructure.Repositories;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,7 +50,6 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.AddProfile<ExhibitionTypeDTOMappingProfile>();
 });
 
-
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
@@ -77,7 +79,25 @@ builder.Services.AddScoped<ISeatTypeService, SeatTypeService>();
 
 builder.Services.AddScoped<IPricingService, PricingService>();
 
+var outputTemplate = "[{Timestamp:dd-MM-yyyy HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}";
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .WriteTo.Console(outputTemplate: outputTemplate)
+    .WriteTo.File(
+        path: "logs/log-.txt",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,
+        shared: true
+    )
+    .Enrich.FromLogContext()
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
