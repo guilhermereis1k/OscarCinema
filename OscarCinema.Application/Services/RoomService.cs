@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using OscarCinema.Application.DTOs.Movie;
 using OscarCinema.Application.DTOs.Room;
 using OscarCinema.Application.Interfaces;
@@ -16,15 +17,20 @@ namespace OscarCinema.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ILogger<RoomService> _logger;
 
-        public RoomService(IUnitOfWork unitOfWork, IMapper mapper)
+        public RoomService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<RoomService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<RoomResponseDTO> CreateAsync(CreateRoomDTO dto)
         {
+            _logger.LogInformation("Creating new room: {RoomName} (Number: {RoomNumber}) with {SeatCount} seats",
+                dto.Name, dto.Number, dto.Seats.Count);
+
             var room = new Room(dto.Number, dto.Name);
 
             foreach (var seatDto in dto.Seats)
@@ -36,20 +42,38 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.RoomRepository.AddAsync(room);
             await _unitOfWork.CommitAsync();
 
+            _logger.LogInformation("Room created successfully: {RoomName} (ID: {RoomId}) with {SeatCount} seats",
+                room.Name, room.Id, room.Seats.Count);
             return _mapper.Map<RoomResponseDTO>(room);
         }
 
         public async Task<RoomResponseDTO?> GetByIdAsync(int id)
         {
+            _logger.LogDebug("Getting room by ID: {RoomId}", id);
+
             var entity = await _unitOfWork.RoomRepository.GetByIdAsync(id);
-            return entity == null ? null : _mapper.Map<RoomResponseDTO>(entity);
+
+            if (entity == null)
+            {
+                _logger.LogWarning("Room not found: {RoomId}", id);
+                return null;
+            }
+
+            _logger.LogDebug("Room found: {RoomName} (ID: {RoomId}) with {SeatCount} seats",
+                entity.Name, id, entity.Seats.Count);
+            return _mapper.Map<RoomResponseDTO>(entity);
         }
 
         public async Task<RoomResponseDTO?> UpdateAsync(int id, UpdateRoomDTO dto)
         {
+            _logger.LogInformation("Updating room ID: {RoomId} with {SeatCount} seats", id, dto.Seats.Count);
+
             var existentRoom = await _unitOfWork.RoomRepository.GetByIdAsync(id);
             if (existentRoom == null)
+            {
+                _logger.LogWarning("Room not found for update: {RoomId}", id);
                 return null;
+            }
 
             existentRoom.Update(dto.Number, dto.Name);
 
@@ -83,41 +107,66 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.RoomRepository.UpdateAsync(existentRoom);
             await _unitOfWork.CommitAsync();
 
+            _logger.LogInformation("Room updated successfully: {RoomName} (ID: {RoomId}) with {SeatCount} seats",
+                existentRoom.Name, id, existentRoom.Seats.Count);
             return _mapper.Map<RoomResponseDTO>(existentRoom);
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
+            _logger.LogInformation("Deleting room: {RoomId}", id);
+
             var entity = await _unitOfWork.RoomRepository.GetByIdAsync(id);
-            if (entity == null) return false;
-            
+            if (entity == null)
+            {
+                _logger.LogWarning("Room not found for deletion: {RoomId}", id);
+                return false;
+            }
+
             await _unitOfWork.RoomRepository.DeleteAsync(id);
             await _unitOfWork.CommitAsync();
 
+            _logger.LogInformation("Room deleted successfully: {RoomId}", id);
             return true;
         }
 
         public async Task<IEnumerable<RoomResponseDTO>> GetAllAsync()
         {
+            _logger.LogDebug("Getting all rooms");
+
             var entity = await _unitOfWork.RoomRepository.GetAllAsync();
-            return _mapper.Map<IEnumerable<RoomResponseDTO>>(entity);
+            var rooms = _mapper.Map<IEnumerable<RoomResponseDTO>>(entity);
+
+            _logger.LogDebug("Retrieved {RoomCount} rooms", rooms.Count());
+            return rooms;
         }
 
         public async Task<RoomResponseDTO?> GetByNumberAsync(int number)
         {
+            _logger.LogDebug("Getting room by number: {RoomNumber}", number);
+
             var entity = await _unitOfWork.RoomRepository.GetByNumberAsync(number);
 
             if (entity == null)
+            {
+                _logger.LogWarning("Room not found with number: {RoomNumber}", number);
                 return null;
+            }
 
+            _logger.LogDebug("Room found by number: {RoomName} (Number: {RoomNumber})", entity.Name, number);
             return _mapper.Map<RoomResponseDTO>(entity);
         }
 
         public async Task<RoomResponseDTO?> AddSeatsAsync(int roomId, AddSeatsToRoomDTO dto)
         {
+            _logger.LogInformation("Adding {SeatCount} seats to room ID: {RoomId}", dto.Seats.Count, roomId);
+
             var entity = await _unitOfWork.RoomRepository.GetByIdAsync(roomId);
             if (entity == null)
+            {
+                _logger.LogWarning("Room not found for adding seats: {RoomId}", roomId);
                 return null;
+            }
 
             var newSeats = _mapper.Map<IEnumerable<Seat>>(dto.Seats);
             entity.AddSeats(newSeats);
@@ -125,6 +174,8 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.RoomRepository.UpdateAsync(entity);
             await _unitOfWork.CommitAsync();
 
+            _logger.LogInformation("Added {SeatCount} seats to room ID: {RoomId}. Total seats now: {TotalSeats}",
+                dto.Seats.Count, roomId, entity.Seats.Count);
             return _mapper.Map<RoomResponseDTO>(entity);
         }
     }

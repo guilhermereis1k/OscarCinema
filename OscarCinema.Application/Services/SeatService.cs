@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using OscarCinema.Application.DTOs.Seat;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
@@ -16,74 +17,132 @@ namespace OscarCinema.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ILogger<SeatService> _logger;
 
-        public SeatService(IUnitOfWork unitOfWork, IMapper mapper)
+        public SeatService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<SeatService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<SeatResponseDTO> CreateAsync(CreateSeatDTO dto)
         {
+            _logger.LogInformation("Creating new seat - Row: {Row}, Number: {Number}, Room: {RoomId}",
+                dto.Row, dto.Number, dto.RoomId);
+
             var entity = _mapper.Map<Seat>(dto);
             await _unitOfWork.SeatRepository.AddAsync(entity);
             await _unitOfWork.CommitAsync();
 
+            _logger.LogInformation("Seat created successfully: {Row}{Number} (ID: {SeatId})",
+                dto.Row, dto.Number, entity.Id);
             return _mapper.Map<SeatResponseDTO>(entity);
         }
 
         public async Task<SeatResponseDTO?> GetByIdAsync(int id)
         {
+            _logger.LogDebug("Getting seat by ID: {SeatId}", id);
+
             var entity = await _unitOfWork.SeatRepository.GetByIdAsync(id);
-            return entity == null ? null : _mapper.Map<SeatResponseDTO>(entity);
+
+            if (entity == null)
+            {
+                _logger.LogWarning("Seat not found: {SeatId}", id);
+                return null;
+            }
+
+            _logger.LogDebug("Seat found: {Row}{Number} (ID: {SeatId})", entity.Row, entity.Number, id);
+            return _mapper.Map<SeatResponseDTO>(entity);
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
+            _logger.LogInformation("Deleting seat: {SeatId}", id);
+
             var entity = await _unitOfWork.SeatRepository.GetByIdAsync(id);
-            if (entity == null) return false;
+            if (entity == null)
+            {
+                _logger.LogWarning("Seat not found for deletion: {SeatId}", id);
+                return false;
+            }
 
             await _unitOfWork.SeatRepository.DeleteAsync(id);
             await _unitOfWork.CommitAsync();
 
+            _logger.LogInformation("Seat deleted successfully: {SeatId}", id);
             return true;
         }
+
         public async Task<SeatResponseDTO?> GetByRowAndNumberAsync(GetSeatByRowAndNumberDTO dto)
         {
-            var entity = await _unitOfWork.SeatRepository.GetByRowAndNumberAsync(dto.Row, dto.Number);
-            if (entity == null)
-                return null;
+            _logger.LogDebug("Getting seat by row and number - Row: {Row}, Number: {Number}",
+                dto.Row, dto.Number);
 
+            var entity = await _unitOfWork.SeatRepository.GetByRowAndNumberAsync(dto.Row, dto.Number);
+
+            if (entity == null)
+            {
+                _logger.LogWarning("Seat not found - Row: {Row}, Number: {Number}", dto.Row, dto.Number);
+                return null;
+            }
+
+            _logger.LogDebug("Seat found by row and number: {Row}{Number} (ID: {SeatId})",
+                dto.Row, dto.Number, entity.Id);
             return _mapper.Map<SeatResponseDTO>(entity);
         }
 
         public async Task<IEnumerable<SeatResponseDTO>?> GetSeatsByRoomIdAsync(int roomId)
         {
+            _logger.LogDebug("Getting seats by room ID: {RoomId}", roomId);
+
             var entity = await _unitOfWork.SeatRepository.GetSeatsByRoomIdAsync(roomId);
-            return entity == null ? null : _mapper.Map<IEnumerable<SeatResponseDTO>>(entity);
+
+            if (entity == null)
+            {
+                _logger.LogWarning("No seats found for room ID: {RoomId}", roomId);
+                return null;
+            }
+
+            _logger.LogDebug("Retrieved {SeatCount} seats for room ID: {RoomId}", entity.Count(), roomId);
+            return _mapper.Map<IEnumerable<SeatResponseDTO>>(entity);
         }
 
         public async Task<SeatResponseDTO?> OccupySeatAsync(int id)
         {
+            _logger.LogInformation("Occupying seat: {SeatId}", id);
+
             var seat = await _unitOfWork.SeatRepository.GetByIdAsync(id);
-            if (seat == null) return null;
+            if (seat == null)
+            {
+                _logger.LogWarning("Seat not found for occupation: {SeatId}", id);
+                return null;
+            }
 
             seat.OccupySeat(id);
             await _unitOfWork.SeatRepository.UpdateAsync(seat);
             await _unitOfWork.CommitAsync();
 
+            _logger.LogInformation("Seat occupied successfully: {SeatId}", id);
             return _mapper.Map<SeatResponseDTO>(seat);
         }
 
         public async Task<SeatResponseDTO?> FreeSeatAsync(int id)
         {
+            _logger.LogInformation("Freeing seat: {SeatId}", id);
+
             var seat = await _unitOfWork.SeatRepository.GetByIdAsync(id);
-            if (seat == null) return null;
+            if (seat == null)
+            {
+                _logger.LogWarning("Seat not found for freeing: {SeatId}", id);
+                return null;
+            }
 
             seat.FreeSeat(id);
             await _unitOfWork.SeatRepository.UpdateAsync(seat);
             await _unitOfWork.CommitAsync();
 
+            _logger.LogInformation("Seat freed successfully: {SeatId}", id);
             return _mapper.Map<SeatResponseDTO>(seat);
         }
     }
