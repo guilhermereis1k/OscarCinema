@@ -21,7 +21,7 @@ namespace OscarCinema.Domain.Entities
         public UserRole Role { get; private set; }
 
 
-        private List<Ticket> _tickets = new();
+        private readonly List<Ticket> _tickets;
         public IReadOnlyList<Ticket> Tickets => _tickets.AsReadOnly();
 
         public User() { }

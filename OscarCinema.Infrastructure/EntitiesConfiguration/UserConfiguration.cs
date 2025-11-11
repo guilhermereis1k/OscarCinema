@@ -15,6 +15,18 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
+            builder.HasKey(u => u.Id);
+
+            builder.OwnsOne(u => u.DocumentNumber, cpf =>
+            {
+                cpf.Property(c => c.Number)
+                   .HasColumnName("DocumentNumber")
+                   .HasMaxLength(11)
+                   .IsRequired();
+
+                cpf.HasIndex(c => c.Number).IsUnique();
+            });
+
             builder.ToTable("Users");
             builder.HasKey(u => u.Id);
 
@@ -33,14 +45,6 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
             builder.Property(u => u.Role)
                    .IsRequired()
                    .HasConversion<int>();
-
-            builder.OwnsOne(u => u.DocumentNumber, u =>
-            {
-                u.Property(c => c.Number)
-                   .HasColumnName("DocumentNumber")
-                   .IsRequired()
-                   .HasMaxLength(11);
-            });
 
             builder.HasIndex(u => u.Email).IsUnique();
             builder.HasIndex(u => new { u.DocumentNumber.Number }).IsUnique();

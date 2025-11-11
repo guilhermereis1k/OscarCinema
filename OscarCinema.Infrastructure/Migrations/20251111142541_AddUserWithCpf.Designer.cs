@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OscarCinema.Infrastructure.Context;
 
@@ -12,9 +13,11 @@ using OscarCinema.Infrastructure.Context;
 namespace OscarCinema.Infrastructure.Migrations
 {
     [DbContext(typeof(OscarCinemaContext))]
-    partial class OscarCinemaContextModelSnapshot : ModelSnapshot
+    [Migration("20251111142541_AddUserWithCpf")]
+    partial class AddUserWithCpf
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
