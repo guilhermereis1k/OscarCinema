@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using MySqlConnector;
 using OscarCinema.API.Middleware;
 using OscarCinema.Application.Interfaces;
@@ -8,9 +11,12 @@ using OscarCinema.Application.Services;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Context;
+using OscarCinema.Infrastructure.Identity;
 using OscarCinema.Infrastructure.Repositories;
+using OscarCinema.Infrastructure.Services;
 using Serilog;
 using Serilog.Events;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,13 +75,16 @@ builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<ITicketSeatService, TicketSeatService>();
 builder.Services.AddScoped<ITicketSeatRepository, TicketSeatRepository>();
 
-builder.Services.AddScoped<IExhibitionTypeService, ExhibitionTypeService>();
-
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+builder.Services.AddScoped<IExhibitionTypeService, ExhibitionTypeService>();
 
 builder.Services.AddScoped<IMovieService, MovieService>();
 
 builder.Services.AddScoped<ISeatTypeService, SeatTypeService>();
+
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 builder.Services.AddScoped<IPricingService, PricingService>();
 
@@ -92,6 +101,37 @@ Log.Logger = new LoggerConfiguration()
     )
     .Enrich.FromLogContext()
     .CreateLogger();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+    };
+});
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
+    {
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequiredLength = 6;
+        options.User.RequireUniqueEmail = true;
+    })
+.AddEntityFrameworkStores<OscarCinemaContext>()
+.AddDefaultTokenProviders();
 
 builder.Host.UseSerilog();
 

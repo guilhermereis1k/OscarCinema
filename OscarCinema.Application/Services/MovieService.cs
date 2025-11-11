@@ -6,7 +6,6 @@ using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Entities.Pricing;
 using OscarCinema.Domain.Enums.Movie;
 using OscarCinema.Domain.Interfaces;
-using OscarCinema.Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;

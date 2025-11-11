@@ -6,7 +6,6 @@ using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Entities.Pricing;
 using OscarCinema.Domain.Enums.User;
 using OscarCinema.Domain.Interfaces;
-using OscarCinema.Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,18 +25,6 @@ namespace OscarCinema.Application.Services
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
-        }
-
-        public async Task<UserResponseDTO> CreateAsync(CreateUserDTO request)
-        {
-            _logger.LogInformation("Creating new user: {Email}", request.Email);
-
-            var user = _mapper.Map<User>(request);
-            await _unitOfWork.UserRepository.AddAsync(user);
-            await _unitOfWork.CommitAsync();
-
-            _logger.LogInformation("User created successfully: {Email} (ID: {UserId})", request.Email, user.Id);
-            return _mapper.Map<UserResponseDTO>(user);
         }
 
         public async Task<UserResponseDTO?> UpdateAsync(int id, UpdateUserDTO request)

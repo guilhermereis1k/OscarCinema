@@ -13,7 +13,8 @@ namespace OscarCinema.Application.Mappings
     {
         public UserDTOMappingProfile()
         {
-            CreateMap<CreateUserDTO, User>();
+            CreateMap<RegisterUserDTO, User>();
+            CreateMap<LoginUserDTO, User>();
             CreateMap<UpdateUserDTO, User>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
 

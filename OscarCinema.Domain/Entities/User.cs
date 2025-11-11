@@ -9,42 +9,39 @@ namespace OscarCinema.Domain.Entities
 {
     public class User
     {
-        public int Id { get; private set; }
+        public int Id { get; internal set; }
 
         public string Name { get; private set; }
-
         public Cpf DocumentNumber { get; private set; }
-
         public string Email { get; private set; }
-
-        public string Password { get; private set; }
         public UserRole Role { get; private set; }
 
 
         private readonly List<Ticket> _tickets;
         public IReadOnlyList<Ticket> Tickets => _tickets.AsReadOnly();
 
-        public User() { }
-
-        public User(string name, string documentNumber, string email, string password, UserRole role)
-        {
-            ValidateDomain(name, documentNumber, email, password, role);
-
-            Name = name;
-            DocumentNumber = new Cpf(documentNumber);
-            Email = email;
-            Password = password;
-            Role = role;
+        public User() {
+            _tickets = new List<Ticket>();
         }
 
-        public void Update(string name, string documentNumber, string email, string password, UserRole role)
+        public User(string name, string documentNumber, string email, UserRole role)
         {
-            ValidateDomain(name, documentNumber, email, password, role);
+            ValidateDomain(name, documentNumber, email, role);
 
             Name = name;
             DocumentNumber = new Cpf(documentNumber);
             Email = email;
-            Password = password;
+            Role = role;
+            _tickets = new List<Ticket>();
+        }
+
+        public void Update(string name, string documentNumber, string email, UserRole role)
+        {
+            ValidateDomain(name, documentNumber, email, role);
+
+            Name = name;
+            DocumentNumber = new Cpf(documentNumber);
+            Email = email;
             Role = role;
         }
 
@@ -54,7 +51,7 @@ namespace OscarCinema.Domain.Entities
             _tickets.Add(ticket);
         }
 
-        private void ValidateDomain(string name, string documentNumber, string email, string password, UserRole role)
+        private void ValidateDomain(string name, string documentNumber, string email, UserRole role)
         {
             DomainExceptionValidation.When(string.IsNullOrWhiteSpace(name),
                 "Name is required.");
@@ -70,12 +67,6 @@ namespace OscarCinema.Domain.Entities
 
             DomainExceptionValidation.When(!Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"),
                 "Email format is invalid.");
-
-            DomainExceptionValidation.When(string.IsNullOrWhiteSpace(password),
-                "Password is required.");
-
-            DomainExceptionValidation.When(password.Length < 6,
-                "Password must be at least 6 characters long.");
 
             DomainExceptionValidation.When(!Enum.IsDefined(typeof(UserRole), role),
                 "Role is required.");

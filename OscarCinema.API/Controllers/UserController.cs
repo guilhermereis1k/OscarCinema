@@ -21,21 +21,6 @@ namespace OscarCinema.API.Controllers
             _logger = logger;
         }
 
-        [HttpPost]
-        public async Task<ActionResult<UserResponseDTO>> Create([FromBody] CreateUserDTO dto)
-        {
-            _logger.LogInformation("Creating new user: {Email}", dto.Email);
-
-            var createdUser = await _userService.CreateAsync(dto);
-
-            _logger.LogInformation("User created with ID: {Id}", createdUser.Id);
-
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = createdUser.Id },
-                createdUser);
-        }
-
         [HttpGet("{id}")]
         public async Task<ActionResult<UserResponseDTO>> GetById(int id)
         {

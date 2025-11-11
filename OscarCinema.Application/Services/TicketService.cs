@@ -7,7 +7,6 @@ using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.Ticket;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Domain.Validation;
-using OscarCinema.Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;

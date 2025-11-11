@@ -18,7 +18,6 @@ public static class CpfUtils
         if (cleaned.Length != 11)
             return false;
 
-        // Verifica sequência repetida
         if (IsRepeatedSequence(cleaned))
             return false;
 

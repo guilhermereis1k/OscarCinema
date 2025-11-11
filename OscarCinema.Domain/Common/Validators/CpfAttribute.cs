@@ -13,7 +13,7 @@ namespace OscarCinema.Domain.Common.Validators
         protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
             if (value == null || string.IsNullOrWhiteSpace(value.ToString()))
-                return ValidationResult.Success; // RequiredAttribute cuida disso
+                return ValidationResult.Success;
 
             var cpf = value.ToString();
 

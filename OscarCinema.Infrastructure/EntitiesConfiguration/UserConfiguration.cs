@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
+using OscarCinema.Domain.Common.ValueObjects;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.User;
 using System;
@@ -17,19 +19,6 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
         {
             builder.HasKey(u => u.Id);
 
-            builder.OwnsOne(u => u.DocumentNumber, cpf =>
-            {
-                cpf.Property(c => c.Number)
-                   .HasColumnName("DocumentNumber")
-                   .HasMaxLength(11)
-                   .IsRequired();
-
-                cpf.HasIndex(c => c.Number).IsUnique();
-            });
-
-            builder.ToTable("Users");
-            builder.HasKey(u => u.Id);
-
             builder.Property(u => u.Name)
                    .IsRequired()
                    .HasMaxLength(100);
@@ -38,16 +27,27 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
                    .IsRequired()
                    .HasMaxLength(255);
 
-            builder.Property(u => u.Password)
-                   .IsRequired()
-                   .HasMaxLength(255);
-
             builder.Property(u => u.Role)
                    .IsRequired()
                    .HasConversion<int>();
 
             builder.HasIndex(u => u.Email).IsUnique();
-            builder.HasIndex(u => new { u.DocumentNumber.Number }).IsUnique();
+            builder.HasIndex("DocumentNumber").IsUnique();
+
+            builder.Property(u => u.DocumentNumber)
+                    .HasConversion(
+                        new ValueConverter<Cpf, string>(
+                            cpf => cpf.Number,
+                            number => new Cpf(number)
+                        )
+                    )
+                    .HasColumnName("DocumentNumber")
+                    .HasMaxLength(11)
+                    .IsRequired();
+
+            
+
+            builder.ToTable("Users");
         }
     }
 }

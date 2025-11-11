@@ -10,14 +10,14 @@ using System.Threading.Tasks;
 
 namespace OscarCinema.Application.DTOs.User
 {
-    public class CreateUserDTO
+    public class RegisterUserDTO
     {
         [Required(ErrorMessage = "Nome é obrigatório")]
         [StringLength(100, ErrorMessage = "Nome não pode ter mais de 100 caracteres")]
         public string Name { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "CPF é obrigatório")]
-        [Cpf(ErrorMessage = "CPF inválido")]
+        [Cpf]
         public string DocumentNumber { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Email é obrigatório")]
@@ -25,7 +25,7 @@ namespace OscarCinema.Application.DTOs.User
         public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Senha é obrigatória")]
-        [MinLength(6, ErrorMessage = "Senha deve ter pelo menos 6 caracteres")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "Senha deve ter entre 6 e 100 caracteres")]
         public string Password { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Tipo de usuário é obrigatório")]

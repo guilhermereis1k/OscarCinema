@@ -24,9 +24,6 @@ namespace OscarCinema.Application.DTOs.User
         [EmailAddress(ErrorMessage = "Email inválido")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Senha é obrigatória")]
-        [MinLength(6, ErrorMessage = "Senha deve ter pelo menos 6 caracteres")]
-        public string Password { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Tipo de usuário é obrigatório")]
         public UserRole Role { get; set; }
