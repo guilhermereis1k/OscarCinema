@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Rewrite;
 using OscarCinema.Application.DTOs.User;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Interfaces;
@@ -15,14 +16,13 @@ namespace OscarCinema.API.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ITokenService _tokenService;
-        private readonly IUserRepository _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<AuthController> _logger;
 
-        public AuthController(UserManager<ApplicationUser> userManager, ITokenService tokenService, IUserRepository userRepository, ILogger<AuthController> logger)
+        public AuthController(UserManager<ApplicationUser> userManager, ITokenService tokenService, ILogger<AuthController> logger)
         {
             _userManager = userManager;
             _tokenService = tokenService;
-            _userRepository = userRepository;
             _logger = logger;
         }
 
@@ -52,21 +52,18 @@ namespace OscarCinema.API.Controllers
             }
 
             var roleName = request.Role.ToString().ToUpper();
-            await _userManager.AddToRoleAsync(appUser, roleName);
+            var roleResult = await _userManager.AddToRoleAsync(appUser, roleName);
 
-            var freshAppUser = await _userManager.FindByEmailAsync(request.Email);
-
-            if (freshAppUser == null)
+            if (!roleResult.Succeeded)
             {
-                _logger.LogError("User created but not found: {Email}", request.Email);
-                return StatusCode(500, "User creation failed");
+                _logger.LogWarning("Failed to add role to user: {Email}", request.Email);
+
+                await _userManager.DeleteAsync(appUser);
+                return BadRequest(roleResult.Errors);
             }
 
-            var token = await _tokenService.CreateToken(
-                (int)freshAppUser.Id,
-                freshAppUser.Email,
-                freshAppUser.UserName
-            );
+            var freshAppUser = await _userManager.FindByEmailAsync(request.Email);
+            var token = await _tokenService.CreateToken((int)freshAppUser.Id, freshAppUser.Email, freshAppUser.UserName);
 
             _logger.LogInformation("User registered successfully: {Email} (ID: {UserId}) with role: {Role}",
                 request.Email, freshAppUser.Id, roleName);

@@ -16,6 +16,7 @@ using OscarCinema.Infrastructure.Repositories;
 using OscarCinema.Infrastructure.Services;
 using Serilog;
 using Serilog.Events;
+using System;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -136,6 +137,19 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
 builder.Host.UseSerilog();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<OscarCinemaContext>();
+    db.Database.Migrate();
+}
+
+app.UseCors(b => b
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .SetIsOriginAllowed((host) => true)
+                .AllowCredentials()
+                );
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
