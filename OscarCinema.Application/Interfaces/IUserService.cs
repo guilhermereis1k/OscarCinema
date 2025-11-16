@@ -1,4 +1,5 @@
-﻿using OscarCinema.Application.DTOs.User;
+﻿using OscarCinema.Application.DTOs.Pagination;
+using OscarCinema.Application.DTOs.User;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,9 +10,9 @@ namespace OscarCinema.Application.Interfaces
 {
     public interface IUserService
     {
-        Task<UserResponseDTO?> UpdateAsync(int id, UpdateUserDTO request);
+        Task<UserResponse?> UpdateAsync(int id, UpdateUser request);
         Task<bool> DeleteAsync(int id);
-        Task<UserResponseDTO?> GetByIdAsync(int id);
-        Task<IEnumerable<UserResponseDTO>> GetAllAsync();
+        Task<UserResponse?> GetByIdAsync(int id);
+        Task<PaginationResult<UserResponse>> GetAllAsync(PaginationQuery query);
     }
 }

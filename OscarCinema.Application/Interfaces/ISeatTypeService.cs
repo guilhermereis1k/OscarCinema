@@ -1,4 +1,5 @@
 ﻿using OscarCinema.Application.DTOs;
+using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.Seat;
 using OscarCinema.Application.DTOs.SeatType;
 using System;
@@ -11,10 +12,10 @@ namespace OscarCinema.Application.Interfaces
 {
     public interface ISeatTypeService
     {
-        Task<IEnumerable<SeatTypeResponseDTO>> GetAllAsync();
-        Task<SeatTypeResponseDTO?> GetByIdAsync(int id);
-        Task<SeatTypeResponseDTO> CreateAsync(CreateSeatTypeDTO dto);
-        Task<SeatTypeResponseDTO> UpdateAsync(int id, UpdateSeatTypeDTO dto);
+        Task<PaginationResult<SeatTypeResponse>> GetAllAsync(PaginationQuery query);
+        Task<SeatTypeResponse?> GetByIdAsync(int id);
+        Task<SeatTypeResponse> CreateAsync(CreateSeatType dto);
+        Task<SeatTypeResponse> UpdateAsync(int id, UpdateSeatType dto);
         Task<bool> DeleteAsync(int id);
     }
 }

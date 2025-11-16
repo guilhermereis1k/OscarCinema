@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OscarCinema.Application.DTOs.Movie;
+using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Entities.Pricing;
@@ -11,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OscarCinema.Application.Services
 {
@@ -27,7 +30,7 @@ namespace OscarCinema.Application.Services
             _logger = logger;
         }
 
-        public async Task<MovieResponseDTO> CreateAsync(CreateMovieDTO dto)
+        public async Task<MovieResponse> CreateAsync(CreateMovie dto)
         {
             _logger.LogInformation("Creating new movie: {Title}", dto.Title);
 
@@ -37,10 +40,10 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation("Movie created successfully: {Title} (ID: {Id})", entity.Title, entity.Id);
-            return _mapper.Map<MovieResponseDTO>(entity);
+            return _mapper.Map<MovieResponse>(entity);
         }
 
-        public async Task<MovieResponseDTO?> GetByIdAsync(int id)
+        public async Task<MovieResponse?> GetByIdAsync(int id)
         {
             _logger.LogDebug("Getting movie by ID: {Id}", id);
 
@@ -53,21 +56,38 @@ namespace OscarCinema.Application.Services
             }
 
             _logger.LogDebug("Movie found: {Title} (ID: {Id})", entity.Title, id);
-            return _mapper.Map<MovieResponseDTO>(entity);
+            return _mapper.Map<MovieResponse>(entity);
         }
 
-        public async Task<IEnumerable<MovieResponseDTO>> GetAllAsync()
+        public async Task<PaginationResult<MovieResponse>> GetAllAsync(PaginationQuery query)
         {
-            _logger.LogDebug("Getting all movies");
+            _logger.LogDebug("Getting all movies with pagination");
 
-            var entity = await _unitOfWork.MovieRepository.GetAllAsync();
-            var movies = _mapper.Map<IEnumerable<MovieResponseDTO>>(entity ?? Enumerable.Empty<Movie>());
+            var baseQuery = _unitOfWork.MovieRepository.GetAllQueryable();
 
-            _logger.LogDebug("Retrieved {Count} movies", movies.Count());
-            return movies;
+            var totalItems = await baseQuery.CountAsync();
+
+            var movies = await baseQuery
+                .OrderBy(r => r.Id)
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToListAsync();
+
+            var moviesDtos = _mapper.Map<IEnumerable<MovieResponse>>(movies);
+
+            _logger.LogDebug("Retrieved {MoviesCount} movies.", moviesDtos.Count());
+
+            return new PaginationResult<MovieResponse>
+            {
+                CurrentPage = query.PageNumber,
+                PageSize = query.PageSize,
+                TotalItems = totalItems,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)query.PageSize),
+                Data = moviesDtos
+            };
         }
 
-        public async Task<MovieResponseDTO?> UpdateAsync(int id, UpdateMovieDTO dto)
+        public async Task<MovieResponse?> UpdateAsync(int id, UpdateMovie dto)
         {
             _logger.LogInformation("Updating movie ID: {Id}", id);
 
@@ -84,7 +104,7 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation("Movie updated successfully: {Title} (ID: {Id})", entity.Title, id);
-            return _mapper.Map<MovieResponseDTO>(entity);
+            return _mapper.Map<MovieResponse>(entity);
         }
 
         public async Task<bool> DeleteAsync(int id)

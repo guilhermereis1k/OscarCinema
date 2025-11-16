@@ -10,12 +10,12 @@ namespace OscarCinema.Application.Interfaces
 {
     public interface ISeatService
     {
-        Task<SeatResponseDTO> CreateAsync(CreateSeatDTO dto);
-        Task<SeatResponseDTO?> GetByIdAsync(int id);
+        Task<SeatResponse> CreateAsync(CreateSeat dto);
+        Task<SeatResponse?> GetByIdAsync(int id);
         Task<bool> DeleteAsync(int id);
-        Task<SeatResponseDTO?> GetByRowAndNumberAsync(GetSeatByRowAndNumberDTO dto);
-        Task<IEnumerable<SeatResponseDTO>?> GetSeatsByRoomIdAsync(int roomId);
-        Task<SeatResponseDTO?> OccupySeatAsync(int id);
-        Task<SeatResponseDTO?> FreeSeatAsync(int  id);
+        Task<SeatResponse?> GetByRowAndNumberAsync(GetSeatByRowAndNumber dto);
+        Task<IEnumerable<SeatResponse>?> GetSeatsByRoomIdAsync(int roomId);
+        Task<SeatResponse?> OccupySeatAsync(int id);
+        Task<SeatResponse?> FreeSeatAsync(int  id);
     }
 }

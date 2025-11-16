@@ -13,11 +13,11 @@ namespace OscarCinema.Application.Mappings
     {
         public TicketDTOMappingProfile() 
         {
-            CreateMap<CreateTicketDTO, Ticket>();
-            CreateMap<UpdateTicketDTO, Ticket>()
+            CreateMap<CreateTicket, Ticket>();
+            CreateMap<UpdateTicket, Ticket>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
 
-            CreateMap<Ticket, TicketResponseDTO>();
+            CreateMap<Ticket, TicketResponse>();
         }
     }
 }

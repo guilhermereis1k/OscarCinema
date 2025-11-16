@@ -1,4 +1,5 @@
 ﻿using OscarCinema.Application.DTOs.Movie;
+using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.Movie;
 using System;
@@ -11,10 +12,10 @@ namespace OscarCinema.Application.Interfaces
 {
     public interface IMovieService
     {
-        Task<MovieResponseDTO> CreateAsync(CreateMovieDTO dto);
-        Task<MovieResponseDTO?> GetByIdAsync(int id);
-        Task<IEnumerable<MovieResponseDTO>> GetAllAsync();
-        Task<MovieResponseDTO?> UpdateAsync(int id, UpdateMovieDTO dto);
+        Task<MovieResponse> CreateAsync(CreateMovie dto);
+        Task<MovieResponse?> GetByIdAsync(int id);
+        Task<PaginationResult<MovieResponse>> GetAllAsync(PaginationQuery query);
+        Task<MovieResponse?> UpdateAsync(int id, UpdateMovie dto);
         Task<bool> DeleteAsync(int id);
     }
 }

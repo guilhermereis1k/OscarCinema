@@ -1,10 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OscarCinema.Application.DTOs.Movie;
+using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.Interfaces;
+using OscarCinema.Application.Services;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Repositories;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OscarCinema.API.Controllers
 {
@@ -22,7 +25,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<MovieResponseDTO>> Create([FromBody] CreateMovieDTO dto)
+        public async Task<ActionResult<MovieResponse>> Create([FromBody] CreateMovie dto)
         {
             _logger.LogInformation("Creating new movie: {Title}", dto.Title);
 
@@ -37,7 +40,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<MovieResponseDTO>> GetById(int id)
+        public async Task<ActionResult<MovieResponse>> GetById(int id)
         {
             _logger.LogDebug("Searching movie by ID: {Id}", id);
 
@@ -53,19 +56,20 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<MovieResponseDTO>>> GetAll()
+        public async Task<ActionResult<PaginationResult<MovieResponse>>> GetAll([FromQuery] PaginationQuery query)
         {
-            _logger.LogDebug("Listing all movies");
+            _logger.LogDebug("Listing all movies with pagination.");
 
-            var movieList = await _movieService.GetAllAsync();
+            var pageResult = await _movieService.GetAllAsync(query);
 
-            _logger.LogDebug("Returning {Count} movies", movieList.Count());
+            _logger.LogDebug(
+                "Returning {Count} items for the current page.", pageResult.Data.Count());
 
-            return Ok(movieList);
+            return Ok(pageResult);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<ActionResult<MovieResponseDTO>> Update(int id, [FromBody] UpdateMovieDTO dto)
+        public async Task<ActionResult<MovieResponse>> Update(int id, [FromBody] UpdateMovie dto)
         {
             _logger.LogInformation("Updating movie ID: {Id} with data: {@Dto}", id, dto);
 

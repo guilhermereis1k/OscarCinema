@@ -23,9 +23,9 @@ namespace OscarCinema.Infrastructure.Repositories
 
         public async Task<IEnumerable<Session>> GetAllByMovieId(int movieId)
         {
-            return await _context.Sessions
-                .Where(s =>  s.MovieId == movieId)
-                .ToListAsync();
+            return _context.Sessions
+                .Where(s => s.MovieId == movieId)
+                .AsNoTracking();
         }
     }
 }

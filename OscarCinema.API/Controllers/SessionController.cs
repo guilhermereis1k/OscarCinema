@@ -1,10 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.Session;
 using OscarCinema.Application.Interfaces;
+using OscarCinema.Application.Services;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Repositories;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OscarCinema.API.Controllers
 {
@@ -22,7 +25,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<SessionResponseDTO>> Create([FromBody] CreateSessionDTO dto)
+        public async Task<ActionResult<SessionResponse>> Create([FromBody] CreateSession dto)
         {
             _logger.LogInformation("Creating new session for movie {MovieId} in room {RoomId} at {SessionDate}",
                 dto.MovieId, dto.RoomId, dto.StartTime);
@@ -38,7 +41,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<SessionResponseDTO>> GetById(int id)
+        public async Task<ActionResult<SessionResponse>> GetById(int id)
         {
             _logger.LogDebug("Searching session by ID: {Id}", id);
 
@@ -54,36 +57,33 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("movie/{id}")]
-        public async Task<ActionResult<IEnumerable<SessionResponseDTO>>> GetAllByMovieId(int id)
+        public async Task<ActionResult<PaginationResult<SessionResponse>>> GetAllByMovieId([FromQuery] PaginationQuery query, int id)
         {
-            _logger.LogDebug("Getting all sessions for movie ID: {MovieId}", id);
+            _logger.LogDebug("Listing all sessions with pagination");
 
-            var sessionList = await _sessionService.GetAllByMovieIdAsync(id);
+            var pageResult = await _sessionService.GetAllByMovieIdAsync(query, id);
 
-            if (sessionList == null)
-            {
-                _logger.LogWarning("No sessions found for movie ID: {MovieId}", id);
-                return NotFound();
-            }
+            _logger.LogDebug(
+                "Returning {Count} items for the current page.", pageResult.Data.Count());
 
-            _logger.LogDebug("Returning {Count} sessions for movie ID: {MovieId}", sessionList.Count(), id);
-            return Ok(sessionList);
+            return Ok(pageResult);
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<SessionResponseDTO>>> GetAll()
+        public async Task<ActionResult<PaginationResult<SessionResponse>>> GetAll([FromQuery] PaginationQuery query, int id)
         {
-            _logger.LogDebug("Listing all sessions");
+            _logger.LogDebug("Listing all sessions with pagination.");
 
-            var sessionList = await _sessionService.GetAllAsync();
+            var pageResult = await _sessionService.GetAllAsync(query);
 
-            _logger.LogDebug("Returning {Count} sessions", sessionList.Count());
+            _logger.LogDebug(
+                "Returning {Count} items for the current page.", pageResult.Data.Count());
 
-            return Ok(sessionList);
+            return Ok(pageResult);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<ActionResult<SessionResponseDTO>> Update(int id, [FromBody] UpdateSessionDTO dto)
+        public async Task<ActionResult<SessionResponse>> Update(int id, [FromBody] UpdateSession dto)
         {
             _logger.LogInformation("Updating session ID: {Id} with data: {@Dto}", id, dto);
 

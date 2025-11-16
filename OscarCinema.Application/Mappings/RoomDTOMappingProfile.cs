@@ -13,17 +13,17 @@ namespace OscarCinema.Application.Mappings
     {
         public RoomDTOMappingProfile()
         {
-            CreateMap<CreateRoomDTO, Room>();
-            CreateMap<UpdateRoomDTO, Room>()
+            CreateMap<CreateRoom, Room>();
+            CreateMap<UpdateRoom, Room>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
 
-            CreateMap<AddSeatsToRoomDTO, Room>()
+            CreateMap<AddSeatsToRoom, Room>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.Number, opt => opt.Ignore())
                 .ForMember(dest => dest.Name, opt => opt.Ignore())
                 .ForMember(dest => dest.Seats, opt => opt.Ignore());
 
-            CreateMap<Room, RoomResponseDTO>();
+            CreateMap<Room, RoomResponse>();
         }
     }
 }

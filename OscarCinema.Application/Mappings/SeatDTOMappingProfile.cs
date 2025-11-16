@@ -13,11 +13,11 @@ namespace OscarCinema.Application.Mappings
     {
         public SeatDTOMappingProfile() 
         {
-            CreateMap<CreateSeatDTO, Seat>();
-            CreateMap<CreateSeatFromRoomDTO, Seat>();
-            CreateMap<GetSeatByRowAndNumberDTO, Seat>();
+            CreateMap<CreateSeat, Seat>();
+            CreateMap<CreateSeatFromRoom, Seat>();
+            CreateMap<GetSeatByRowAndNumber, Seat>();
 
-            CreateMap<Seat, SeatResponseDTO>();
+            CreateMap<Seat, SeatResponse>();
         }
     }
 }

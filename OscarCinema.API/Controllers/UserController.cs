@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.User;
 using OscarCinema.Application.Interfaces;
+using OscarCinema.Application.Services;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Repositories;
@@ -22,7 +24,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<UserResponseDTO>> GetById(int id)
+        public async Task<ActionResult<UserResponse>> GetById(int id)
         {
             _logger.LogDebug("Searching user by ID: {Id}", id);
 
@@ -38,19 +40,20 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<UserResponseDTO>>> GetAll()
+        public async Task<ActionResult<PaginationResult<UserResponse>>> GetAll([FromQuery] PaginationQuery query)
         {
-            _logger.LogDebug("Listing all users");
+            _logger.LogDebug("Listing all users with pagination.");
 
-            var userList = await _userService.GetAllAsync();
+            var pageResult = await _userService.GetAllAsync(query);
 
-            _logger.LogDebug("Returning {Count} users", userList.Count());
+            _logger.LogDebug(
+                "Returning {Count} items for the current page.", pageResult.Data.Count());
 
-            return Ok(userList);
+            return Ok(pageResult);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<ActionResult<UserResponseDTO>> Update(int id, [FromBody] UpdateUserDTO dto)
+        public async Task<ActionResult<UserResponse>> Update(int id, [FromBody] UpdateUser dto)
         {
             _logger.LogInformation("Updating user ID: {Id}", id);
 

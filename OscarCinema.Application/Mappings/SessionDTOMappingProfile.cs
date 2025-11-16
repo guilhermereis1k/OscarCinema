@@ -13,11 +13,11 @@ namespace OscarCinema.Application.Mappings
     {
         public SessionDTOMappingProfile()
         {
-            CreateMap<CreateSessionDTO, Session>();
-            CreateMap<UpdateSessionDTO, Session>()
+            CreateMap<CreateSession, Session>();
+            CreateMap<UpdateSession, Session>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
 
-            CreateMap<Session, SessionResponseDTO>();
+            CreateMap<Session, SessionResponse>();
         }
     }
 }

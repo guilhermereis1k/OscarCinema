@@ -1,5 +1,8 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using OscarCinema.Application.DTOs.Pagination;
+using OscarCinema.Application.DTOs.Room;
 using OscarCinema.Application.DTOs.Ticket;
 using OscarCinema.Application.DTOs.TicketSeat;
 using OscarCinema.Application.Interfaces;
@@ -12,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OscarCinema.Application.Services
 {
@@ -37,7 +41,7 @@ namespace OscarCinema.Application.Services
             _logger = logger;
         }
 
-        public async Task<TicketResponseDTO> CreateAsync(CreateTicketDTO dto)
+        public async Task<TicketResponse> CreateAsync(CreateTicket dto)
         {
             _logger.LogInformation("Creating new ticket for session {SessionId} with {SeatCount} seats for user {UserId}",
                 dto.SessionId, dto.TicketSeats.Count);
@@ -78,7 +82,7 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.TicketRepository.UpdateAsync(ticket);
             await _unitOfWork.CommitAsync();
 
-            var response = _mapper.Map<TicketResponseDTO>(ticket);
+            var response = _mapper.Map<TicketResponse>(ticket);
             response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
 
             _logger.LogInformation("Ticket created successfully: ID {TicketId} with total {TotalPrice}",
@@ -87,7 +91,7 @@ namespace OscarCinema.Application.Services
             return response;
         }
 
-        public async Task<TicketResponseDTO?> UpdateAsync(int id, UpdateTicketDTO dto)
+        public async Task<TicketResponse?> UpdateAsync(int id, UpdateTicket dto)
         {
             _logger.LogInformation("Updating ticket ID: {TicketId}", id);
 
@@ -103,7 +107,7 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.TicketRepository.UpdateAsync(ticket);
             await _unitOfWork.CommitAsync();
 
-            var response = _mapper.Map<TicketResponseDTO>(ticket);
+            var response = _mapper.Map<TicketResponse>(ticket);
             response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
 
             _logger.LogInformation("Ticket updated successfully: {TicketId}", id);
@@ -128,7 +132,7 @@ namespace OscarCinema.Application.Services
             return true;
         }
 
-        public async Task<TicketResponseDTO?> GetByIdAsync(int id)
+        public async Task<TicketResponse?> GetByIdAsync(int id)
         {
             _logger.LogDebug("Getting ticket by ID: {TicketId}", id);
 
@@ -139,41 +143,51 @@ namespace OscarCinema.Application.Services
                 return null;
             }
 
-            var response = _mapper.Map<TicketResponseDTO>(ticket);
+            var response = _mapper.Map<TicketResponse>(ticket);
             response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
 
             _logger.LogDebug("Ticket found: ID {TicketId} with {SeatCount} seats", id, response.TicketSeats.Count());
             return response;
         }
 
-        public async Task<IEnumerable<TicketResponseDTO>> GetAllAsync()
+        public async Task<PaginationResult<TicketResponse>> GetAllAsync(PaginationQuery query)
         {
-            _logger.LogDebug("Getting all tickets");
+            _logger.LogDebug("Getting all tickets with pagination");
 
-            var tickets = await _unitOfWork.TicketRepository.GetAllAsync();
-            var response = new List<TicketResponseDTO>();
+            var baseQuery = _unitOfWork.RoomRepository.GetAllQueryable();
 
-            foreach (var ticket in tickets)
+            var totalItems = await baseQuery.CountAsync();
+
+            var tickets = await baseQuery
+                .OrderBy(r => r.Id)
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToListAsync();
+
+            var ticketDtos = _mapper.Map<IEnumerable<TicketResponse>>(tickets);
+
+            _logger.LogDebug("Retrieved {TicketCount} tickets", ticketDtos.Count());
+
+            return new PaginationResult<TicketResponse>
             {
-                var dto = _mapper.Map<TicketResponseDTO>(ticket);
-                dto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
-                response.Add(dto);
-            }
-
-            _logger.LogDebug("Retrieved {Count} tickets", response.Count);
-            return response;
+                CurrentPage = query.PageNumber,
+                PageSize = query.PageSize,
+                TotalItems = totalItems,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)query.PageSize),
+                Data = ticketDtos
+            };
         }
 
-        public async Task<IEnumerable<TicketResponseDTO>> GetAllByUserIdAsync(int userId)
+        public async Task<IEnumerable<TicketResponse>> GetAllByUserIdAsync(int userId)
         {
             _logger.LogDebug("Getting all tickets for user ID: {UserId}", userId);
 
             var tickets = await _unitOfWork.TicketRepository.GetAllByUserIdAsync(userId);
-            var response = new List<TicketResponseDTO>();
+            var response = new List<TicketResponse>();
 
             foreach (var ticket in tickets)
             {
-                var dto = _mapper.Map<TicketResponseDTO>(ticket);
+                var dto = _mapper.Map<TicketResponse>(ticket);
                 dto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
                 response.Add(dto);
             }
@@ -182,16 +196,16 @@ namespace OscarCinema.Application.Services
             return response;
         }
 
-        public async Task<IEnumerable<TicketResponseDTO>> GetAllBySessionIdAsync(int sessionId)
+        public async Task<IEnumerable<TicketResponse>> GetAllBySessionIdAsync(int sessionId)
         {
             _logger.LogDebug("Getting all tickets for session ID: {SessionId}", sessionId);
 
             var tickets = await _unitOfWork.TicketRepository.GetAllBySessionId(sessionId);
-            var response = new List<TicketResponseDTO>();
+            var response = new List<TicketResponse>();
 
             foreach (var ticket in tickets)
             {
-                var dto = _mapper.Map<TicketResponseDTO>(ticket);
+                var dto = _mapper.Map<TicketResponse>(ticket);
                 dto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
                 response.Add(dto);
             }

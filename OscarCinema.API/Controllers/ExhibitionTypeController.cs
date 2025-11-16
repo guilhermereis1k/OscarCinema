@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using OscarCinema.Application.DTOs.ExhibitionType;
+using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
@@ -22,13 +24,13 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ExhibitionTypeResponseDTO>> Create([FromBody] CreateExhibitionTypeDTO dto)
+        public async Task<ActionResult<ExhibitionTypeResponse>> Create([FromBody] CreateExhibitionType dto)
         {
-            _logger.LogInformation("Criando novo tipo de exibição: {Name}", dto.Name);
+            _logger.LogInformation("Creating new exhibition type: {Name}", dto.Name);
 
             var createdExhibitionType = await _exhibitionTypeService.CreateAsync(dto);
 
-            _logger.LogInformation("Tipo de exibição criado com ID: {Id}", createdExhibitionType.Id);
+            _logger.LogInformation("Exhibition type created with ID: {Id}", createdExhibitionType.Id);
 
             return CreatedAtAction(
                 nameof(GetById),
@@ -37,15 +39,15 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<ExhibitionTypeResponseDTO>> GetById(int id)
+        public async Task<ActionResult<ExhibitionTypeResponse>> GetById(int id)
         {
-            _logger.LogDebug("Buscando tipo de exibição por ID: {Id}", id);
+            _logger.LogDebug("Fetching exhibition type by ID: {Id}", id);
 
             var exhibitionType = await _exhibitionTypeService.GetByIdAsync(id);
 
-
-            if (exhibitionType == null) { 
-                _logger.LogWarning("Tipo de exibição não encontrado: {Id}", id);
+            if (exhibitionType == null)
+            {
+                _logger.LogWarning("Exhibition type not found: {Id}", id);
                 return NotFound();
             }
 
@@ -53,25 +55,26 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ExhibitionTypeResponseDTO>>> GetAll()
+        public async Task<ActionResult<PaginationResult<ExhibitionTypeResponse>>> GetAll([FromQuery] PaginationQuery query)
         {
-            _logger.LogDebug("Listando todos os tipos de exibição");
+            _logger.LogDebug("Listing all exhibition types with pagination.");
 
-            var exhibitionTypeList = await _exhibitionTypeService.GetAllAsync();
+            var pageResult = await _exhibitionTypeService.GetAllAsync(query);
 
-            _logger.LogDebug("Retornando {Count} tipos de exibição", exhibitionTypeList.Count());
+            _logger.LogDebug(
+                "Returning {Count} items for the current page.", pageResult.Data.Count());
 
-            return Ok(exhibitionTypeList);
+            return Ok(pageResult);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<ActionResult<ExhibitionTypeResponseDTO>> Update(int id, [FromBody] UpdateExhibitionTypeDTO dto)
+        public async Task<ActionResult<ExhibitionTypeResponse>> Update(int id, [FromBody] UpdateExhibitionType dto)
         {
-            _logger.LogInformation("Atualizando tipo de exibição ID: {Id} com dados: {@Dto}", id, dto);
+            _logger.LogInformation("Updating exhibition type ID: {Id} with data: {@Dto}", id, dto);
 
             var updatedExhibitionType = await _exhibitionTypeService.UpdateAsync(id, dto);
 
-            _logger.LogInformation("Tipo de exibição atualizado com sucesso: {Id}", id);
+            _logger.LogInformation("Exhibition type updated successfully: {Id}", id);
 
             return Ok(updatedExhibitionType);
         }
@@ -79,17 +82,17 @@ namespace OscarCinema.API.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {
-            _logger.LogInformation("Excluindo tipo de exibição: {Id}", id);
+            _logger.LogInformation("Deleting exhibition type: {Id}", id);
 
             var deleted = await _exhibitionTypeService.DeleteAsync(id);
 
             if (!deleted)
             {
-                _logger.LogWarning("Tentativa de excluir tipo de exibição não encontrado: {Id}", id);
+                _logger.LogWarning("Attempted to delete exhibition type not found: {Id}", id);
                 return NotFound($"ExhibitionType with ID {id} not found");
             }
 
-            _logger.LogInformation("Tipo de exibição excluído com sucesso: {Id}", id);
+            _logger.LogInformation("Exhibition type deleted successfully: {Id}", id);
             return NoContent();
         }
     }

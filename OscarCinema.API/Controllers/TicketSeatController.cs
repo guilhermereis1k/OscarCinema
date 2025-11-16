@@ -22,7 +22,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<TicketSeatResponseDTO>> Create([FromBody] CreateTicketSeatDTO dto)
+        public async Task<ActionResult<TicketSeatResponse>> Create([FromBody] CreateTicketSeat dto)
         {
             _logger.LogInformation("Creating ticket seat for ticket {TicketId} and seat {SeatId}",
                 dto.TicketId, dto.SeatId);
@@ -38,7 +38,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPost("multiple")]
-        public async Task<ActionResult<TicketSeatResponseDTO>> CreateMultiple([FromBody] IEnumerable<CreateTicketSeatDTO> dto)
+        public async Task<ActionResult<TicketSeatResponse>> CreateMultiple([FromBody] IEnumerable<CreateTicketSeat> dto)
         {
             _logger.LogInformation("Creating multiple ticket seats. Count: {Count}", dto.Count());
 
@@ -51,7 +51,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TicketSeatResponseDTO>> GetById(int id)
+        public async Task<ActionResult<TicketSeatResponse>> GetById(int id)
         {
             _logger.LogDebug("Searching ticket seat by ID: {Id}", id);
 
@@ -67,7 +67,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("ticket/{id}")]
-        public async Task<ActionResult<IEnumerable<TicketSeatResponseDTO>>> GetByTicketId(int id)
+        public async Task<ActionResult<IEnumerable<TicketSeatResponse>>> GetByTicketId(int id)
         {
             _logger.LogDebug("Getting ticket seats for ticket ID: {TicketId}", id);
 
@@ -84,7 +84,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("seat/{id}")]
-        public async Task<ActionResult<IEnumerable<TicketSeatResponseDTO>>> GetBySeatId(int id)
+        public async Task<ActionResult<IEnumerable<TicketSeatResponse>>> GetBySeatId(int id)
         {
             _logger.LogDebug("Getting ticket seats for seat ID: {SeatId}", id);
 
@@ -101,7 +101,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPut("price/{id:int}")]
-        public async Task<ActionResult<TicketSeatResponseDTO>> UpdatePriceAsync(int id, [FromBody] decimal newPrice)
+        public async Task<ActionResult<TicketSeatResponse>> UpdatePriceAsync(int id, [FromBody] decimal newPrice)
         {
             _logger.LogInformation("Updating price for ticket seat ID: {Id} to {NewPrice}", id, newPrice);
 

@@ -22,7 +22,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<SeatResponseDTO>> Create([FromBody] CreateSeatDTO dto)
+        public async Task<ActionResult<SeatResponse>> Create([FromBody] CreateSeat dto)
         {
             _logger.LogInformation("Creating new seat - Row: {Row}, Number: {Number}, Room: {RoomId}", dto.Row, dto.Number, dto.RoomId);
 
@@ -37,7 +37,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<SeatResponseDTO>> GetById(int id)
+        public async Task<ActionResult<SeatResponse>> GetById(int id)
         {
             _logger.LogDebug("Searching seat by ID: {Id}", id);
 
@@ -53,7 +53,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("rowNumber")]
-        public async Task<ActionResult<IEnumerable<SeatResponseDTO>>> GetByRowAndNumber([FromBody] GetSeatByRowAndNumberDTO dto)
+        public async Task<ActionResult<IEnumerable<SeatResponse>>> GetByRowAndNumber([FromBody] GetSeatByRowAndNumber dto)
         {
             _logger.LogDebug("Searching seat by row and number - Row: {Row}, Number: {Number}", dto.Row, dto.Number);
 
@@ -63,7 +63,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("room/{roomId}")]
-        public async Task<ActionResult<IEnumerable<SeatResponseDTO>>> GetSeatsByRoomId(int roomId)
+        public async Task<ActionResult<IEnumerable<SeatResponse>>> GetSeatsByRoomId(int roomId)
         {
             _logger.LogDebug("Getting all seats for room ID: {RoomId}", roomId);
 
@@ -75,7 +75,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPatch("{id}/occupy")]
-        public async Task<ActionResult<SeatResponseDTO>> OccupySeat(int id)
+        public async Task<ActionResult<SeatResponse>> OccupySeat(int id)
         {
             _logger.LogInformation("Occupying seat ID: {Id}", id);
 
@@ -91,7 +91,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPatch("{id}/free")]
-        public async Task<ActionResult<SeatResponseDTO>> FreeSeat(int id)
+        public async Task<ActionResult<SeatResponse>> FreeSeat(int id)
         {
             _logger.LogInformation("Freeing seat ID: {Id}", id);
 

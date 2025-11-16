@@ -15,12 +15,12 @@ namespace OscarCinema.Application.Mappings
     {
         public ExhibitionTypeDTOMappingProfile()
         {
-            CreateMap<CreateExhibitionTypeDTO, ExhibitionType>();
-            CreateMap<UpdateExhibitionTypeDTO, ExhibitionType>()
+            CreateMap<CreateExhibitionType, ExhibitionType>();
+            CreateMap<UpdateExhibitionType, ExhibitionType>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
 
 
-            CreateMap<ExhibitionType, ExhibitionTypeResponseDTO>();
+            CreateMap<ExhibitionType, ExhibitionTypeResponse>();
         }
     }
 }

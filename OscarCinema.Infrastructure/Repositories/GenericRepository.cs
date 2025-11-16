@@ -36,9 +36,9 @@ namespace OscarCinema.Infrastructure.Repositories
             }
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync()
+        public IQueryable<T> GetAllQueryable()
         {
-            return await _dbSet.ToListAsync();
+            return  _dbSet.AsNoTracking();
         }
 
         public virtual async Task<T?> GetByIdAsync(int id)

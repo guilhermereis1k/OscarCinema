@@ -1,11 +1,13 @@
 ﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
-using OscarCinema.Application.DTOs.Movie;
+using Microsoft.EntityFrameworkCore;
+using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.Room;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -26,7 +28,7 @@ namespace OscarCinema.Application.Services
             _logger = logger;
         }
 
-        public async Task<RoomResponseDTO> CreateAsync(CreateRoomDTO dto)
+        public async Task<RoomResponse> CreateAsync(CreateRoom dto)
         {
             _logger.LogInformation("Creating new room: {RoomName} (Number: {RoomNumber}) with {SeatCount} seats",
                 dto.Name, dto.Number, dto.Seats.Count);
@@ -44,10 +46,10 @@ namespace OscarCinema.Application.Services
 
             _logger.LogInformation("Room created successfully: {RoomName} (ID: {RoomId}) with {SeatCount} seats",
                 room.Name, room.Id, room.Seats.Count);
-            return _mapper.Map<RoomResponseDTO>(room);
+            return _mapper.Map<RoomResponse>(room);
         }
 
-        public async Task<RoomResponseDTO?> GetByIdAsync(int id)
+        public async Task<RoomResponse?> GetByIdAsync(int id)
         {
             _logger.LogDebug("Getting room by ID: {RoomId}", id);
 
@@ -61,10 +63,10 @@ namespace OscarCinema.Application.Services
 
             _logger.LogDebug("Room found: {RoomName} (ID: {RoomId}) with {SeatCount} seats",
                 entity.Name, id, entity.Seats.Count);
-            return _mapper.Map<RoomResponseDTO>(entity);
+            return _mapper.Map<RoomResponse>(entity);
         }
 
-        public async Task<RoomResponseDTO?> UpdateAsync(int id, UpdateRoomDTO dto)
+        public async Task<RoomResponse?> UpdateAsync(int id, UpdateRoom dto)
         {
             _logger.LogInformation("Updating room ID: {RoomId} with {SeatCount} seats", id, dto.Seats.Count);
 
@@ -109,7 +111,7 @@ namespace OscarCinema.Application.Services
 
             _logger.LogInformation("Room updated successfully: {RoomName} (ID: {RoomId}) with {SeatCount} seats",
                 existentRoom.Name, id, existentRoom.Seats.Count);
-            return _mapper.Map<RoomResponseDTO>(existentRoom);
+            return _mapper.Map<RoomResponse>(existentRoom);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -130,18 +132,35 @@ namespace OscarCinema.Application.Services
             return true;
         }
 
-        public async Task<IEnumerable<RoomResponseDTO>> GetAllAsync()
+        public async Task<PaginationResult<RoomResponse>> GetAllAsync(PaginationQuery query)
         {
-            _logger.LogDebug("Getting all rooms");
+            _logger.LogDebug("Getting all rooms with pagination");
 
-            var entity = await _unitOfWork.RoomRepository.GetAllAsync();
-            var rooms = _mapper.Map<IEnumerable<RoomResponseDTO>>(entity);
+            var baseQuery = _unitOfWork.RoomRepository.GetAllQueryable();
 
-            _logger.LogDebug("Retrieved {RoomCount} rooms", rooms.Count());
-            return rooms;
+            var totalItems = await baseQuery.CountAsync();
+
+            var rooms = await baseQuery
+                .OrderBy(r => r.Id)
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToListAsync();
+
+            var roomDtos = _mapper.Map<IEnumerable<RoomResponse>>(rooms);
+
+            _logger.LogDebug("Retrieved {RoomCount} rooms", roomDtos.Count());
+
+            return new PaginationResult<RoomResponse>
+            {
+                CurrentPage = query.PageNumber,
+                PageSize = query.PageSize,
+                TotalItems = totalItems,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)query.PageSize),
+                Data = roomDtos
+            };
         }
 
-        public async Task<RoomResponseDTO?> GetByNumberAsync(int number)
+        public async Task<RoomResponse?> GetByNumberAsync(int number)
         {
             _logger.LogDebug("Getting room by number: {RoomNumber}", number);
 
@@ -154,10 +173,10 @@ namespace OscarCinema.Application.Services
             }
 
             _logger.LogDebug("Room found by number: {RoomName} (Number: {RoomNumber})", entity.Name, number);
-            return _mapper.Map<RoomResponseDTO>(entity);
+            return _mapper.Map<RoomResponse>(entity);
         }
 
-        public async Task<RoomResponseDTO?> AddSeatsAsync(int roomId, AddSeatsToRoomDTO dto)
+        public async Task<RoomResponse?> AddSeatsAsync(int roomId, AddSeatsToRoom dto)
         {
             _logger.LogInformation("Adding {SeatCount} seats to room ID: {RoomId}", dto.Seats.Count, roomId);
 
@@ -176,7 +195,7 @@ namespace OscarCinema.Application.Services
 
             _logger.LogInformation("Added {SeatCount} seats to room ID: {RoomId}. Total seats now: {TotalSeats}",
                 dto.Seats.Count, roomId, entity.Seats.Count);
-            return _mapper.Map<RoomResponseDTO>(entity);
+            return _mapper.Map<RoomResponse>(entity);
         }
     }
 }

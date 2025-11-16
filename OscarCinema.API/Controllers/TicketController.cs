@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.Ticket;
 using OscarCinema.Application.Interfaces;
+using OscarCinema.Application.Services;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Repositories;
@@ -22,7 +24,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<TicketResponseDTO>> Create([FromBody] CreateTicketDTO dto)
+        public async Task<ActionResult<TicketResponse>> Create([FromBody] CreateTicket dto)
         {
             _logger.LogInformation("Creating new ticket for session {SessionId}, with {SeatCount} seats.",
                 dto.SessionId, dto.TicketSeats.Count);
@@ -38,7 +40,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TicketResponseDTO>> GetById(int id)
+        public async Task<ActionResult<TicketResponse>> GetById(int id)
         {
             _logger.LogDebug("Searching ticket by ID: {Id}", id);
 
@@ -54,19 +56,20 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TicketResponseDTO>>> GetAll()
+        public async Task<ActionResult<PaginationResult<TicketResponse>>> GetAll([FromQuery] PaginationQuery query)
         {
-            _logger.LogDebug("Listing all tickets");
+            _logger.LogDebug("Listing all tickets with pagination.");
 
-            var ticketList = await _ticketService.GetAllAsync();
+            var pageResult = await _ticketService.GetAllAsync(query);
 
-            _logger.LogDebug("Returning {Count} tickets", ticketList.Count());
+            _logger.LogDebug(
+                "Returning {Count} items for the current page.", pageResult.Data.Count());
 
-            return Ok(ticketList);
+            return Ok(pageResult);
         }
 
         [HttpGet("user/{userId}")]
-        public async Task<ActionResult<IEnumerable<TicketResponseDTO>>> GetAllByUserId(int userId)
+        public async Task<ActionResult<IEnumerable<TicketResponse>>> GetAllByUserId(int userId)
         {
             _logger.LogDebug("Getting all tickets for user ID: {UserId}", userId);
 
@@ -78,7 +81,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("session/{sessionId}")]
-        public async Task<ActionResult<IEnumerable<TicketResponseDTO>>> GetAllBySessionId(int sessionId)
+        public async Task<ActionResult<IEnumerable<TicketResponse>>> GetAllBySessionId(int sessionId)
         {
             _logger.LogDebug("Getting all tickets for session ID: {SessionId}", sessionId);
 
@@ -90,7 +93,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<ActionResult<TicketResponseDTO>> Update(int id, [FromBody] UpdateTicketDTO dto)
+        public async Task<ActionResult<TicketResponse>> Update(int id, [FromBody] UpdateTicket dto)
         {
             _logger.LogInformation("Updating ticket ID: {Id} with data: {@Dto}", id, dto);
 

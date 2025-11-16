@@ -19,14 +19,15 @@ namespace OscarCinema.Infrastructure.Repositories
         {
             return await _context.Tickets
                 .Where(t => t.SessionId == sessionId)
+                .AsNoTracking()
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<Ticket>> GetAllByUserIdAsync(int userId)
         {
-            return await _context.Tickets
+            return _context.Tickets
                 .Where(t => t.UserId == userId)
-                .ToListAsync();
+                .AsNoTracking();
         }
     }
 }

@@ -16,12 +16,12 @@ namespace OscarCinema.Application.Mappings
     {
         public SeatTypeDTOMappingProfile()
         {
-            CreateMap<CreateSeatTypeDTO, SeatType>();
-            CreateMap<UpdateSeatTypeDTO, SeatType>()
+            CreateMap<CreateSeatType, SeatType>();
+            CreateMap<UpdateSeatType, SeatType>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
 
 
-            CreateMap<SeatType, SeatTypeResponseDTO>();
+            CreateMap<SeatType, SeatTypeResponse>();
         }
     }
 }

@@ -1,10 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.Room;
 using OscarCinema.Application.Interfaces;
+using OscarCinema.Application.Services;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Repositories;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OscarCinema.API.Controllers
 {
@@ -22,7 +25,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<RoomResponseDTO>> Create([FromBody] CreateRoomDTO dto)
+        public async Task<ActionResult<RoomResponse>> Create([FromBody] CreateRoom dto)
         {
             _logger.LogInformation("Creating new room: {RoomNumber}", dto.Number);
 
@@ -37,7 +40,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<RoomResponseDTO>> GetById(int id)
+        public async Task<ActionResult<RoomResponse>> GetById(int id)
         {
             _logger.LogDebug("Searching room by ID: {Id}", id);
 
@@ -53,19 +56,20 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<RoomResponseDTO>>> GetAll()
+        public async Task<ActionResult<PaginationResult<RoomResponse>>> GetAll([FromQuery] PaginationQuery query)
         {
-            _logger.LogDebug("Listing all rooms");
+            _logger.LogDebug("Listing all rooms with pagination.");
 
-            var roomList = await _roomService.GetAllAsync();
+            var pageResult = await _roomService.GetAllAsync(query);
 
-            _logger.LogDebug("Returning {Count} rooms", roomList.Count());
+            _logger.LogDebug(
+                "Returning {Count} items for the current page.", pageResult.Data.Count());
 
-            return Ok(roomList);
+            return Ok(pageResult);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<ActionResult<RoomResponseDTO>> Update(int id, [FromBody] UpdateRoomDTO dto)
+        public async Task<ActionResult<RoomResponse>> Update(int id, [FromBody] UpdateRoom dto)
         {
             _logger.LogInformation("Updating room ID: {Id} with data: {@Dto}", id, dto);
 
@@ -94,7 +98,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpGet("number/{number}")]
-        public async Task<ActionResult<RoomResponseDTO>> GetByNumber(int number)
+        public async Task<ActionResult<RoomResponse>> GetByNumber(int number)
         {
             _logger.LogDebug("Searching room by number: {Number}", number);
 
@@ -110,7 +114,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPost("addSeats/{roomId}")]
-        public async Task<ActionResult<RoomResponseDTO>> AddSeats(int roomId, AddSeatsToRoomDTO dto)
+        public async Task<ActionResult<RoomResponse>> AddSeats(int roomId, AddSeatsToRoom dto)
         {
             _logger.LogInformation("Adding {SeatCount} seats to room ID: {RoomId}", dto.Seats.Count, roomId);
 

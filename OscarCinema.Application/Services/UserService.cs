@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.User;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
@@ -11,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OscarCinema.Application.Services
 {
@@ -27,7 +30,7 @@ namespace OscarCinema.Application.Services
             _logger = logger;
         }
 
-        public async Task<UserResponseDTO?> UpdateAsync(int id, UpdateUserDTO request)
+        public async Task<UserResponse?> UpdateAsync(int id, UpdateUser request)
         {
             _logger.LogInformation("Updating user ID: {UserId}", id);
 
@@ -43,7 +46,7 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation("User updated successfully: {UserId}", id);
-            return _mapper.Map<UserResponseDTO>(existentUser);
+            return _mapper.Map<UserResponse>(existentUser);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -64,7 +67,7 @@ namespace OscarCinema.Application.Services
             return true;
         }
 
-        public async Task<UserResponseDTO?> GetByIdAsync(int id)
+        public async Task<UserResponse?> GetByIdAsync(int id)
         {
             _logger.LogDebug("Getting user by ID: {UserId}", id);
 
@@ -76,18 +79,35 @@ namespace OscarCinema.Application.Services
             }
 
             _logger.LogDebug("User found: {Email} (ID: {UserId})", user.Email, id);
-            return _mapper.Map<UserResponseDTO>(user);
+            return _mapper.Map<UserResponse>(user);
         }
 
-        public async Task<IEnumerable<UserResponseDTO>> GetAllAsync()
+        public async Task<PaginationResult<UserResponse>> GetAllAsync(PaginationQuery query)
         {
-            _logger.LogDebug("Getting all users");
+            _logger.LogDebug("Getting all users with pagination");
 
-            var users = await _unitOfWork.UserRepository.GetAllAsync();
-            var userDtos = _mapper.Map<IEnumerable<UserResponseDTO>>(users ?? Enumerable.Empty<User>());
+            var baseQuery = _unitOfWork.ExhibitionTypeRepository.GetAllQueryable();
 
-            _logger.LogDebug("Retrieved {Count} users", userDtos.Count());
-            return userDtos;
+            var totalItems = await baseQuery.CountAsync();
+
+            var users = await baseQuery
+                .OrderBy(r => r.Id)
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToListAsync();
+
+            var userDtos = _mapper.Map<IEnumerable<UserResponse>>(users);
+
+            _logger.LogDebug("Retrieved {UserCount} users.", userDtos.Count());
+
+            return new PaginationResult<UserResponse>
+            {
+                CurrentPage = query.PageNumber,
+                PageSize = query.PageSize,
+                TotalItems = totalItems,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)query.PageSize),
+                Data = userDtos
+            };
         }
     }
 }

@@ -1,5 +1,8 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using OscarCinema.Application.DTOs.Pagination;
+using OscarCinema.Application.DTOs.Room;
 using OscarCinema.Application.DTOs.Session;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
@@ -10,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OscarCinema.Application.Services
 {
@@ -26,7 +30,7 @@ namespace OscarCinema.Application.Services
             _logger = logger;
         }
 
-        public async Task<SessionResponseDTO> CreateAsync(CreateSessionDTO dto)
+        public async Task<SessionResponse> CreateAsync(CreateSession dto)
         {
             _logger.LogInformation("Creating new session for movie {MovieId} in room {RoomId} at {StartTime}",
                 dto.MovieId, dto.RoomId, dto.StartTime);
@@ -37,10 +41,10 @@ namespace OscarCinema.Application.Services
 
             _logger.LogInformation("Session created successfully: ID {SessionId} for movie {MovieId}",
                 entity.Id, dto.MovieId);
-            return _mapper.Map<SessionResponseDTO>(entity);
+            return _mapper.Map<SessionResponse>(entity);
         }
 
-        public async Task<SessionResponseDTO?> UpdateAsync(int id, UpdateSessionDTO dto)
+        public async Task<SessionResponse?> UpdateAsync(int id, UpdateSession dto)
         {
             _logger.LogInformation("Updating session ID: {SessionId}", id);
 
@@ -56,7 +60,7 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation("Session updated successfully: {SessionId}", id);
-            return _mapper.Map<SessionResponseDTO>(entity);
+            return _mapper.Map<SessionResponse>(entity);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -77,29 +81,65 @@ namespace OscarCinema.Application.Services
             return true;
         }
 
-        public async Task<IEnumerable<SessionResponseDTO>> GetAllAsync()
+        public async Task<PaginationResult<SessionResponse>> GetAllAsync(PaginationQuery query)
         {
-            _logger.LogDebug("Getting all sessions");
+            _logger.LogDebug("Getting all sessions with pagination");
 
-            var entity = await _unitOfWork.SessionRepository.GetAllAsync();
-            var sessions = _mapper.Map<IEnumerable<SessionResponseDTO>>(entity ?? Enumerable.Empty<Session>());
+            var baseQuery = _unitOfWork.RoomRepository.GetAllQueryable();
 
-            _logger.LogDebug("Retrieved {Count} sessions", sessions.Count());
-            return sessions;
+            var totalItems = await baseQuery.CountAsync();
+
+            var sessions = await baseQuery
+                .OrderBy(r => r.Id)
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToListAsync();
+
+            var sessionDtos = _mapper.Map<IEnumerable<SessionResponse>>(sessions);
+
+            _logger.LogDebug("Retrieved {SessionCount} sessions", sessionDtos.Count());
+
+            return new PaginationResult<SessionResponse>
+            {
+                CurrentPage = query.PageNumber,
+                PageSize = query.PageSize,
+                TotalItems = totalItems,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)query.PageSize),
+                Data = sessionDtos
+            };
         }
 
-        public async Task<IEnumerable<SessionResponseDTO>> GetAllByMovieIdAsync(int movieId)
+        public async Task<PaginationResult<SessionResponse>> GetAllByMovieIdAsync(PaginationQuery query, int movieId)
         {
-            _logger.LogDebug("Getting all sessions for movie ID: {MovieId}", movieId);
+            _logger.LogDebug("Getting all sessions with pagination");
 
-            var entity = await _unitOfWork.SessionRepository.GetAllByMovieId(movieId);
-            var sessions = _mapper.Map<IEnumerable<SessionResponseDTO>>(entity ?? Enumerable.Empty<Session>());
+            var baseQuery = _unitOfWork.SessionRepository.GetAllQueryable();
 
-            _logger.LogDebug("Retrieved {Count} sessions for movie ID: {MovieId}", sessions.Count(), movieId);
-            return sessions;
+            var filteredQuery = baseQuery.Where(s => s.MovieId == movieId);
+
+            var totalItems = await filteredQuery.CountAsync();
+
+            var sessions = await baseQuery
+                .OrderBy(r => r.Id)
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToListAsync();
+
+            var sessionDtos = _mapper.Map<IEnumerable<SessionResponse>>(sessions);
+
+            _logger.LogDebug("Retrieved {SessionCount} sessions", sessionDtos.Count());
+
+            return new PaginationResult<SessionResponse>
+            {
+                CurrentPage = query.PageNumber,
+                PageSize = query.PageSize,
+                TotalItems = totalItems,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)query.PageSize),
+                Data = sessionDtos
+            };
         }
 
-        public async Task<SessionResponseDTO?> GetByIdAsync(int id)
+        public async Task<SessionResponse?> GetByIdAsync(int id)
         {
             _logger.LogDebug("Getting session by ID: {SessionId}", id);
 
@@ -111,7 +151,7 @@ namespace OscarCinema.Application.Services
             }
 
             _logger.LogDebug("Session found: ID {SessionId} for movie {MovieId}", id, entity.MovieId);
-            return _mapper.Map<SessionResponseDTO>(entity);
+            return _mapper.Map<SessionResponse>(entity);
         }
     }
 }

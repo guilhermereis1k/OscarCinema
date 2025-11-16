@@ -1,6 +1,9 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OscarCinema.Application.DTOs;
+using OscarCinema.Application.DTOs.Pagination;
+using OscarCinema.Application.DTOs.Room;
 using OscarCinema.Application.DTOs.SeatType;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
@@ -11,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OscarCinema.Application.Services
 {
@@ -27,18 +31,35 @@ namespace OscarCinema.Application.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<SeatTypeResponseDTO>> GetAllAsync()
+        public async Task<PaginationResult<SeatTypeResponse>> GetAllAsync(PaginationQuery query)
         {
-            _logger.LogDebug("Getting all seat types");
+            _logger.LogDebug("Getting all seat types with pagination");
 
-            var entities = await _unitOfWork.SeatTypeRepository.GetAllAsync();
-            var seatTypes = _mapper.Map<IEnumerable<SeatTypeResponseDTO>>(entities);
+            var baseQuery = _unitOfWork.RoomRepository.GetAllQueryable();
 
-            _logger.LogDebug("Retrieved {Count} seat types", seatTypes.Count());
-            return seatTypes;
+            var totalItems = await baseQuery.CountAsync();
+
+            var seatTypes = await baseQuery
+                .OrderBy(r => r.Id)
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToListAsync();
+
+            var seatTypesDtos = _mapper.Map<IEnumerable<SeatTypeResponse>>(seatTypes);
+
+            _logger.LogDebug("Retrieved {SeatTypesCount} seat types", seatTypesDtos.Count());
+
+            return new PaginationResult<SeatTypeResponse>
+            {
+                CurrentPage = query.PageNumber,
+                PageSize = query.PageSize,
+                TotalItems = totalItems,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)query.PageSize),
+                Data = seatTypesDtos
+            };
         }
 
-        public async Task<SeatTypeResponseDTO?> GetByIdAsync(int id)
+        public async Task<SeatTypeResponse?> GetByIdAsync(int id)
         {
             _logger.LogDebug("Getting seat type by ID: {Id}", id);
 
@@ -51,10 +72,10 @@ namespace OscarCinema.Application.Services
             }
 
             _logger.LogDebug("Seat type found: {Name} (ID: {Id})", entity.Name, id);
-            return _mapper.Map<SeatTypeResponseDTO>(entity);
+            return _mapper.Map<SeatTypeResponse>(entity);
         }
 
-        public async Task<SeatTypeResponseDTO> CreateAsync(CreateSeatTypeDTO dto)
+        public async Task<SeatTypeResponse> CreateAsync(CreateSeatType dto)
         {
             _logger.LogInformation("Creating new seat type: {Name} with price {Price}", dto.Name, dto.Price);
 
@@ -63,10 +84,10 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation("Seat type created successfully: {Name} (ID: {Id})", entity.Name, entity.Id);
-            return _mapper.Map<SeatTypeResponseDTO>(entity);
+            return _mapper.Map<SeatTypeResponse>(entity);
         }
 
-        public async Task<SeatTypeResponseDTO> UpdateAsync(int id, UpdateSeatTypeDTO dto)
+        public async Task<SeatTypeResponse> UpdateAsync(int id, UpdateSeatType dto)
         {
             _logger.LogInformation("Updating seat type ID: {Id}", id);
 
@@ -84,7 +105,7 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation("Seat type updated successfully: {Name} (ID: {Id})", entity.Name, id);
-            return _mapper.Map<SeatTypeResponseDTO>(entity);
+            return _mapper.Map<SeatTypeResponse>(entity);
         }
 
         public async Task<bool> DeleteAsync(int id)

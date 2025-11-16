@@ -1,4 +1,5 @@
 ﻿using OscarCinema.Application.DTOs.ExhibitionType;
+using OscarCinema.Application.DTOs.Pagination;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,10 +10,10 @@ namespace OscarCinema.Application.Interfaces
 {
     public interface IExhibitionTypeService
     {
-        Task<IEnumerable<ExhibitionTypeResponseDTO>> GetAllAsync();
-        Task<ExhibitionTypeResponseDTO?> GetByIdAsync(int id);
-        Task<ExhibitionTypeResponseDTO> CreateAsync(CreateExhibitionTypeDTO dto);
-        Task<ExhibitionTypeResponseDTO> UpdateAsync(int id, UpdateExhibitionTypeDTO dto);
+        Task<PaginationResult<ExhibitionTypeResponse>> GetAllAsync(PaginationQuery query);
+        Task<ExhibitionTypeResponse?> GetByIdAsync(int id);
+        Task<ExhibitionTypeResponse> CreateAsync(CreateExhibitionType dto);
+        Task<ExhibitionTypeResponse> UpdateAsync(int id, UpdateExhibitionType dto);
         Task<bool> DeleteAsync(int id);
     }
 }

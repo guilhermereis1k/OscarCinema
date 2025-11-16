@@ -13,8 +13,8 @@ namespace OscarCinema.Application.Mappings
     {
         public TicketSeatDTOMappingProfile()
         {
-            CreateMap<CreateTicketSeatDTO, TicketSeat>();
-            CreateMap<TicketSeat, TicketSeatResponseDTO>();
+            CreateMap<CreateTicketSeat, TicketSeat>();
+            CreateMap<TicketSeat, TicketSeatResponse>();
         }
     }
 }

@@ -27,7 +27,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterUserDTO request)
+        public async Task<IActionResult> Register(RegisterUser request)
         {
             _logger.LogInformation("Register attempt for email: {Email}", request.Email);
 
@@ -72,7 +72,7 @@ namespace OscarCinema.API.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginUserDTO request)
+        public async Task<IActionResult> Login(LoginUser request)
         {
             _logger.LogInformation("Login attempt for email: {Email}", request.Email);
 

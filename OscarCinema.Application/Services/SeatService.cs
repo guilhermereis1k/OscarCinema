@@ -26,7 +26,7 @@ namespace OscarCinema.Application.Services
             _logger = logger;
         }
 
-        public async Task<SeatResponseDTO> CreateAsync(CreateSeatDTO dto)
+        public async Task<SeatResponse> CreateAsync(CreateSeat dto)
         {
             _logger.LogInformation("Creating new seat - Row: {Row}, Number: {Number}, Room: {RoomId}",
                 dto.Row, dto.Number, dto.RoomId);
@@ -37,10 +37,10 @@ namespace OscarCinema.Application.Services
 
             _logger.LogInformation("Seat created successfully: {Row}{Number} (ID: {SeatId})",
                 dto.Row, dto.Number, entity.Id);
-            return _mapper.Map<SeatResponseDTO>(entity);
+            return _mapper.Map<SeatResponse>(entity);
         }
 
-        public async Task<SeatResponseDTO?> GetByIdAsync(int id)
+        public async Task<SeatResponse?> GetByIdAsync(int id)
         {
             _logger.LogDebug("Getting seat by ID: {SeatId}", id);
 
@@ -53,7 +53,7 @@ namespace OscarCinema.Application.Services
             }
 
             _logger.LogDebug("Seat found: {Row}{Number} (ID: {SeatId})", entity.Row, entity.Number, id);
-            return _mapper.Map<SeatResponseDTO>(entity);
+            return _mapper.Map<SeatResponse>(entity);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -74,7 +74,7 @@ namespace OscarCinema.Application.Services
             return true;
         }
 
-        public async Task<SeatResponseDTO?> GetByRowAndNumberAsync(GetSeatByRowAndNumberDTO dto)
+        public async Task<SeatResponse?> GetByRowAndNumberAsync(GetSeatByRowAndNumber dto)
         {
             _logger.LogDebug("Getting seat by row and number - Row: {Row}, Number: {Number}",
                 dto.Row, dto.Number);
@@ -89,10 +89,10 @@ namespace OscarCinema.Application.Services
 
             _logger.LogDebug("Seat found by row and number: {Row}{Number} (ID: {SeatId})",
                 dto.Row, dto.Number, entity.Id);
-            return _mapper.Map<SeatResponseDTO>(entity);
+            return _mapper.Map<SeatResponse>(entity);
         }
 
-        public async Task<IEnumerable<SeatResponseDTO>?> GetSeatsByRoomIdAsync(int roomId)
+        public async Task<IEnumerable<SeatResponse>?> GetSeatsByRoomIdAsync(int roomId)
         {
             _logger.LogDebug("Getting seats by room ID: {RoomId}", roomId);
 
@@ -105,10 +105,10 @@ namespace OscarCinema.Application.Services
             }
 
             _logger.LogDebug("Retrieved {SeatCount} seats for room ID: {RoomId}", entity.Count(), roomId);
-            return _mapper.Map<IEnumerable<SeatResponseDTO>>(entity);
+            return _mapper.Map<IEnumerable<SeatResponse>>(entity);
         }
 
-        public async Task<SeatResponseDTO?> OccupySeatAsync(int id)
+        public async Task<SeatResponse?> OccupySeatAsync(int id)
         {
             _logger.LogInformation("Occupying seat: {SeatId}", id);
 
@@ -124,10 +124,10 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation("Seat occupied successfully: {SeatId}", id);
-            return _mapper.Map<SeatResponseDTO>(seat);
+            return _mapper.Map<SeatResponse>(seat);
         }
 
-        public async Task<SeatResponseDTO?> FreeSeatAsync(int id)
+        public async Task<SeatResponse?> FreeSeatAsync(int id)
         {
             _logger.LogInformation("Freeing seat: {SeatId}", id);
 
@@ -143,7 +143,7 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation("Seat freed successfully: {SeatId}", id);
-            return _mapper.Map<SeatResponseDTO>(seat);
+            return _mapper.Map<SeatResponse>(seat);
         }
     }
 }
