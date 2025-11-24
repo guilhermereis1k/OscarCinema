@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OscarCinema.Domain.Entities
 {
@@ -37,6 +38,29 @@ namespace OscarCinema.Domain.Entities
         public Ticket() { }
 
         public Ticket(
+            int userId,
+            int movieId,
+            int roomId,
+            int sessionId,
+            PaymentMethod method,
+            PaymentStatus paymentStatus,
+            bool paid)
+        {
+
+            ValidateDomain(userId, movieId, roomId, sessionId, method);
+
+            Date = DateTime.Now;
+            UserId = userId;
+            MovieId = movieId;
+            RoomId = roomId;
+            SessionId = sessionId;
+            Method = method;
+            PaymentStatus = paymentStatus;
+            Paid = paid;
+            TotalValue = 0;
+        }
+
+        internal Ticket(
             DateTime date,
             int userId,
             int movieId,
@@ -126,6 +150,18 @@ namespace OscarCinema.Domain.Entities
         {
             PaymentStatus = status;
             Paid = (status == PaymentStatus.Approved);
+        }
+
+        private void ValidateDomain(int userId, int movieId, int roomId, int sessionId, PaymentMethod method)
+        {
+
+            DomainExceptionValidation.When(userId <= 0, "User ID must be greater than 0.");
+            DomainExceptionValidation.When(movieId <= 0, "Movie ID must be greater than 0.");
+            DomainExceptionValidation.When(roomId <= 0, "Room ID must be greater than 0.");
+            DomainExceptionValidation.When(sessionId <= 0, "Session ID must be greater than 0.");
+
+            DomainExceptionValidation.When(!Enum.IsDefined(typeof(PaymentMethod), method),
+                "Invalid payment method.");
         }
 
         private void ValidateDomain(DateTime date, int userId, int movieId, int roomId, int sessionId, PaymentMethod method)

@@ -35,7 +35,7 @@ namespace OscarCinema.Application.Services
         {
             _logger.LogDebug("Getting all seat types with pagination");
 
-            var baseQuery = _unitOfWork.RoomRepository.GetAllQueryable();
+            var baseQuery = _unitOfWork.SeatTypeRepository.GetAllQueryable();
 
             var totalItems = await baseQuery.CountAsync();
 

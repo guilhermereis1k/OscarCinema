@@ -15,6 +15,9 @@ namespace OscarCinema.Application.DTOs.Ticket
         public int SessionId { get; set; }
 
         [Required]
+        public int UserId { get; set; } = 0;
+
+        [Required]
         public PaymentMethod Method { get; set; }
 
         [Required]

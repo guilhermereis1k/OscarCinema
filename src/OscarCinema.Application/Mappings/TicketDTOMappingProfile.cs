@@ -13,7 +13,9 @@ namespace OscarCinema.Application.Mappings
     {
         public TicketDTOMappingProfile() 
         {
-            CreateMap<CreateTicket, Ticket>();
+            CreateMap<CreateTicket, Ticket>()
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId));
+
             CreateMap<UpdateTicket, Ticket>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
 

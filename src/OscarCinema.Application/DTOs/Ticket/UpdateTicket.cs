@@ -14,6 +14,9 @@ namespace OscarCinema.Application.DTOs.Ticket
         [Required]
         public PaymentStatus PaymentStatus { get; set; }
 
+        public PaymentMethod Method { get; set; }
+
+
         public bool Paid { get; set; }
     }
 }

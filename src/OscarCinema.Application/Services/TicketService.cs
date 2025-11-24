@@ -49,6 +49,10 @@ namespace OscarCinema.Application.Services
             var session = await _unitOfWork.SessionRepository.GetByIdAsync(dto.SessionId);
             DomainExceptionValidation.When(session == null, "Session not found");
 
+            var user = await _unitOfWork.UserRepository.GetByIdAsync(dto.UserId);
+            DomainExceptionValidation.When(user == null, "User not found");
+
+            // Define informações sobre a sessão no ticket
             var ticket = _mapper.Map<Ticket>(dto);
             ticket.SetSessionData(session.MovieId, session.RoomId);
 

@@ -86,7 +86,7 @@ namespace OscarCinema.Application.Services
         {
             _logger.LogDebug("Getting all users with pagination");
 
-            var baseQuery = _unitOfWork.ExhibitionTypeRepository.GetAllQueryable();
+            var baseQuery = _unitOfWork.UserRepository.GetAllQueryable();
 
             var totalItems = await baseQuery.CountAsync();
 

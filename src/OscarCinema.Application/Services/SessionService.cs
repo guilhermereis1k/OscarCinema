@@ -39,8 +39,7 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.SessionRepository.AddAsync(entity);
             await _unitOfWork.CommitAsync();
 
-            _logger.LogInformation("Session created successfully: ID {SessionId} for movie {MovieId}",
-                entity.Id, dto.MovieId);
+            _logger.LogInformation("Session created successfully for movie {MovieId}", dto.MovieId);
             return _mapper.Map<SessionResponse>(entity);
         }
 
@@ -85,7 +84,7 @@ namespace OscarCinema.Application.Services
         {
             _logger.LogDebug("Getting all sessions with pagination");
 
-            var baseQuery = _unitOfWork.RoomRepository.GetAllQueryable();
+            var baseQuery = _unitOfWork.SessionRepository.GetAllQueryable();
 
             var totalItems = await baseQuery.CountAsync();
 

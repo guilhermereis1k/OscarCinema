@@ -8,11 +8,11 @@ namespace OscarCinema.Application.DTOs.Seat
 {
     public class SeatResponse
     {
-        public int Id { get; private set; }
-        public int RoomId { get; private set; }
+        public int Id { get; set; }
+        public int RoomId { get; set; }
         public bool IsOccupied { get; set; }
-        public char Row { get; private set; }
-        public int Number { get; private set; }
+        public char Row { get; set; }
+        public int Number { get; set; }
         public int SeatTypeId { get; set; }
     }
 }
