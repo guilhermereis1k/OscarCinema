@@ -99,8 +99,17 @@ namespace OscarCinema.Application.Tests
             };
 
             var session = new Session(1, 1, 1, DateTime.Now.AddHours(2), TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(10));
-            var user = new User("Test User", "16955096095", "test@email.com", UserRole.ADMIN);
+
+            var user = new User(
+                applicationUserId: 100,
+                name: "Test User",
+                documentNumber: "16955096095",
+                email: "test@email.com",
+                role: UserRole.ADMIN
+            );
+
             var ticket = new Ticket(1, 1, 1, 1, PaymentMethod.CreditCard, PaymentStatus.Pending, false);
+
             var ticketResponseDto = new TicketResponse
             {
                 Id = 1,
@@ -146,6 +155,7 @@ namespace OscarCinema.Application.Tests
             _unitOfWorkMock.Verify(u => u.SessionRepository.GetByIdAsync(1), Times.Once);
             _unitOfWorkMock.Verify(u => u.UserRepository.GetByIdAsync(1), Times.Once);
         }
+
 
         [Fact]
         public async Task DeleteAsync_ShouldReturnTrue_WhenTicketExists()

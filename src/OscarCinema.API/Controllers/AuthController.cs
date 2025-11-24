@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Rewrite;
 using OscarCinema.Application.DTOs.User;
 using OscarCinema.Application.Interfaces;
+using OscarCinema.Application.Services;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Identity;
 
@@ -15,12 +16,14 @@ namespace OscarCinema.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IUserService _userService;
         private readonly ITokenService _tokenService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<AuthController> _logger;
 
-        public AuthController(UserManager<ApplicationUser> userManager, ITokenService tokenService, ILogger<AuthController> logger)
+        public AuthController(UserManager<ApplicationUser> userManager, IUserService userService, ITokenService tokenService, ILogger<AuthController> logger)
         {
+            _userService = userService;
             _userManager = userManager;
             _tokenService = tokenService;
             _logger = logger;
@@ -29,11 +32,10 @@ namespace OscarCinema.API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterUser request)
         {
-            _logger.LogInformation("Register attempt for email: {Email}", request.Email);
-
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            // Cria ApplicationUser (Identity)
             var appUser = new ApplicationUser
             {
                 UserName = request.Email,
@@ -43,31 +45,38 @@ namespace OscarCinema.API.Controllers
                 Role = request.Role
             };
 
-            var result = await _userManager.CreateAsync(appUser, request.Password);
+            var identityResult = await _userManager.CreateAsync(appUser, request.Password);
+            if (!identityResult.Succeeded) return BadRequest(identityResult.Errors);
 
-            if (!result.Succeeded)
-            {
-                _logger.LogWarning("Failed to register user: {Email}", request.Email);
-                return BadRequest(result.Errors);
-            }
-
-            var roleName = request.Role.ToString().ToUpper();
-            var roleResult = await _userManager.AddToRoleAsync(appUser, roleName);
-
+            var roleResult = await _userManager.AddToRoleAsync(appUser, request.Role.ToString().ToUpper());
             if (!roleResult.Succeeded)
             {
-                _logger.LogWarning("Failed to add role to user: {Email}", request.Email);
-
                 await _userManager.DeleteAsync(appUser);
                 return BadRequest(roleResult.Errors);
             }
 
-            var freshAppUser = await _userManager.FindByEmailAsync(request.Email);
-            var token = await _tokenService.CreateToken((int)freshAppUser.Id, freshAppUser.Email, freshAppUser.UserName);
+            // Cria usuário no domínio usando UserService
+            try
+            {
+                var createUserDto = new CreateUser
+                {
+                    ApplicationUserId = appUser.Id,
+                    Name = request.Name,
+                    DocumentNumber = request.DocumentNumber,
+                    Email = request.Email,
+                    Role = request.Role
+                };
 
-            _logger.LogInformation("User registered successfully: {Email} (ID: {UserId}) with role: {Role}",
-                request.Email, freshAppUser.Id, roleName);
+                await _userService.CreateAsync(createUserDto);
+            }
+            catch
+            {
+                await _userManager.DeleteAsync(appUser);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create domain user.");
+            }
 
+            //Gera o token
+            var token = await _tokenService.CreateToken(appUser.Id, appUser.Email, appUser.UserName);
             return Ok(new { Token = token });
         }
 

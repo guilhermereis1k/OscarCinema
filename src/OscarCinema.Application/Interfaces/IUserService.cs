@@ -10,6 +10,7 @@ namespace OscarCinema.Application.Interfaces
 {
     public interface IUserService
     {
+        Task<UserResponse> CreateAsync(CreateUser request);
         Task<UserResponse?> UpdateAsync(int id, UpdateUser request);
         Task<bool> DeleteAsync(int id);
         Task<UserResponse?> GetByIdAsync(int id);

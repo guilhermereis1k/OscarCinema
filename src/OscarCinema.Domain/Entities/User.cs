@@ -11,6 +11,8 @@ namespace OscarCinema.Domain.Entities
     {
         public int Id { get; internal set; }
 
+        public int ApplicationUserId { get; private set; } // FK para Identity
+
         public string Name { get; private set; }
         public Cpf DocumentNumber { get; private set; }
         public string Email { get; private set; }
@@ -24,10 +26,11 @@ namespace OscarCinema.Domain.Entities
             _tickets = new List<Ticket>();
         }
 
-        public User(string name, string documentNumber, string email, UserRole role)
+        public User(int applicationUserId, string name, string documentNumber, string email, UserRole role)
         {
             ValidateDomain(name, documentNumber, email, role);
 
+            ApplicationUserId = applicationUserId;
             Name = name;
             DocumentNumber = new Cpf(documentNumber);
             Email = email;

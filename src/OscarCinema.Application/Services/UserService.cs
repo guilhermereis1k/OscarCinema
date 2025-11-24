@@ -30,6 +30,22 @@ namespace OscarCinema.Application.Services
             _logger = logger;
         }
 
+        public async Task<UserResponse> CreateAsync(CreateUser request)
+        {
+            var user = new User(
+                request.ApplicationUserId,
+                request.Name,
+                request.DocumentNumber,
+                request.Email,
+                request.Role
+            );
+
+            await _unitOfWork.UserRepository.AddAsync(user);
+            await _unitOfWork.CommitAsync();
+
+            return _mapper.Map<UserResponse>(user);
+        }
+
         public async Task<UserResponse?> UpdateAsync(int id, UpdateUser request)
         {
             _logger.LogInformation("Updating user ID: {UserId}", id);

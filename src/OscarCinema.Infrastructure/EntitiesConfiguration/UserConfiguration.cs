@@ -35,17 +35,22 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
             builder.HasIndex("DocumentNumber").IsUnique();
 
             builder.Property(u => u.DocumentNumber)
-                    .HasConversion(
-                        new ValueConverter<Cpf, string>(
-                            cpf => cpf.Number,
-                            number => new Cpf(number)
-                        )
-                    )
-                    .HasColumnName("DocumentNumber")
-                    .HasMaxLength(11)
-                    .IsRequired();
+                   .HasConversion(
+                       new ValueConverter<Cpf, string>(
+                           cpf => cpf.Number,
+                           number => new Cpf(number)
+                       )
+                   )
+                   .HasColumnName("DocumentNumber")
+                   .HasMaxLength(11)
+                   .IsRequired();
 
-            
+            builder.Property(u => u.ApplicationUserId)
+                   .IsRequired()
+                   .HasMaxLength(450);
+
+            builder.HasIndex(u => u.ApplicationUserId)
+                   .IsUnique();
 
             builder.ToTable("Users");
         }

@@ -35,6 +35,7 @@ namespace OscarCinema.Infrastructure.Identity
             var cpfResult = new Cpf(this.DocumentNumber);
 
             return new User(
+                applicationUserId: this.Id,
                 name: this.Name,
                 documentNumber: this.DocumentNumber,
                 email: this.Email,
