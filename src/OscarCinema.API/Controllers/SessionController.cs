@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.Session;
@@ -24,7 +25,8 @@ namespace OscarCinema.API.Controllers
             _logger = logger;
         }
 
-        [HttpPost]
+        [Authorize(Policy = "AdminOrEmployee")]
+        [HttpPost("create")]
         public async Task<ActionResult<SessionResponse>> Create([FromBody] CreateSession dto)
         {
             _logger.LogInformation("Creating new session for movie {MovieId} in room {RoomId} at {SessionDate}",
@@ -40,6 +42,7 @@ namespace OscarCinema.API.Controllers
                 createdSession);
         }
 
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<SessionResponse>> GetById(int id)
         {
@@ -56,6 +59,7 @@ namespace OscarCinema.API.Controllers
             return Ok(session);
         }
 
+        [AllowAnonymous]
         [HttpGet("movie/{id}")]
         public async Task<ActionResult<PaginationResult<SessionResponse>>> GetAllByMovieId([FromQuery] PaginationQuery query, int id)
         {
@@ -69,6 +73,7 @@ namespace OscarCinema.API.Controllers
             return Ok(pageResult);
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<PaginationResult<SessionResponse>>> GetAll([FromQuery] PaginationQuery query, int id)
         {
@@ -82,6 +87,7 @@ namespace OscarCinema.API.Controllers
             return Ok(pageResult);
         }
 
+        [Authorize(Policy = "AdminOrEmployee")]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<SessionResponse>> Update(int id, [FromBody] UpdateSession dto)
         {
@@ -94,6 +100,7 @@ namespace OscarCinema.API.Controllers
             return Ok(updatedSession);
         }
 
+        [Authorize(Policy = "AdminOrEmployee")]
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {

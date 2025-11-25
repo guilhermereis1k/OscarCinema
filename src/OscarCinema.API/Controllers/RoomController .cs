@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.Room;
@@ -24,6 +25,7 @@ namespace OscarCinema.API.Controllers
             _logger = logger;
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpPost]
         public async Task<ActionResult<RoomResponse>> Create([FromBody] CreateRoom dto)
         {
@@ -39,6 +41,7 @@ namespace OscarCinema.API.Controllers
                 createdRoom);
         }
 
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<RoomResponse>> GetById(int id)
         {
@@ -55,6 +58,7 @@ namespace OscarCinema.API.Controllers
             return Ok(room);
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<PaginationResult<RoomResponse>>> GetAll([FromQuery] PaginationQuery query)
         {
@@ -68,6 +72,7 @@ namespace OscarCinema.API.Controllers
             return Ok(pageResult);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<RoomResponse>> Update(int id, [FromBody] UpdateRoom dto)
         {
@@ -80,6 +85,7 @@ namespace OscarCinema.API.Controllers
             return Ok(updatedRoom);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {
@@ -97,6 +103,7 @@ namespace OscarCinema.API.Controllers
             return NoContent();
         }
 
+        [AllowAnonymous]
         [HttpGet("number/{number}")]
         public async Task<ActionResult<RoomResponse>> GetByNumber(int number)
         {
@@ -113,6 +120,7 @@ namespace OscarCinema.API.Controllers
             return Ok(room);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpPost("addSeats/{roomId}")]
         public async Task<ActionResult<RoomResponse>> AddSeats(int roomId, AddSeatsToRoom dto)
         {

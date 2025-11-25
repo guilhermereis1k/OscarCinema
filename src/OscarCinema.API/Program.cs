@@ -123,6 +123,15 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("JustAdmin", policy =>
+        policy.RequireRole("ADMIN"));
+
+    options.AddPolicy("AdminOrEmployee", policy =>
+        policy.RequireRole("ADMIN", "EMPLOYEE"));
+});
+
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
     {
         options.Password.RequireDigit = true;

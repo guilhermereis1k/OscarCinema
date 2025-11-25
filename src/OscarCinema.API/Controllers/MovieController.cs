@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OscarCinema.Application.DTOs.Movie;
 using OscarCinema.Application.DTOs.Pagination;
@@ -24,6 +25,7 @@ namespace OscarCinema.API.Controllers
             _logger = logger;
         }
 
+        [Authorize(Policy = "AdminOrEmployee")]
         [HttpPost]
         public async Task<ActionResult<MovieResponse>> Create([FromBody] CreateMovie dto)
         {
@@ -39,6 +41,7 @@ namespace OscarCinema.API.Controllers
                 createdMovie);
         }
 
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<MovieResponse>> GetById(int id)
         {
@@ -55,6 +58,7 @@ namespace OscarCinema.API.Controllers
             return Ok(movie);
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<PaginationResult<MovieResponse>>> GetAll([FromQuery] PaginationQuery query)
         {
@@ -68,6 +72,7 @@ namespace OscarCinema.API.Controllers
             return Ok(pageResult);
         }
 
+        [Authorize(Policy = "AdminOrEmployee")]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<MovieResponse>> Update(int id, [FromBody] UpdateMovie dto)
         {
@@ -80,6 +85,7 @@ namespace OscarCinema.API.Controllers
             return Ok(updatedMovie);
         }
 
+        [Authorize(Policy = "AdminOrEmployee")]
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {

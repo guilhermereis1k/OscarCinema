@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OscarCinema.Application.DTOs.TicketSeat;
 using OscarCinema.Application.Interfaces;
@@ -21,6 +22,7 @@ namespace OscarCinema.API.Controllers
             _logger = logger;
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpPost]
         public async Task<ActionResult<TicketSeatResponse>> Create([FromBody] CreateTicketSeat dto)
         {
@@ -37,6 +39,7 @@ namespace OscarCinema.API.Controllers
                 createdTicketSeat);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpPost("multiple")]
         public async Task<ActionResult<TicketSeatResponse>> CreateMultiple([FromBody] IEnumerable<CreateTicketSeat> dto)
         {
@@ -50,6 +53,7 @@ namespace OscarCinema.API.Controllers
             return Ok(createdTicketSeat);
         }
 
+        [Authorize(Policy = "User")]
         [HttpGet("{id}")]
         public async Task<ActionResult<TicketSeatResponse>> GetById(int id)
         {
@@ -66,6 +70,7 @@ namespace OscarCinema.API.Controllers
             return Ok(ticketSeat);
         }
 
+        [Authorize]
         [HttpGet("ticket/{id}")]
         public async Task<ActionResult<IEnumerable<TicketSeatResponse>>> GetByTicketId(int id)
         {
@@ -83,6 +88,7 @@ namespace OscarCinema.API.Controllers
             return Ok(ticketSeat);
         }
 
+        [Authorize]
         [HttpGet("seat/{id}")]
         public async Task<ActionResult<IEnumerable<TicketSeatResponse>>> GetBySeatId(int id)
         {
@@ -100,6 +106,7 @@ namespace OscarCinema.API.Controllers
             return Ok(ticketSeat);
         }
 
+        [Authorize]
         [HttpPut("price/{id:int}")]
         public async Task<ActionResult<TicketSeatResponse>> UpdatePriceAsync(int id, [FromBody] decimal newPrice)
         {
@@ -112,6 +119,7 @@ namespace OscarCinema.API.Controllers
             return Ok(updatedTicketSeat);
         }
 
+        [Authorize]
         [HttpPut("calculate/{id:int}")]
         public async Task<ActionResult<decimal>> CalculateTicketTotal(int id)
         {
@@ -124,6 +132,7 @@ namespace OscarCinema.API.Controllers
             return Ok(newValue);
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {

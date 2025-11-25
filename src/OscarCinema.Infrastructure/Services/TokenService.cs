@@ -26,17 +26,9 @@ namespace OscarCinema.Infrastructure.Services
 
         public async Task<string> CreateToken(int userId, string email, string userName)
         {
-            if (userId <= 0)
-                throw new ArgumentException("Invalid user ID");
-
-            var appUser = await _userManager.FindByIdAsync(userId.ToString());
-
-            if (appUser == null)
-            {
-                appUser = await _userManager.FindByEmailAsync(email);
-                if (appUser == null)
-                    throw new ArgumentException($"User not found: ID {userId}, Email {email}");
-            }
+            var appUser = await _userManager.FindByIdAsync(userId.ToString())
+                          ?? await _userManager.FindByEmailAsync(email)
+                          ?? throw new ArgumentException($"User not found: ID {userId}, Email {email}");
 
             var roles = await _userManager.GetRolesAsync(appUser);
 
@@ -54,6 +46,8 @@ namespace OscarCinema.Infrastructure.Services
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
                 claims: claims,
                 expires: DateTime.UtcNow.AddHours(2),
                 signingCredentials: creds

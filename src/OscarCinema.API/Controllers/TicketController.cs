@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.Ticket;
@@ -23,6 +24,7 @@ namespace OscarCinema.API.Controllers
             _logger = logger;
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<TicketResponse>> Create([FromBody] CreateTicket dto)
         {
@@ -39,6 +41,8 @@ namespace OscarCinema.API.Controllers
                 createdTicket);
         }
 
+        [Authorize]
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<TicketResponse>> GetById(int id)
         {
@@ -55,6 +59,7 @@ namespace OscarCinema.API.Controllers
             return Ok(ticket);
         }
 
+        [Authorize(Policy = "AdminOrEmployee")]
         [HttpGet]
         public async Task<ActionResult<PaginationResult<TicketResponse>>> GetAll([FromQuery] PaginationQuery query)
         {
@@ -68,6 +73,7 @@ namespace OscarCinema.API.Controllers
             return Ok(pageResult);
         }
 
+        [Authorize]
         [HttpGet("user/{userId}")]
         public async Task<ActionResult<IEnumerable<TicketResponse>>> GetAllByUserId(int userId)
         {
@@ -80,6 +86,7 @@ namespace OscarCinema.API.Controllers
             return Ok(ticketList);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpGet("session/{sessionId}")]
         public async Task<ActionResult<IEnumerable<TicketResponse>>> GetAllBySessionId(int sessionId)
         {
@@ -92,6 +99,7 @@ namespace OscarCinema.API.Controllers
             return Ok(ticketList);
         }
 
+        [Authorize]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<TicketResponse>> Update(int id, [FromBody] UpdateTicket dto)
         {
@@ -104,6 +112,7 @@ namespace OscarCinema.API.Controllers
             return Ok(updatedTicket);
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.User;
@@ -23,6 +24,7 @@ namespace OscarCinema.API.Controllers
             _logger = logger;
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpGet("{id}")]
         public async Task<ActionResult<UserResponse>> GetById(int id)
         {
@@ -39,6 +41,7 @@ namespace OscarCinema.API.Controllers
             return Ok(user);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpGet]
         public async Task<ActionResult<PaginationResult<UserResponse>>> GetAll([FromQuery] PaginationQuery query)
         {
@@ -52,6 +55,7 @@ namespace OscarCinema.API.Controllers
             return Ok(pageResult);
         }
 
+        [Authorize]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<UserResponse>> Update(int id, [FromBody] UpdateUser dto)
         {
@@ -64,6 +68,7 @@ namespace OscarCinema.API.Controllers
             return Ok(updatedUser);
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,7 @@ using OscarCinema.Infrastructure.Identity;
 
 namespace OscarCinema.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     [ApiController]
     public class AuthController : ControllerBase
     {
@@ -29,6 +30,7 @@ namespace OscarCinema.API.Controllers
             _logger = logger;
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterUser request)
         {
@@ -80,6 +82,7 @@ namespace OscarCinema.API.Controllers
             return Ok(new { Token = token });
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginUser request)
         {

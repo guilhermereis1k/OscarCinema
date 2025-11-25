@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OscarCinema.Application.DTOs.Seat;
 using OscarCinema.Application.Interfaces;
@@ -21,6 +22,7 @@ namespace OscarCinema.API.Controllers
             _logger = logger;
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpPost]
         public async Task<ActionResult<SeatResponse>> Create([FromBody] CreateSeat dto)
         {
@@ -36,6 +38,7 @@ namespace OscarCinema.API.Controllers
                 createdSeat);
         }
 
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<SeatResponse>> GetById(int id)
         {
@@ -52,6 +55,7 @@ namespace OscarCinema.API.Controllers
             return Ok(seat);
         }
 
+        [AllowAnonymous]
         [HttpGet("rowNumber")]
         public async Task<ActionResult<IEnumerable<SeatResponse>>> GetByRowAndNumber([FromBody] GetSeatByRowAndNumber dto)
         {
@@ -62,6 +66,7 @@ namespace OscarCinema.API.Controllers
             return Ok(seat);
         }
 
+        [AllowAnonymous]
         [HttpGet("room/{roomId}")]
         public async Task<ActionResult<IEnumerable<SeatResponse>>> GetSeatsByRoomId(int roomId)
         {
@@ -74,38 +79,7 @@ namespace OscarCinema.API.Controllers
             return Ok(seatList);
         }
 
-        [HttpPatch("{id}/occupy")]
-        public async Task<ActionResult<SeatResponse>> OccupySeat(int id)
-        {
-            _logger.LogInformation("Occupying seat ID: {Id}", id);
-
-            var seat = await _seatService.OccupySeatAsync(id);
-            if (seat == null)
-            {
-                _logger.LogWarning("Seat not found for occupation: {Id}", id);
-                return NotFound($"Seat with ID {id} not found.");
-            }
-
-            _logger.LogInformation("Seat occupied successfully: {Id}", id);
-            return Ok(seat);
-        }
-
-        [HttpPatch("{id}/free")]
-        public async Task<ActionResult<SeatResponse>> FreeSeat(int id)
-        {
-            _logger.LogInformation("Freeing seat ID: {Id}", id);
-
-            var seat = await _seatService.FreeSeatAsync(id);
-            if (seat == null)
-            {
-                _logger.LogWarning("Seat not found for freeing: {Id}", id);
-                return NotFound($"Seat with ID {id} not found.");
-            }
-
-            _logger.LogInformation("Seat freed successfully: {Id}", id);
-            return Ok(seat);
-        }
-
+        [Authorize(Policy = "JustAdmin")]
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {

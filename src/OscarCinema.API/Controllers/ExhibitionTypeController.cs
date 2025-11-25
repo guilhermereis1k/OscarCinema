@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using OscarCinema.Application.DTOs.ExhibitionType;
@@ -23,6 +24,7 @@ namespace OscarCinema.API.Controllers
             _logger = logger;
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpPost]
         public async Task<ActionResult<ExhibitionTypeResponse>> Create([FromBody] CreateExhibitionType dto)
         {
@@ -38,6 +40,7 @@ namespace OscarCinema.API.Controllers
                 createdExhibitionType);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ExhibitionTypeResponse>> GetById(int id)
         {
@@ -54,6 +57,7 @@ namespace OscarCinema.API.Controllers
             return Ok(exhibitionType);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpGet]
         public async Task<ActionResult<PaginationResult<ExhibitionTypeResponse>>> GetAll([FromQuery] PaginationQuery query)
         {
@@ -67,6 +71,7 @@ namespace OscarCinema.API.Controllers
             return Ok(pageResult);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<ExhibitionTypeResponse>> Update(int id, [FromBody] UpdateExhibitionType dto)
         {
@@ -79,6 +84,7 @@ namespace OscarCinema.API.Controllers
             return Ok(updatedExhibitionType);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {

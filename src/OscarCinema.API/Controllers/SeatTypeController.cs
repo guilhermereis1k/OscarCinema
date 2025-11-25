@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OscarCinema.Application.DTOs;
 using OscarCinema.Application.DTOs.Pagination;
@@ -24,6 +25,7 @@ namespace OscarCinema.API.Controllers
             _logger = logger;
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpPost]
         public async Task<ActionResult<SeatTypeResponse>> Create([FromBody] CreateSeatType dto)
         {
@@ -39,6 +41,7 @@ namespace OscarCinema.API.Controllers
                 createdSeatType);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpGet("{id}")]
         public async Task<ActionResult<SeatTypeResponse>> GetById(int id)
         {
@@ -55,6 +58,7 @@ namespace OscarCinema.API.Controllers
             return Ok(seatType);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpGet]
         public async Task<ActionResult<PaginationResult<SeatTypeResponse>>> GetAll([FromQuery] PaginationQuery query)
         {
@@ -68,6 +72,7 @@ namespace OscarCinema.API.Controllers
             return Ok(pageResult);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<SeatTypeResponse>> Update(int id, [FromBody] UpdateSeatType dto)
         {
@@ -80,6 +85,7 @@ namespace OscarCinema.API.Controllers
             return Ok(updatedSeatType);
         }
 
+        [Authorize(Policy = "JustAdmin")]
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {
