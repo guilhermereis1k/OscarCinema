@@ -12,6 +12,7 @@ using OscarCinema.Domain.Interfaces;
 using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -44,7 +45,7 @@ namespace OscarCinema.Application.Services
         public async Task<TicketResponse> CreateAsync(CreateTicket dto)
         {
             _logger.LogInformation("Creating new ticket for session {SessionId} with {SeatCount} seats for user {UserId}",
-                dto.SessionId, dto.TicketSeats.Count);
+                dto.SessionId, dto.Seats.Count);
 
             var session = await _unitOfWork.SessionRepository.GetByIdAsync(dto.SessionId);
             DomainExceptionValidation.When(session == null, "Session not found");
@@ -52,7 +53,6 @@ namespace OscarCinema.Application.Services
             var user = await _unitOfWork.UserRepository.GetByIdAsync(dto.UserId);
             DomainExceptionValidation.When(user == null, "User not found");
 
-            // Define informações sobre a sessão no ticket
             var ticket = _mapper.Map<Ticket>(dto);
             ticket.SetSessionData(session.MovieId, session.RoomId);
 
@@ -61,25 +61,20 @@ namespace OscarCinema.Application.Services
 
             _logger.LogDebug("Ticket base created with ID: {TicketId}", ticket.Id);
 
-            foreach (var seatDto in dto.TicketSeats)
+            foreach (var seatDto in dto.Seats)
             {
                 var seat = await _unitOfWork.SeatRepository.GetByIdAsync(seatDto.SeatId);
-                DomainExceptionValidation.When(seat == null, $"Seat {seatDto.SeatId} not found");
 
-                var price = _pricingService.CalculateSeatPrice(session.ExhibitionType, seat.SeatType);
+                var basePrice = _pricingService.CalculateSeatPrice(session.ExhibitionType, seat.SeatType);
 
-                var ticketSeat = new TicketSeat(
+                var finalPrice = _pricingService.ApplyTicketType(basePrice, seatDto.Type);
+
+                ticket.AddTicketSeat(new TicketSeat(
                     ticketId: ticket.Id,
                     seatId: seatDto.SeatId,
                     type: seatDto.Type,
-                    price: price
-                );
-
-                ticket.AddTicketSeat(ticketSeat);
-                await _unitOfWork.TicketSeatRepository.AddAsync(ticketSeat);
-
-                _logger.LogDebug("Added seat {SeatId} to ticket {TicketId} with price {Price}",
-                    seatDto.SeatId, ticket.Id, price);
+                    price: finalPrice
+                ));
             }
 
             ticket.CalculateTotalFromSeats();

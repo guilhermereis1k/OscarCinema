@@ -27,6 +27,12 @@ namespace OscarCinema.Infrastructure.Repositories
             return appUser?.ToDomainUser();
         }
 
+        public async Task<User> FindByDocumentIdAsync(string documentId)
+        {
+            var appUser = await _userManager.FindByNameAsync(documentId);
+            return appUser?.ToDomainUser();
+        }
+
         public async Task<bool> CheckPasswordAsync(User user, string password)
         {
             var appUser = await _userManager.FindByIdAsync(user.Id.ToString());

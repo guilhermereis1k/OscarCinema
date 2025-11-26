@@ -32,6 +32,12 @@ namespace OscarCinema.Application.Services
 
         public async Task<UserResponse> CreateAsync(CreateUser request)
         {
+            var exists = await _unitOfWork.UserRepository
+    .FindByDocumentIdAsync(request.DocumentNumber);
+
+            if (exists != null)
+                throw new InvalidOperationException("Document already registered.");
+
             var user = new User(
                 request.ApplicationUserId,
                 request.Name,

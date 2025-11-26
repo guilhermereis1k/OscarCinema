@@ -29,7 +29,7 @@ namespace OscarCinema.API.Controllers
         public async Task<ActionResult<TicketResponse>> Create([FromBody] CreateTicket dto)
         {
             _logger.LogInformation("Creating new ticket for session {SessionId}, with {SeatCount} seats.",
-                dto.SessionId, dto.TicketSeats.Count);
+                dto.SessionId, dto.Seats.Count);
 
             var createdTicket = await _ticketService.CreateAsync(dto);
 

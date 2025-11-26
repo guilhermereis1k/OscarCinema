@@ -30,6 +30,18 @@ namespace OscarCinema.Application.Services
             return basePrice;
         }
 
+        public decimal ApplyTicketType(decimal basePrice, TicketType type)
+        {
+            decimal multiplier = type switch
+            {
+                TicketType.Full => 1.0m,
+                TicketType.Half => 0.5m,
+                TicketType.StudentHalf => 0.5m,
+            };
+
+            return basePrice * multiplier;
+        }
+
         public decimal CalculateTotalPrice(IEnumerable<decimal> seatPrices)
         {
             _logger.LogDebug("Calculating total price for {SeatCount} seats", seatPrices.Count());

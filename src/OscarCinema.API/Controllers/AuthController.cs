@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Rewrite;
+using Microsoft.EntityFrameworkCore;
 using OscarCinema.Application.DTOs.User;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Application.Services;
@@ -35,6 +36,7 @@ namespace OscarCinema.API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterUser request)
         {
+
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
@@ -72,7 +74,12 @@ namespace OscarCinema.API.Controllers
 
                 await _userService.CreateAsync(createUserDto);
             }
-            catch
+            catch (InvalidOperationException ex)
+            {
+                await _userManager.DeleteAsync(appUser);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception)
             {
                 await _userManager.DeleteAsync(appUser);
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create domain user.");

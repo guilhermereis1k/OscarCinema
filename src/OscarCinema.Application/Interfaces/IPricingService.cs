@@ -12,5 +12,6 @@ namespace OscarCinema.Application.Interfaces
     {
         decimal CalculateSeatPrice(ExhibitionType exhibitionType, SeatType seatType);
         decimal CalculateTotalPrice(IEnumerable<decimal> seatPrices);
+        public decimal ApplyTicketType(decimal basePrice, TicketType type);
     }
 }
