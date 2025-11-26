@@ -9,6 +9,7 @@ using OscarCinema.Application.Interfaces;
 using OscarCinema.Application.Services;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Identity;
+using System.Security.Claims;
 
 namespace OscarCinema.API.Controllers
 {
@@ -104,6 +105,55 @@ namespace OscarCinema.API.Controllers
             _logger.LogInformation("User logged in successfully: {Email} (ID: {UserId})", request.Email, appUser.Id);
 
             return Ok(new { Token = token });
+        }
+
+        [Authorize]
+        [HttpPost("changepassword")]
+        public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return NotFound("User not found.");
+
+            var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors.Select(e => e.Description));
+            }
+
+            return Ok("Password changed successfully.");
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            var appUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (appUserIdClaim == null)
+                return Unauthorized();
+
+            if (!int.TryParse(appUserIdClaim, out int appUserId))
+                return Unauthorized();
+
+            var identityUser = await _userManager.FindByIdAsync(appUserId.ToString());
+            if (identityUser == null)
+                return NotFound();
+
+            var domainUser = await _userService.GetByApplicationUserIdAsync(appUserId);
+            if (domainUser == null)
+                return NotFound();
+
+            return Ok(new
+            {
+                Id = domainUser.Id,
+                Name = domainUser.Name,
+                Email = domainUser.Email,
+                DocumentNumber = domainUser.DocumentNumber.Number,
+                Role = domainUser.Role
+            });
         }
 
     }

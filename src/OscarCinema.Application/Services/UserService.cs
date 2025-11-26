@@ -125,5 +125,10 @@ namespace OscarCinema.Application.Services
                 Data = userDtos
             };
         }
+
+        public async Task<User> GetByApplicationUserIdAsync(int appUserId)
+        {
+            return await _unitOfWork.UserRepository.GetByApplicationUserIdAsync(appUserId);
+        }
     }
 }

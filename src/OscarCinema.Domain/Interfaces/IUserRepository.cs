@@ -11,5 +11,6 @@ namespace OscarCinema.Domain.Interfaces
     {
         public Task<User> FindByUsernameAsync(string username);
         public Task<bool> CheckPasswordAsync(User user, string password);
+        public Task<User> GetByApplicationUserIdAsync(int applicationUserId);
     }
 }

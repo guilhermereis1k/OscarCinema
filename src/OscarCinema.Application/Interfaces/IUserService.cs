@@ -1,5 +1,6 @@
 ﻿using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.User;
+using OscarCinema.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,5 +16,6 @@ namespace OscarCinema.Application.Interfaces
         Task<bool> DeleteAsync(int id);
         Task<UserResponse?> GetByIdAsync(int id);
         Task<PaginationResult<UserResponse>> GetAllAsync(PaginationQuery query);
+        Task<User> GetByApplicationUserIdAsync(int appUserId);
     }
 }

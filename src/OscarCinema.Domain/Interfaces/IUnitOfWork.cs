@@ -13,13 +13,13 @@ namespace OscarCinema.Domain.Interfaces
         IGenericRepository<ExhibitionType> ExhibitionTypeRepository { get; }
         IGenericRepository<SeatType> SeatTypeRepository { get; }
         IGenericRepository<Movie> MovieRepository { get; }
-        IGenericRepository<User> UserRepository { get; }
 
         IRoomRepository RoomRepository { get; }
         ISeatRepository SeatRepository { get; }
         ISessionRepository SessionRepository { get; }
         ITicketRepository TicketRepository { get; }
         ITicketSeatRepository TicketSeatRepository { get; }
+        IUserRepository UserRepository { get; }
 
         Task CommitAsync();
     }

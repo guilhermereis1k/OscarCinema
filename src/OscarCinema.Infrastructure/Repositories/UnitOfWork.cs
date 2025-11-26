@@ -1,7 +1,9 @@
-﻿using OscarCinema.Domain.Entities;
+﻿using Microsoft.AspNetCore.Identity;
+using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Entities.Pricing;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Context;
+using OscarCinema.Infrastructure.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,19 +17,21 @@ namespace OscarCinema.Infrastructure.Repositories
         private IGenericRepository<ExhibitionType>? _exhibitionTypeRepo;
         private IGenericRepository<SeatType>? _seatTypeRepo;
         private IGenericRepository<Movie>? _movieRepo;
-        private IGenericRepository<User>? _userRepo;
 
         private IRoomRepository? _roomRepo;
         private ISeatRepository? _seatRepo;
         private ISessionRepository? _sessionRepo;
         private ITicketRepository? _ticketRepo;
         private ITicketSeatRepository? _ticketSeatRepo;
+        private IUserRepository? _userRepo;
 
         private readonly OscarCinemaContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public UnitOfWork(OscarCinemaContext context)
+        public UnitOfWork(OscarCinemaContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         }
 
         public IGenericRepository<ExhibitionType> ExhibitionTypeRepository
@@ -48,8 +52,8 @@ namespace OscarCinema.Infrastructure.Repositories
         public ISessionRepository SessionRepository
             => _sessionRepo ??= new SessionRepository(_context);
 
-        public IGenericRepository<User> UserRepository
-            => _userRepo ??= new GenericRepository<User> (_context);
+        public IUserRepository UserRepository
+            => _userRepo ??= new UserRepository(_context, _userManager);
 
         public ITicketRepository TicketRepository
             => _ticketRepo ??= new TicketRepository(_context);

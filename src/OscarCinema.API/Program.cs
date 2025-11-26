@@ -121,8 +121,6 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
-
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("JustAdmin", policy =>
@@ -132,16 +130,17 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("ADMIN", "EMPLOYEE"));
 });
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
-    {
-        options.Password.RequireDigit = true;
-        options.Password.RequireLowercase = true;
-        options.Password.RequireUppercase = true;
-        options.Password.RequiredLength = 6;
-        options.User.RequireUniqueEmail = true;
-    })
-.AddEntityFrameworkStores<OscarCinemaContext>()
-.AddDefaultTokenProviders();
+builder.Services.AddIdentityCore<ApplicationUser>(options =>
+{
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequiredLength = 6;
+    options.User.RequireUniqueEmail = true;
+})
+    .AddRoles<IdentityRole<int>>()     
+    .AddEntityFrameworkStores<OscarCinemaContext>() 
+    .AddDefaultTokenProviders();
 
 builder.Host.UseSerilog();
 
@@ -169,9 +168,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
 
+app.UseAuthentication();
+
+app.UseAuthorization();
+
+app.MapControllers();
 
 app.Run();
 

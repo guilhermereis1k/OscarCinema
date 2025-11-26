@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Context;
@@ -30,6 +31,16 @@ namespace OscarCinema.Infrastructure.Repositories
         {
             var appUser = await _userManager.FindByIdAsync(user.Id.ToString());
             return await _userManager.CheckPasswordAsync(appUser, password);
+        }
+
+        public async Task<User> GetByApplicationUserIdAsync(int applicationUserId)
+        {
+            var appUser = await _userManager.FindByIdAsync(applicationUserId.ToString());
+            if (appUser == null) return null;
+
+            var domainUser = await _context.Users
+                                   .FirstOrDefaultAsync(u => u.ApplicationUserId == applicationUserId);
+            return domainUser;
         }
     }
 }
