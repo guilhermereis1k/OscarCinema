@@ -16,7 +16,5 @@ namespace OscarCinema.Application.DTOs.SeatType
 
         [Range(0.01, double.MaxValue)]
         public decimal Price { get; set; }
-
-        public bool IsActive { get; set; } = true;
     }
 }

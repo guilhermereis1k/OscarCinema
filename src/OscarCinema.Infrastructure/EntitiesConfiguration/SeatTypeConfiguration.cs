@@ -26,9 +26,6 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
             builder.Property(s => s.Price)
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
-
-            builder.Property(s => s.IsActive)
-                .IsRequired();
         }
     }
 }

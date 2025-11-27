@@ -138,7 +138,6 @@ namespace OscarCinema.Application.Tests
                 Name = "Premium",
                 Description = "Updated premium seat",
                 Price = 60m,
-                IsActive = true
             };
 
             var entity = new SeatType(
@@ -165,7 +164,6 @@ namespace OscarCinema.Application.Tests
                 Name = "Premium",
                 Description = "Updated premium seat",
                 Price = 60m,
-                IsActive = true
             };
 
             _mapperMock

@@ -98,7 +98,7 @@ namespace OscarCinema.Application.Services
                 throw new KeyNotFoundException($"SeatType with ID {id} not found.");
             }
 
-            entity.Update(dto.Name, dto.Description, dto.IsActive);
+            entity.Update(dto.Name, dto.Description);
             entity.UpdatePrice(dto.Price);
 
             await _unitOfWork.SeatTypeRepository.UpdateAsync(entity);

@@ -13,7 +13,6 @@ namespace OscarCinema.Domain.Entities.Pricing
         public string Name { get; private set; }
         public string Description { get; private set; }
         public decimal Price { get; private set; }
-        public bool IsActive { get; private set; } = true;
 
         public SeatType(){ }
 
@@ -22,7 +21,6 @@ namespace OscarCinema.Domain.Entities.Pricing
             Name = name;
             Description = description;
             Price = price;
-            IsActive = isActive;
         }
 
         public SeatType(string name, string description, decimal price)
@@ -39,23 +37,12 @@ namespace OscarCinema.Domain.Entities.Pricing
             Price = newPrice;
         }
 
-        public void Deactivate()
-        {
-            IsActive = false;
-        }
-
-        public void Reactivate()
-        {
-            IsActive = true;
-        }
-
-        public void Update(string name, string description, bool isActive)
+        public void Update(string name, string description)
         {
             ValidateDomain(name, description);
 
             Name = name;
             Description = description;
-            IsActive = isActive;
         }
 
         private void ValidateDomain(string name, string description)

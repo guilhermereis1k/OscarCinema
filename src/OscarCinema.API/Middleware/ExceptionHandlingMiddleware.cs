@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
+using OscarCinema.Domain.Validation;
 
 namespace OscarCinema.API.Middleware
 {
@@ -21,23 +23,51 @@ namespace OscarCinema.API.Middleware
             {
                 await _next(context);
             }
-            catch (Exception exception)
+            catch (AutoMapperMappingException ex) when (ex.InnerException is DomainExceptionValidation domainEx)
             {
-                _logger.LogError(
-                    exception, "Exception occurred: {Message}", exception.Message);
+                _logger.LogWarning(domainEx, "Domain validation failed during mapping: {Message}", domainEx.Message);
 
-                var problemDetails = new ProblemDetails
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+                var problem = new ProblemDetails
                 {
-                    Status = StatusCodes.Status500InternalServerError,
-                    Title = "Server Error"
+                    Title = "Invalid data",
+                    Status = StatusCodes.Status400BadRequest,
+                    Detail = domainEx.Message
                 };
 
-                context.Response.StatusCode =
-                    StatusCodes.Status500InternalServerError;
+                await context.Response.WriteAsJsonAsync(problem);
+            }
+            catch (DomainExceptionValidation ex)
+            {
+                _logger.LogWarning(ex, "Domain validation failed: {Message}", ex.Message);
 
-                await context.Response.WriteAsJsonAsync(problemDetails);
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+                var problem = new ProblemDetails
+                {
+                    Title = "Invalid data",
+                    Status = StatusCodes.Status400BadRequest,
+                    Detail = ex.Message
+                };
+
+                await context.Response.WriteAsJsonAsync(problem);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+                var problem = new ProblemDetails
+                {
+                    Title = "Server error",
+                    Status = StatusCodes.Status500InternalServerError,
+                    Detail = "An unexpected error occurred."
+                };
+
+                await context.Response.WriteAsJsonAsync(problem);
             }
         }
     }
-
 }

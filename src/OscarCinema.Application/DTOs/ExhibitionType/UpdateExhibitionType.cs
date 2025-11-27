@@ -13,6 +13,5 @@ namespace OscarCinema.Application.DTOs.ExhibitionType
         public string Description { get; set; }
         public string TechnicalSpecs { get; set; }
         public decimal Price { get; set; }
-        public bool IsActive { get; set; }
     }
 }

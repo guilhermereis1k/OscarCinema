@@ -159,6 +159,8 @@ app.UseCors(b => b
                 .AllowCredentials()
                 );
 
+app.UseHttpsRedirection();
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -167,8 +169,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
 app.UseAuthentication();
 
 app.UseAuthorization();
@@ -176,5 +176,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-
-

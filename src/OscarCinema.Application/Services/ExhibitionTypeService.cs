@@ -91,7 +91,7 @@ namespace OscarCinema.Application.Services
                 throw new KeyNotFoundException($"ExhibitionType with ID {id} not found.");
             }
 
-            entity.Update(dto.Name, dto.Description, dto.TechnicalSpecs, dto.IsActive);
+            entity.Update(dto.Name, dto.Description, dto.TechnicalSpecs);
             entity.UpdatePrice(dto.Price);
 
             await _unitOfWork.ExhibitionTypeRepository.UpdateAsync(entity);
