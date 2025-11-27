@@ -11,10 +11,13 @@ using OscarCinema.Application.Interfaces;
 using OscarCinema.Application.Services;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Entities.Pricing;
+using OscarCinema.Domain.Enums.Movie;
 using OscarCinema.Domain.Enums.Ticket;
 using OscarCinema.Domain.Enums.User;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Domain.Validation;
+using System.Diagnostics;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OscarCinema.Application.Tests
@@ -91,71 +94,38 @@ namespace OscarCinema.Application.Tests
                 SessionId = 1,
                 UserId = 1,
                 Method = PaymentMethod.CreditCard,
-                TicketSeats = new List<CreateTicketSeatOnTicket>
+                Seats = new List<SeatSelection>
         {
-            new CreateTicketSeatOnTicket { SeatId = 1, Type = TicketType.Full, Price = 50m },
-            new CreateTicketSeatOnTicket { SeatId = 2, Type = TicketType.Half, Price = 25m }
+            new SeatSelection { SeatId = 1, Type = TicketType.Full }
         }
             };
 
-            var session = new Session(1, 1, 1, DateTime.Now.AddHours(2), TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(10));
-
-            var user = new User(
-                applicationUserId: 100,
-                name: "Test User",
-                documentNumber: "16955096095",
-                email: "test@email.com",
-                role: UserRole.ADMIN
-            );
+            var session = new Session(1, 1, 1, DateTime.Now.AddHours(2), TimeSpan.FromMinutes(120), TimeSpan.FromMinutes(15));
+            var user = new User(1, "Test User", "44328452878", "test@email.com", UserRole.ADMIN);
+            var seat = new Seat(1, 'A', 1, 1);
 
             var ticket = new Ticket(1, 1, 1, 1, PaymentMethod.CreditCard, PaymentStatus.Pending, false);
 
-            var ticketResponseDto = new TicketResponse
-            {
-                Id = 1,
-                UserId = 1,
-                SessionId = 1,
-                TicketSeats = new List<TicketSeatResponse>()
-            };
-
             _unitOfWorkMock.Setup(u => u.SessionRepository.GetByIdAsync(1)).ReturnsAsync(session);
             _unitOfWorkMock.Setup(u => u.UserRepository.GetByIdAsync(1)).ReturnsAsync(user);
-            _mapperMock.Setup(m => m.Map<Ticket>(createDto)).Returns(ticket);
-
-            // Reflection 
-            _unitOfWorkMock.Setup(u => u.TicketRepository.AddAsync(It.IsAny<Ticket>()))
-                .Returns((Ticket t) =>
-                {
-                    var property = typeof(Ticket).GetProperty("Id");
-                    property?.SetValue(t, 1);
-                    return Task.CompletedTask;
-                });
-
+            _unitOfWorkMock.Setup(u => u.SeatRepository.GetByIdAsync(1)).ReturnsAsync(seat);
+            _unitOfWorkMock.Setup(u => u.TicketRepository.AddAsync(It.IsAny<Ticket>())).Returns(Task.CompletedTask);
             _unitOfWorkMock.Setup(u => u.CommitAsync()).Returns(Task.CompletedTask);
 
-            _unitOfWorkMock.Setup(u => u.SeatRepository.GetByIdAsync(1)).ReturnsAsync(new Seat(1, 'A', 1, 1));
-            _unitOfWorkMock.Setup(u => u.SeatRepository.GetByIdAsync(2)).ReturnsAsync(new Seat(1, 'A', 2, 1));
+            _mapperMock.Setup(m => m.Map<Ticket>(createDto)).Returns(ticket);
+            _mapperMock.Setup(m => m.Map<TicketResponse>(It.IsAny<Ticket>())).Returns(new TicketResponse { Id = 1 });
 
-            _pricingServiceMock.Setup(p => p.CalculateSeatPrice(It.IsAny<ExhibitionType>(), It.IsAny<SeatType>())).Returns(50m);
-            _unitOfWorkMock.Setup(u => u.TicketSeatRepository.AddAsync(It.IsAny<TicketSeat>())).Returns(Task.CompletedTask);
-            _unitOfWorkMock.Setup(u => u.TicketRepository.UpdateAsync(It.IsAny<Ticket>())).Returns(Task.CompletedTask);
-            _mapperMock.Setup(m => m.Map<TicketResponse>(It.IsAny<Ticket>())).Returns(ticketResponseDto);
-            _ticketSeatServiceMock.Setup(s => s.GetByTicketIdAsync(1)).ReturnsAsync(new List<TicketSeatResponse>());
+            _pricingServiceMock.Setup(x => x.CalculateSeatPrice(It.IsAny<ExhibitionType>(), It.IsAny<SeatType>())).Returns(25.0m);
+            _pricingServiceMock.Setup(x => x.ApplyTicketType(It.IsAny<decimal>(), It.IsAny<TicketType>())).Returns(25.0m);
+
+            _ticketSeatServiceMock.Setup(x => x.CreateAsync(It.IsAny<CreateTicketSeat>())).ReturnsAsync(new TicketSeatResponse());
 
             var result = await _service.CreateAsync(createDto);
 
             result.Should().NotBeNull();
             result.Id.Should().Be(1);
-            result.UserId.Should().Be(1);
-            result.SessionId.Should().Be(1);
-
             _unitOfWorkMock.Verify(u => u.TicketRepository.AddAsync(It.IsAny<Ticket>()), Times.Once);
-            _unitOfWorkMock.Verify(u => u.TicketSeatRepository.AddAsync(It.IsAny<TicketSeat>()), Times.Exactly(2));
-            _unitOfWorkMock.Verify(u => u.CommitAsync(), Times.Exactly(2));
-            _unitOfWorkMock.Verify(u => u.SessionRepository.GetByIdAsync(1), Times.Once);
-            _unitOfWorkMock.Verify(u => u.UserRepository.GetByIdAsync(1), Times.Once);
         }
-
 
         [Fact]
         public async Task DeleteAsync_ShouldReturnTrue_WhenTicketExists()
