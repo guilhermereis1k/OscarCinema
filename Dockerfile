@@ -13,4 +13,7 @@ RUN dotnet publish "OscarCinema.API/OscarCinema.API.csproj" -c Release -o /app/p
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://0.0.0.0:5028
+
 ENTRYPOINT ["dotnet", "OscarCinema.API.dll"]

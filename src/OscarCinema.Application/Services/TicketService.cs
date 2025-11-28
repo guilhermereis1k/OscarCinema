@@ -63,6 +63,9 @@ namespace OscarCinema.Application.Services
 
             foreach (var seatDto in dto.Seats)
             {
+                if (seatDto.IsOccupied)
+                    throw new DomainExceptionValidation("Seat is already taken");
+
                 var seat = await _unitOfWork.SeatRepository.GetByIdAsync(seatDto.SeatId);
 
                 var basePrice = _pricingService.CalculateSeatPrice(session.ExhibitionType, seat.SeatType);

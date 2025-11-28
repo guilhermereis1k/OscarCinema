@@ -23,8 +23,16 @@ namespace OscarCinema.API.Middleware
             {
                 await _next(context);
             }
-            catch (AutoMapperMappingException ex) when (ex.InnerException is DomainExceptionValidation domainEx)
+            catch (AutoMapperMappingException ex)
+                when (
+                    ex.InnerException is DomainExceptionValidation ||
+                    ex.InnerException?.InnerException is DomainExceptionValidation
+                )
             {
+                var domainEx =
+                    ex.InnerException as DomainExceptionValidation ??
+                    ex.InnerException?.InnerException as DomainExceptionValidation;
+
                 _logger.LogWarning(domainEx, "Domain validation failed during mapping: {Message}", domainEx.Message);
 
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;

@@ -11,5 +11,6 @@ namespace OscarCinema.Application.DTOs.Ticket
     {
         public int SeatId { get; set; }
         public TicketType Type { get; set; }
+        public bool IsOccupied { get; set; }
     }
 }
