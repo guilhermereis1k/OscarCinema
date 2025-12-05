@@ -53,7 +53,7 @@ namespace OscarCinema.API.Controllers
             return Ok(createdTicketSeat);
         }
 
-        [Authorize(Policy = "User")]
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<TicketSeatResponse>> GetById(int id)
         {

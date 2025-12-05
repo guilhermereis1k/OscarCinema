@@ -36,7 +36,7 @@ namespace OscarCinema.Infrastructure.Repositories
                 .FirstOrDefaultAsync(ts => ts.TicketId == ticketId && ts.SeatId == seatId);
         }
 
-        public async Task CreateRangeAsync(IEnumerable<TicketSeat> ticketSeats)
+        public async Task AddRangeAsync(IEnumerable<TicketSeat> ticketSeats)
         {
             await _context.TicketSeats.AddRangeAsync(ticketSeats);
             await _context.SaveChangesAsync();

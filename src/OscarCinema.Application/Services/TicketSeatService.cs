@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OscarCinema.Application.DTOs.TicketSeat;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
+using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,6 +32,14 @@ namespace OscarCinema.Application.Services
             _logger.LogInformation("Creating ticket seat for ticket {TicketId} and seat {SeatId} with price {Price}",
                 dto.TicketId, dto.SeatId, dto.Price);
 
+            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(dto.TicketId);
+            if (ticket == null)
+                throw new DomainExceptionValidation("TicketId does not exist.");
+
+            var seat = await _unitOfWork.SeatRepository.GetByIdAsync(dto.SeatId);
+            if (seat == null)
+                throw new DomainExceptionValidation("SeatId does not exist.");
+
             var ticketSeat = new TicketSeat(dto.TicketId, dto.SeatId, dto.Type, dto.Price);
             await _unitOfWork.TicketSeatRepository.AddAsync(ticketSeat);
             await _unitOfWork.CommitAsync();
@@ -43,11 +53,22 @@ namespace OscarCinema.Application.Services
         {
             _logger.LogInformation("Creating multiple ticket seats. Count: {Count}", dtos.Count());
 
-            var ticketSeats = dtos.Select(dto =>
-                new TicketSeat(dto.TicketId, dto.SeatId, dto.Type, dto.Price)
-            ).ToList();
+            var ticketSeats = new List<TicketSeat>();
 
-            await _unitOfWork.TicketSeatRepository.CreateRangeAsync(ticketSeats);
+            foreach (var dto in dtos)
+            {
+                var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(dto.TicketId);
+                if (ticket == null)
+                    throw new DomainExceptionValidation($"TicketId {dto.TicketId} does not exist.");
+
+                var seat = await _unitOfWork.SeatRepository.GetByIdAsync(dto.SeatId);
+                if (seat == null)
+                    throw new DomainExceptionValidation($"SeatId {dto.SeatId} does not exist.");
+
+                ticketSeats.Add(new TicketSeat(dto.TicketId, dto.SeatId, dto.Type, dto.Price));
+            }
+
+            await _unitOfWork.TicketSeatRepository.AddRangeAsync(ticketSeats);
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation("Multiple ticket seats created successfully. Total created: {Count}", ticketSeats.Count);

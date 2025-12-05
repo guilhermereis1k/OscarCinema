@@ -4,6 +4,7 @@ using OscarCinema.Application.DTOs.Seat;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
+using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,6 +31,14 @@ namespace OscarCinema.Application.Services
         {
             _logger.LogInformation("Creating new seat - Row: {Row}, Number: {Number}, Room: {RoomId}",
                 dto.Row, dto.Number, dto.RoomId);
+
+            var room = await _unitOfWork.RoomRepository.GetByIdAsync(dto.RoomId);
+            if (room == null)
+                throw new DomainExceptionValidation("RoomId does not exist.");
+
+            var seatType = await _unitOfWork.SeatTypeRepository.GetByIdAsync(dto.SeatTypeId);
+            if (seatType == null)
+                throw new DomainExceptionValidation("SeatTypeId does not exist.");
 
             var entity = _mapper.Map<Seat>(dto);
             await _unitOfWork.SeatRepository.AddAsync(entity);

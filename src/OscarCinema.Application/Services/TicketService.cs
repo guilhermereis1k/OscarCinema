@@ -68,6 +68,9 @@ namespace OscarCinema.Application.Services
 
                 var seat = await _unitOfWork.SeatRepository.GetByIdAsync(seatDto.SeatId);
 
+                if (seat == null)
+                    throw new DomainExceptionValidation("SeatId does not exist.");
+
                 var basePrice = _pricingService.CalculateSeatPrice(session.ExhibitionType, seat.SeatType);
 
                 var finalPrice = _pricingService.ApplyTicketType(basePrice, seatDto.Type);
@@ -156,7 +159,7 @@ namespace OscarCinema.Application.Services
         {
             _logger.LogDebug("Getting all tickets with pagination");
 
-            var baseQuery = _unitOfWork.RoomRepository.GetAllQueryable();
+            var baseQuery = _unitOfWork.TicketRepository.GetAllQueryable();
 
             var totalItems = await baseQuery.CountAsync();
 

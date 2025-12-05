@@ -8,6 +8,7 @@ using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.Movie;
 using OscarCinema.Domain.Interfaces;
+using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,14 +33,30 @@ namespace OscarCinema.Application.Services
 
         public async Task<SessionResponse> CreateAsync(CreateSession dto)
         {
-            _logger.LogInformation("Creating new session for movie {MovieId} in room {RoomId} at {StartTime}",
-                dto.MovieId, dto.RoomId, dto.StartTime);
+            _logger.LogInformation(
+                "Creating new session for movie {MovieId} in room {RoomId} at {StartTime}",
+                dto.MovieId, dto.RoomId, dto.StartTime
+            );
+
+            var movie = await _unitOfWork.MovieRepository.GetByIdAsync(dto.MovieId);
+            if (movie == null)
+                throw new DomainExceptionValidation("MovieId does not exist.");
+
+            var room = await _unitOfWork.RoomRepository.GetByIdAsync(dto.RoomId);
+            if (room == null)
+                throw new DomainExceptionValidation("RoomId does not exist.");
+
+            var exhibition = await _unitOfWork.ExhibitionTypeRepository.GetByIdAsync(dto.ExhibitionTypeId);
+            if (exhibition == null)
+                throw new DomainExceptionValidation("ExhibitionTypeId does not exist.");
 
             var entity = _mapper.Map<Session>(dto);
+
             await _unitOfWork.SessionRepository.AddAsync(entity);
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation("Session created successfully for movie {MovieId}", dto.MovieId);
+
             return _mapper.Map<SessionResponse>(entity);
         }
 

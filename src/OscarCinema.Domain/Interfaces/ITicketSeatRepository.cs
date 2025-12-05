@@ -12,7 +12,7 @@ namespace OscarCinema.Domain.Interfaces
         Task<IEnumerable<TicketSeat>> GetByTicketIdAsync(int ticketId);
         Task<IEnumerable<TicketSeat>> GetBySeatIdAsync(int seatId);
         Task<TicketSeat> GetByTicketAndSeatAsync(int ticketId, int seatId);
-        Task CreateRangeAsync(IEnumerable<TicketSeat> ticketSeats);
+        Task AddRangeAsync(IEnumerable<TicketSeat> ticketSeats);
         Task DeleteByTicketIdAsync(int ticketId);
     }
 }

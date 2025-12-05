@@ -2,12 +2,6 @@
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Infrastructure.Context;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Collections.Specialized.BitVector32;
 
 namespace OscarCinema.Infrastructure.Repositories
 {
@@ -25,9 +19,10 @@ namespace OscarCinema.Infrastructure.Repositories
 
         public async Task<IEnumerable<Ticket>> GetAllByUserIdAsync(int userId)
         {
-            return _context.Tickets
+            return await _context.Tickets
                 .Where(t => t.UserId == userId)
-                .AsNoTracking();
+                .AsNoTracking()
+                .ToListAsync();
         }
     }
 }
