@@ -1,46 +1,147 @@
 # OscarCinema
 
-O **OscarCinema** é uma aplicação de gerenciamento de cinema que permite aos usuários consultar filmes, horários de sessões, selecionar assentos e realizar pedidos de ingressos. O projeto possui duas camadas principais:
-
-1. **Backend** – originalmente desenvolvido em **Spring Boot (Java 17)** mas em processo de migração, responsável por:
-   - Gerenciar entidades como `User`, `Movie`, `Room`, `Seat` e `Order`.
-   - Lidar com persistência no banco de dados (PostgreSQL).
-   - Implementar regras de negócio e validações.
-   - Expor endpoints REST para consumo do frontend.
-
-2. **Frontend** – desenvolvido em **React**, com funcionalidades de:
-   - Exibição de filmes e sessões.
-   - Seleção de assentos.
-   - Finalização de pedidos.
-   - Consumo das APIs do backend.
-
-O backend está sendo migrado para **.NET Core**, buscando padronizar o stack de desenvolvimento.
+O **OscarCinema** é uma aplicação completa para gestão de cinemas, cobrindo desde catálogo de filmes até sessões, assentos, venda de ingressos e administração geral.  
+O sistema foi inicialmente desenvolvido em **Spring** e reimplementado em **.NET**, aplicando práticas de engenharia de software, DDD e Clean Architecture para garantir organização, desacoplamento e fácil evolução.
 
 ---
 
-## Estrutura do Projeto (Planejada)
+## Modelagem do Domínio
 
-**Backend (.NET Core):**
-- `Domain` – entidades e regras de negócio.
-- `Application` ou `Services` – camada intermediária entre controllers e domain.
-- `Infrastructure` – acesso a banco de dados (Entity Framework Core) e configuração de persistência.
-- `API` – controllers e endpoints REST.
+### Entidades Principais
+- **Movie** — Título, imagem, duração, classificação indicativa e gênero.  
+- **Room** — Sala com múltiplos assentos reserváveis.  
+- **Seat** — Assento (ex.: A12), com tipo que altera preço.  
+- **Session** — Relaciona filme, sala e horário, considerando trailers, filme e limpeza. Possui *ExhibitionType*.  
+- **Ticket** — Ingresso vinculado a um usuário e sessão, exigindo assentos e tipo (inteira/meia).  
+- **TicketSeat** — Liga Ticket ↔ Seat, definindo o tipo por assento.  
+- **User** — Administrador, Funcionário ou Cliente; cada um com permissões específicas.
 
-**Frontend (React):**
-- Componentes para exibição de filmes, sessões e assentos.
-- Context API para gerenciamento de estado do pedido.
-- Comunicação com backend via Axios.
+### Entidades de Precificação
+- **ExhibitionType** — IMAX, FullHD, etc., cada tipo com preço.  
+- **SeatType** — VIP, Normal, Reclinável, etc., também com preço próprio.
 
----
-
-## Migração do Spring para .NET
-
-O projeto ainda está em fase inicial de migração. Até o momento, foram criadas as **entidades (models) em C#**, correspondentes às classes existentes no backend Spring.  
-O restante da migração, incluindo serviços, controllers e integração com banco de dados, ainda está em andamento.
+> Se quiser, posso transformar tudo isso em tabelas técnicas.
 
 ---
 
-## Observações
+## Regras de Negócio
 
-- O objetivo da migração é manter a lógica original do Spring, mas otimizar a arquitetura do projeto, usando clean architecture e conceitos de DDD, e adaptar às convenções e padrões do .NET Core.  
-- Após a migração completa do backend, será possível integrar o frontend React já existente sem grandes alterações.
+- Cálculo preciso da duração real da sessão (trailers + filme + limpeza).  
+- Prevenção de reserva duplicada de assentos.  
+- Preço final = `SeatType + ExhibitionType + Tipo do ticket (inteira/meia)`.  
+- **Ticket** funciona como *agregado*, contendo **TicketSeat**.
+
+---
+
+## Arquitetura
+
+O projeto segue uma variação pragmática de **Clean Architecture**:
+
+/Domain → Entidades, agregados e regras de negócio
+/Application → DTOs, interfaces, serviços e casos de uso
+/Infrastructure → Persistência, repositórios e migrations
+/API → Controllers, endpoints, validações e DI
+/CrossCutting → Configuração e registro de dependências
+
+
+### Motivações
+- Separação verdadeira entre **negócio** e **infraestrutura**  
+- Melhor testabilidade  
+- Baixo acoplamento  
+- Expansão simples para novos fluxos e precificações
+
+---
+
+## Fluxo Principal de Compra
+
+1. Seleção do filme  
+2. Escolha da sessão  
+3. Exibição dos assentos disponíveis  
+4. Seleção dos assentos  
+5. Definição do tipo de ticket por assento  
+6. Geração de **Ticket** e **TicketSeat**  
+7. Cálculo final do preço
+
+---
+
+## Documentação da API
+
+Swagger disponível em:
+
+/swagger
+
+
+### Principais rotas
+
+/movies
+/rooms
+/sessions
+/seats
+/tickets
+/users
+
+
+---
+
+## Como Rodar o Projeto
+
+### Requisitos
+- .NET 8  
+- MySQL  
+- Docker (opcional)
+
+---
+
+## Rodando com Docker Compose
+
+O repositório inclui um `docker-compose.yml` que sobe:
+
+- MySQL  
+- API do OscarCinema  
+
+### Subir
+
+docker compose up -d
+
+
+### Derrubar
+
+docker compose down
+
+
+A API ficará disponível em:
+
+http://localhost:8080
+
+
+---
+
+## Rodando Manualmente
+
+### Atualizar banco
+
+dotnet ef database update
+
+
+### Executar API
+
+dotnet run
+
+
+---
+
+## Decisões de Design
+
+- **TicketSeat** evita acoplamento direto entre Ticket e Seat.  
+- **ExhibitionType** e **SeatType** isolados para evolução da precificação.  
+- **CrossCutting** criado para centralizar injeção e configuração.  
+- Regras de negócio mantidas no **Domínio**.  
+- Fluxos críticos implementados na camada **Application**.
+
+---
+
+## Pontos de Extensibilidade
+
+- Produtos adicionais no fluxo de compra  
+- Sistema de fidelidade  
+- Preço dinâmico por horário   
