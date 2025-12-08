@@ -19,7 +19,7 @@ O sistema foi inicialmente desenvolvido em **Spring** e reimplementado em **.NET
 ### Entidades de Precificação
 - **ExhibitionType** — IMAX, FullHD, etc., cada tipo com preço.  
 - **SeatType** — VIP, Normal, Reclinável, etc., também com preço próprio.
-- 
+  
 ---
 
 ## Regras de Negócio
