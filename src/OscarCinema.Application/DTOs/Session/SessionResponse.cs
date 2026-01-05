@@ -1,9 +1,4 @@
-﻿using OscarCinema.Domain.Enums.Movie;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
 
 namespace OscarCinema.Application.DTOs.Session
 {
@@ -14,7 +9,7 @@ namespace OscarCinema.Application.DTOs.Session
         public int RoomId { get; set; }
         public int ExhibitionTypeId { get; set; }
         public DateTime StartTime { get; set; }
-        public TimeSpan? TrailerTime { get; set; }
-        public TimeSpan? CleaningTime { get; set; }
+        public int DurationMinutes { get; set; }
+        public bool IsFinished { get; set; }
     }
 }

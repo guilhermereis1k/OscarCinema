@@ -16,8 +16,8 @@ namespace OscarCinema.Application.DTOs.Ticket
         public int SessionId { get; set; }
         public PaymentMethod Method { get; set; }
         public PaymentStatus PaymentStatus { get; set; }
-        public IEnumerable<TicketSeatResponse> TicketSeats { get; set; } = new List<TicketSeatResponse>();
         public decimal TotalValue { get; set; }
         public bool Paid { get; set; }
+        public IEnumerable<TicketSeatResponse> Seats { get; set; } = new List<TicketSeatResponse>();
     }
 }

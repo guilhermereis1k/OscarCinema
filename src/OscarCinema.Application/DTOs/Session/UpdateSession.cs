@@ -1,6 +1,7 @@
 ﻿using OscarCinema.Domain.Entities.Pricing;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,11 +10,20 @@ namespace OscarCinema.Application.DTOs.Session
 {
     public class UpdateSession
     {
+        [Required]
         public int MovieId { get; set; }
-        public int RoomId { get; set; } = new();
+
+        [Required]
+        public int RoomId { get; set; }
+
+        [Required]
         public int ExhibitionTypeId { get; set; }
+
+        [Required]
         public DateTime StartTime { get; set; }
-        public TimeSpan? TrailerTime { get; set; }
-        public TimeSpan? CleaningTime { get; set; }
+
+        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "Duration must be greater than 0")]
+        public int DurationMinutes { get; set; }
     }
 }

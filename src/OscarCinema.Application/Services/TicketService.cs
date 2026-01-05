@@ -2,9 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OscarCinema.Application.DTOs.Pagination;
-using OscarCinema.Application.DTOs.Room;
+using OscarCinema.Application.DTOs.SeatType;
 using OscarCinema.Application.DTOs.Ticket;
-using OscarCinema.Application.DTOs.TicketSeat;
+using OscarCinema.Application.DTOs.User;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.Ticket;
@@ -12,9 +12,7 @@ using OscarCinema.Domain.Interfaces;
 using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
@@ -24,140 +22,61 @@ namespace OscarCinema.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly ITicketSeatService _ticketSeatService;
-        private readonly IPricingService _pricingService;
         private readonly ILogger<TicketService> _logger;
 
-        public TicketService(
-            IUnitOfWork unitOfWork,
-            ITicketSeatService ticketSeatService,
-            IPricingService pricingService,
-            IMapper mapper,
-            ILogger<TicketService> logger)
+        public TicketService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<TicketService> logger)
         {
             _unitOfWork = unitOfWork;
-            _ticketSeatService = ticketSeatService;
-            _pricingService = pricingService;
             _mapper = mapper;
             _logger = logger;
         }
 
         public async Task<TicketResponse> CreateAsync(CreateTicket dto)
         {
-            _logger.LogInformation("Creating new ticket for session {SessionId} with {SeatCount} seats for user {UserId}",
-                dto.SessionId, dto.Seats.Count);
+            _logger.LogInformation("Creating ticket for SessionId {SessionId} and UserId {UserId}", dto.SessionId, dto.UserId);
 
-            var session = await _unitOfWork.SessionRepository.GetByIdAsync(dto.SessionId);
-            DomainExceptionValidation.When(session == null, "Session not found");
+            var session = await _unitOfWork.SessionRepository.GetDetailedAsync(dto.SessionId)
+                ?? throw new DomainExceptionValidation("Session not found.");
 
-            var user = await _unitOfWork.UserRepository.GetByIdAsync(dto.UserId);
-            DomainExceptionValidation.When(user == null, "User not found");
+            var seatIds = dto.Seats.Select(s => s.SeatId).ToList();
+            DomainExceptionValidation.When(!session.AreSeatsAvailable(seatIds), "One or more seats are already occupied.");
 
-            var ticket = _mapper.Map<Ticket>(dto);
-            ticket.SetSessionData(session.MovieId, session.RoomId);
+            var ticket = new Ticket(dto.UserId, session.MovieId, session.RoomId, dto.SessionId, dto.Method);
+
+            foreach (var seat in dto.Seats)
+            {
+                DomainExceptionValidation.When(!Enum.IsDefined(typeof(TicketType), seat.Type),
+                    $"Invalid TicketType: {seat.Type}");
+
+                var ticketSeat = new TicketSeat(ticket.Id, seat.SeatId, seat.Type, seat.Price);
+                ticket.AddTicketSeat(ticketSeat);
+            }
+
+            session.AddTicket(ticket);
 
             await _unitOfWork.TicketRepository.AddAsync(ticket);
+            await _unitOfWork.SessionRepository.UpdateAsync(session);
             await _unitOfWork.CommitAsync();
 
-            _logger.LogDebug("Ticket base created with ID: {TicketId}", ticket.Id);
-
-            foreach (var seatDto in dto.Seats)
-            {
-                if (seatDto.IsOccupied)
-                    throw new DomainExceptionValidation("Seat is already taken");
-
-                var seat = await _unitOfWork.SeatRepository.GetByIdAsync(seatDto.SeatId);
-
-                if (seat == null)
-                    throw new DomainExceptionValidation("SeatId does not exist.");
-
-                var basePrice = _pricingService.CalculateSeatPrice(session.ExhibitionType, seat.SeatType);
-
-                var finalPrice = _pricingService.ApplyTicketType(basePrice, seatDto.Type);
-
-                ticket.AddTicketSeat(new TicketSeat(
-                    ticketId: ticket.Id,
-                    seatId: seatDto.SeatId,
-                    type: seatDto.Type,
-                    price: finalPrice
-                ));
-            }
-
-            ticket.CalculateTotalFromSeats();
-            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
-            await _unitOfWork.CommitAsync();
-
-            var response = _mapper.Map<TicketResponse>(ticket);
-            response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
-
-            _logger.LogInformation("Ticket created successfully: ID {TicketId} with total {TotalPrice}",
-                ticket.Id, ticket.TotalValue);
-
-            return response;
+            _logger.LogInformation("Ticket created successfully: ID {TicketId}", ticket.Id);
+            return _mapper.Map<TicketResponse>(ticket);
         }
 
-        public async Task<TicketResponse?> UpdateAsync(int id, UpdateTicket dto)
+        public async Task<IEnumerable<TicketResponse>> GetAllBySessionIdAsync(int sessionId)
         {
-            _logger.LogInformation("Updating ticket ID: {TicketId}", id);
-
-            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
-            if (ticket == null)
-            {
-                _logger.LogWarning("Ticket not found for update: {TicketId}", id);
-                return null;
-            }
-
-            _mapper.Map(dto, ticket);
-
-            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
-            await _unitOfWork.CommitAsync();
-
-            var response = _mapper.Map<TicketResponse>(ticket);
-            response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
-
-            _logger.LogInformation("Ticket updated successfully: {TicketId}", id);
-            return response;
+            var tickets = await _unitOfWork.TicketRepository.GetAllBySessionId(sessionId);
+            return _mapper.Map<IEnumerable<TicketResponse>>(tickets);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<IEnumerable<TicketResponse>> GetAllByUserIdAsync(int userId)
         {
-            _logger.LogInformation("Deleting ticket: {TicketId}", id);
-
-            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
-            if (ticket == null)
-            {
-                _logger.LogWarning("Ticket not found for deletion: {TicketId}", id);
-                return false;
-            }
-
-            await _unitOfWork.TicketRepository.DeleteAsync(id);
-            await _unitOfWork.CommitAsync();
-
-            _logger.LogInformation("Ticket deleted successfully: {TicketId}", id);
-            return true;
-        }
-
-        public async Task<TicketResponse?> GetByIdAsync(int id)
-        {
-            _logger.LogDebug("Getting ticket by ID: {TicketId}", id);
-
-            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
-            if (ticket == null)
-            {
-                _logger.LogWarning("Ticket not found: {TicketId}", id);
-                return null;
-            }
-
-            var response = _mapper.Map<TicketResponse>(ticket);
-            response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
-
-            _logger.LogDebug("Ticket found: ID {TicketId} with {SeatCount} seats", id, response.TicketSeats.Count());
-            return response;
+            var tickets = await _unitOfWork.TicketRepository.GetAllByUserIdAsync(userId);
+            return _mapper.Map<IEnumerable<TicketResponse>>(tickets);
         }
 
         public async Task<PaginationResult<TicketResponse>> GetAllAsync(PaginationQuery query)
         {
-            _logger.LogDebug("Getting all tickets with pagination");
+            _logger.LogDebug("Getting all sessions with pagination");
 
             var baseQuery = _unitOfWork.TicketRepository.GetAllQueryable();
 
@@ -183,40 +102,60 @@ namespace OscarCinema.Application.Services
             };
         }
 
-        public async Task<IEnumerable<TicketResponse>> GetAllByUserIdAsync(int userId)
+        public async Task<TicketResponse?> GetByIdAsync(int id)
         {
-            _logger.LogDebug("Getting all tickets for user ID: {UserId}", userId);
-
-            var tickets = await _unitOfWork.TicketRepository.GetAllByUserIdAsync(userId);
-            var response = new List<TicketResponse>();
-
-            foreach (var ticket in tickets)
-            {
-                var dto = _mapper.Map<TicketResponse>(ticket);
-                dto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
-                response.Add(dto);
-            }
-
-            _logger.LogDebug("Retrieved {Count} tickets for user ID: {UserId}", response.Count, userId);
-            return response;
+            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
+            if (ticket == null) return null;
+            return _mapper.Map<TicketResponse>(ticket);
         }
 
-        public async Task<IEnumerable<TicketResponse>> GetAllBySessionIdAsync(int sessionId)
+        public async Task<TicketResponse> UpdateAsync(int id, UpdateTicket dto)
         {
-            _logger.LogDebug("Getting all tickets for session ID: {SessionId}", sessionId);
+            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id)
+                ?? throw new DomainExceptionValidation("Ticket not found.");
 
-            var tickets = await _unitOfWork.TicketRepository.GetAllBySessionId(sessionId);
-            var response = new List<TicketResponse>();
+            ticket.UpdatePaymentStatus(dto.PaymentStatus);
 
-            foreach (var ticket in tickets)
-            {
-                var dto = _mapper.Map<TicketResponse>(ticket);
-                dto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
-                response.Add(dto);
-            }
+            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
+            await _unitOfWork.CommitAsync();
 
-            _logger.LogDebug("Retrieved {Count} tickets for session ID: {SessionId}", response.Count, sessionId);
-            return response;
+            return _mapper.Map<TicketResponse>(ticket);
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
+            if (ticket == null) return false;
+
+            await _unitOfWork.TicketRepository.DeleteAsync(id);
+            await _unitOfWork.CommitAsync();
+            return true;
+        }
+
+        public async Task MarkTicketAsPaidAsync(int ticketId)
+        {
+            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(ticketId)
+                ?? throw new DomainExceptionValidation("Ticket not found.");
+
+            ticket.MarkAsPaid();
+
+            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
+            await _unitOfWork.CommitAsync();
+
+            _logger.LogInformation("Ticket marked as paid: ID {TicketId}", ticketId);
+        }
+
+        public async Task MarkTicketAsPendingAsync(int ticketId)
+        {
+            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(ticketId)
+                ?? throw new DomainExceptionValidation("Ticket not found.");
+
+            ticket.MarkAsPending();
+
+            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
+            await _unitOfWork.CommitAsync();
+
+            _logger.LogInformation("Ticket marked as pending: ID {TicketId}", ticketId);
         }
     }
 }

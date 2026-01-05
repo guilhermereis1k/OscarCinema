@@ -1,0 +1,3631 @@
+From 5e49fc0adcff24565b57f2738a4fddd9ef5cf379 Mon Sep 17 00:00:00 2001
+From: Guilherme Reis Videira <guilhermereisdl@gmail.com>
+Date: Mon, 5 Jan 2026 17:22:19 -0300
+Subject: [PATCH] Session verification on creation added, User document
+ verification added.
+
+---
+ .../Controllers/SessionController.cs          | 148 ++--
+ .../Controllers/TicketController.cs           |  86 +--
+ .../Controllers/TicketSeatController.cs       | 134 +---
+ .../DTOs/Room/CreateRoom.cs                   |   2 -
+ .../DTOs/Session/CreateSession.cs             |  14 +-
+ .../DTOs/Session/SessionResponse.cs           |  11 +-
+ .../DTOs/Session/UpdateSession.cs             |  16 +-
+ .../DTOs/Ticket/CreateTicket.cs               |   3 +-
+ .../DTOs/Ticket/SeatSelection.cs              |   9 +-
+ .../DTOs/Ticket/TicketResponse.cs             |   2 +-
+ .../DTOs/TicketSeat/TicketSeatResponse.cs     |   2 -
+ .../Interfaces/ISessionService.cs             |  17 +-
+ .../Interfaces/ITicketSeatService.cs          |   9 +-
+ .../Interfaces/ITicketService.cs              |  16 +-
+ .../Services/RoomService.cs                   |  10 +-
+ .../Services/SessionService.cs                | 159 ++--
+ .../Services/TicketSeatService.cs             | 149 +---
+ .../Services/TicketService.cs                 | 202 ++---
+ .../Services/UserService.cs                   |   8 +-
+ src/OscarCinema.Domain/Entities/Session.cs    | 200 ++---
+ src/OscarCinema.Domain/Entities/Ticket.cs     | 104 +--
+ src/OscarCinema.Domain/Entities/TicketSeat.cs |  10 +-
+ .../Interfaces/ISessionRepository.cs          |  13 +-
+ .../Interfaces/ITicketSeatRepository.cs       |  10 +-
+ .../OscarCinema.Domain.csproj                 |   6 +
+ .../SessionConfiguration.cs                   | 101 ++-
+ .../TicketConfiguration.cs                    |  69 +-
+ .../TicketSeatConfiguration.cs                |  51 +-
+ .../UserConfiguration.cs                      |  41 +-
+ ...08201051_SessionCentralization.Designer.cs | 713 ++++++++++++++++++
+ .../20251208201051_SessionCentralization.cs   | 105 +++
+ .../OscarCinemaContextModelSnapshot.cs        | 164 ++--
+ .../Repositories/SessionRepository.cs         |  43 +-
+ .../Repositories/TicketSeatRepository.cs      |  34 +-
+ .../Repositories/UserRepository.cs            |  40 +-
+ 35 files changed, 1561 insertions(+), 1140 deletions(-)
+ create mode 100644 src/OscarCinema.Infrastructure/Migrations/20251208201051_SessionCentralization.Designer.cs
+ create mode 100644 src/OscarCinema.Infrastructure/Migrations/20251208201051_SessionCentralization.cs
+
+diff --git a/src/OscarCinema.API/Controllers/SessionController.cs b/src/OscarCinema.API/Controllers/SessionController.cs
+index 176f67c..5771fda 100644
+--- a/src/OscarCinema.API/Controllers/SessionController.cs
++++ b/src/OscarCinema.API/Controllers/SessionController.cs
+@@ -1,122 +1,74 @@
+-﻿using Microsoft.AspNetCore.Authorization;
+-using Microsoft.AspNetCore.Http;
+-using Microsoft.AspNetCore.Mvc;
+-using OscarCinema.Application.DTOs.Pagination;
++﻿using Microsoft.AspNetCore.Mvc;
+ using OscarCinema.Application.DTOs.Session;
+ using OscarCinema.Application.Interfaces;
+-using OscarCinema.Application.Services;
+-using OscarCinema.Domain.Entities;
+-using OscarCinema.Domain.Interfaces;
+-using OscarCinema.Infrastructure.Repositories;
+-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
++using OscarCinema.Domain.Validation;
+ 
+-namespace OscarCinema.API.Controllers
++[ApiController]
++[Route("api/[controller]")]
++public class SessionController : ControllerBase
+ {
+-    [Route("api/[controller]")]
+-    [ApiController]
+-    public class SessionController : ControllerBase
++    private readonly ISessionService _sessionService;
++
++    public SessionController(ISessionService sessionService)
+     {
+-        private readonly ISessionService _sessionService;
+-        private readonly ILogger<SessionController> _logger;
++        _sessionService = sessionService;
++    }
+ 
+-        public SessionController(ISessionService sessionService, ILogger<SessionController> logger)
+-        {
+-            _sessionService = sessionService;
+-            _logger = logger;
+-        }
++    [HttpPost]
++    public async Task<ActionResult> Create([FromBody] CreateSession dto)
++    {
++        if (!ModelState.IsValid) return BadRequest(ModelState);
+ 
+-        [Authorize(Policy = "AdminOrEmployee")]
+-        [HttpPost("create")]
+-        public async Task<ActionResult<SessionResponse>> Create([FromBody] CreateSession dto)
++        try
+         {
+-            _logger.LogInformation("Creating new session for movie {MovieId} in room {RoomId} at {SessionDate}",
+-                dto.MovieId, dto.RoomId, dto.StartTime);
+-
+-            var createdSession = await _sessionService.CreateAsync(dto);
+-
+-            _logger.LogInformation("Session created with ID: {Id}", createdSession.Id);
+-
+-            return CreatedAtAction(
+-                nameof(GetById),
+-                new { id = createdSession.Id },
+-                createdSession);
++            var session = await _sessionService.CreateAsync(
++                dto.MovieId, dto.RoomId, dto.ExhibitionTypeId, dto.StartTime, dto.DurationMinutes
++            );
++            return Ok(session);
+         }
+-
+-        [AllowAnonymous]
+-        [HttpGet("{id}")]
+-        public async Task<ActionResult<SessionResponse>> GetById(int id)
++        catch (DomainExceptionValidation ex)
+         {
+-            _logger.LogDebug("Searching session by ID: {Id}", id);
+-
+-            var session = await _sessionService.GetByIdAsync(id);
++            return BadRequest(ex.Message);
++        }
++    }
+ 
+-            if (session == null)
+-            {
+-                _logger.LogWarning("Session not found: {Id}", id);
+-                return NotFound();
+-            }
++    [HttpPut("{id}")]
++    public async Task<ActionResult> Update(int id, [FromBody] UpdateSession dto)
++    {
++        if (!ModelState.IsValid) return BadRequest(ModelState);
+ 
++        try
++        {
++            var session = await _sessionService.UpdateAsync(
++                id, dto.MovieId, dto.RoomId, dto.ExhibitionTypeId, dto.StartTime, dto.DurationMinutes
++            );
+             return Ok(session);
+         }
+-
+-        [AllowAnonymous]
+-        [HttpGet("movie/{id}")]
+-        public async Task<ActionResult<PaginationResult<SessionResponse>>> GetAllByMovieId([FromQuery] PaginationQuery query, int id)
++        catch (DomainExceptionValidation ex)
+         {
+-            _logger.LogDebug("Listing all sessions with pagination");
+-
+-            var pageResult = await _sessionService.GetAllByMovieIdAsync(query, id);
+-
+-            _logger.LogDebug(
+-                "Returning {Count} items for the current page.", pageResult.Data.Count());
+-
+-            return Ok(pageResult);
++            return BadRequest(ex.Message);
+         }
++    }
+ 
+-        [AllowAnonymous]
+-        [HttpGet]
+-        public async Task<ActionResult<PaginationResult<SessionResponse>>> GetAll([FromQuery] PaginationQuery query, int id)
+-        {
+-            _logger.LogDebug("Listing all sessions with pagination.");
+-
+-            var pageResult = await _sessionService.GetAllAsync(query);
+-
+-            _logger.LogDebug(
+-                "Returning {Count} items for the current page.", pageResult.Data.Count());
+-
+-            return Ok(pageResult);
+-        }
++    [HttpGet("{id}")]
++    public async Task<ActionResult> GetById(int id)
++    {
++        var session = await _sessionService.GetByIdAsync(id);
++        if (session == null) return NotFound();
++        return Ok(session);
++    }
+ 
+-        [Authorize(Policy = "AdminOrEmployee")]
+-        [HttpPut("{id:int}")]
+-        public async Task<ActionResult<SessionResponse>> Update(int id, [FromBody] UpdateSession dto)
++    [HttpPost("{id}/finish")]
++    public async Task<ActionResult> Finish(int id)
++    {
++        try
+         {
+-            _logger.LogInformation("Updating session ID: {Id} with data: {@Dto}", id, dto);
+-
+-            var updatedSession = await _sessionService.UpdateAsync(id, dto);
+-
+-            _logger.LogInformation("Session updated successfully: {Id}", id);
+-
+-            return Ok(updatedSession);
++            await _sessionService.FinishSessionAsync(id);
++            return NoContent();
+         }
+-
+-        [Authorize(Policy = "AdminOrEmployee")]
+-        [HttpDelete("{id}")]
+-        public async Task<ActionResult> Delete(int id)
++        catch (DomainExceptionValidation ex)
+         {
+-            _logger.LogInformation("Deleting session: {Id}", id);
+-
+-            var deleted = await _sessionService.DeleteAsync(id);
+-
+-            if (!deleted)
+-            {
+-                _logger.LogWarning("Attempt to delete session not found: {Id}", id);
+-                return NotFound($"Session with ID {id} not found");
+-            }
+-
+-            _logger.LogInformation("Session deleted successfully: {Id}", id);
+-            return NoContent();
++            return BadRequest(ex.Message);
+         }
+     }
+ }
+-
+diff --git a/src/OscarCinema.API/Controllers/TicketController.cs b/src/OscarCinema.API/Controllers/TicketController.cs
+index 7253028..96af356 100644
+--- a/src/OscarCinema.API/Controllers/TicketController.cs
++++ b/src/OscarCinema.API/Controllers/TicketController.cs
+@@ -1,13 +1,17 @@
+ ﻿using Microsoft.AspNetCore.Authorization;
+-using Microsoft.AspNetCore.Http;
+ using Microsoft.AspNetCore.Mvc;
+ using OscarCinema.Application.DTOs.Pagination;
++using OscarCinema.Application.DTOs.Room;
++using OscarCinema.Application.DTOs.SeatType;
+ using OscarCinema.Application.DTOs.Ticket;
++using OscarCinema.Application.DTOs.User;
+ using OscarCinema.Application.Interfaces;
+ using OscarCinema.Application.Services;
+ using OscarCinema.Domain.Entities;
+ using OscarCinema.Domain.Interfaces;
+-using OscarCinema.Infrastructure.Repositories;
++using System.Collections.Generic;
++using System.Linq;
++using System.Threading.Tasks;
+ 
+ namespace OscarCinema.API.Controllers
+ {
+@@ -17,98 +21,64 @@ namespace OscarCinema.API.Controllers
+     {
+         private readonly ITicketService _ticketService;
+         private readonly ILogger<TicketController> _logger;
++        private readonly IUnitOfWork _unitOfWork;
+ 
+-        public TicketController(ITicketService ticketService, ILogger<TicketController> logger)
++        public TicketController(ITicketService ticketService, ILogger<TicketController> logger, IUnitOfWork unitOfWork)
+         {
+             _ticketService = ticketService;
+             _logger = logger;
++            _unitOfWork = unitOfWork;
+         }
+ 
+         [Authorize]
+         [HttpPost]
+         public async Task<ActionResult<TicketResponse>> Create([FromBody] CreateTicket dto)
+         {
+-            _logger.LogInformation("Creating new ticket for session {SessionId}, with {SeatCount} seats.",
+-                dto.SessionId, dto.Seats.Count);
+-
+-            var createdTicket = await _ticketService.CreateAsync(dto);
+-
+-            _logger.LogInformation("Ticket created with ID: {Id}", createdTicket.Id);
+-
+-            return CreatedAtAction(
+-                nameof(GetById),
+-                new { id = createdTicket.Id },
+-                createdTicket);
++            var ticket = await _ticketService.CreateAsync(dto);
++            return CreatedAtAction(nameof(GetById), new { id = ticket.Id }, ticket);
+         }
+ 
+-        [Authorize]
+         [AllowAnonymous]
+         [HttpGet("{id}")]
+         public async Task<ActionResult<TicketResponse>> GetById(int id)
+         {
+-            _logger.LogDebug("Searching ticket by ID: {Id}", id);
+-
+             var ticket = await _ticketService.GetByIdAsync(id);
+-
+-            if (ticket == null)
+-            {
+-                _logger.LogWarning("Ticket not found: {Id}", id);
+-                return NotFound();
+-            }
+-
++            if (ticket == null) return NotFound();
+             return Ok(ticket);
+         }
+ 
+-        [Authorize(Policy = "AdminOrEmployee")]
++        [Authorize(Policy = "JustAdmin")]
+         [HttpGet]
+-        public async Task<ActionResult<PaginationResult<TicketResponse>>> GetAll([FromQuery] PaginationQuery query)
++        public async Task<ActionResult<PaginationResult<UserResponse>>> GetAll([FromQuery] PaginationQuery query)
+         {
+             _logger.LogDebug("Listing all tickets with pagination.");
+ 
+             var pageResult = await _ticketService.GetAllAsync(query);
+ 
+-            _logger.LogDebug(
+-                "Returning {Count} items for the current page.", pageResult.Data.Count());
+-
+             return Ok(pageResult);
+         }
+ 
+         [Authorize]
+         [HttpGet("user/{userId}")]
+-        public async Task<ActionResult<IEnumerable<TicketResponse>>> GetAllByUserId(int userId)
++        public async Task<ActionResult<IEnumerable<TicketResponse>>> GetAllByUser(int userId)
+         {
+-            _logger.LogDebug("Getting all tickets for user ID: {UserId}", userId);
+-
+-            var ticketList = await _ticketService.GetAllByUserIdAsync(userId);
+-
+-            _logger.LogDebug("Returning {Count} tickets for user ID: {UserId}", ticketList.Count(), userId);
+-
+-            return Ok(ticketList);
++            var tickets = await _ticketService.GetAllByUserIdAsync(userId);
++            return Ok(tickets);
+         }
+ 
+-        [Authorize(Policy = "JustAdmin")]
++        [Authorize(Policy = "AdminOrEmployee")]
+         [HttpGet("session/{sessionId}")]
+-        public async Task<ActionResult<IEnumerable<TicketResponse>>> GetAllBySessionId(int sessionId)
++        public async Task<ActionResult<IEnumerable<TicketResponse>>> GetAllBySession(int sessionId)
+         {
+-            _logger.LogDebug("Getting all tickets for session ID: {SessionId}", sessionId);
+-
+-            var ticketList = await _ticketService.GetAllBySessionIdAsync(sessionId);
+-
+-            _logger.LogDebug("Returning {Count} tickets for session ID: {SessionId}", ticketList.Count(), sessionId);
+-
+-            return Ok(ticketList);
++            var tickets = await _ticketService.GetAllBySessionIdAsync(sessionId);
++            return Ok(tickets);
+         }
+ 
+         [Authorize]
+-        [HttpPut("{id:int}")]
++        [HttpPut("{id}")]
+         public async Task<ActionResult<TicketResponse>> Update(int id, [FromBody] UpdateTicket dto)
+         {
+-            _logger.LogInformation("Updating ticket ID: {Id} with data: {@Dto}", id, dto);
+-
+             var updatedTicket = await _ticketService.UpdateAsync(id, dto);
+-
+-            _logger.LogInformation("Ticket updated successfully: {Id}", id);
+-
+             return Ok(updatedTicket);
+         }
+ 
+@@ -116,19 +86,9 @@ namespace OscarCinema.API.Controllers
+         [HttpDelete("{id}")]
+         public async Task<ActionResult> Delete(int id)
+         {
+-            _logger.LogInformation("Deleting ticket: {Id}", id);
+-
+             var deleted = await _ticketService.DeleteAsync(id);
+-
+-            if (!deleted)
+-            {
+-                _logger.LogWarning("Attempt to delete ticket not found: {Id}", id);
+-                return NotFound($"Ticket with ID {id} not found");
+-            }
+-
+-            _logger.LogInformation("Ticket deleted successfully: {Id}", id);
++            if (!deleted) return NotFound();
+             return NoContent();
+         }
+     }
+ }
+-
+diff --git a/src/OscarCinema.API/Controllers/TicketSeatController.cs b/src/OscarCinema.API/Controllers/TicketSeatController.cs
+index 9e84763..f9f681b 100644
+--- a/src/OscarCinema.API/Controllers/TicketSeatController.cs
++++ b/src/OscarCinema.API/Controllers/TicketSeatController.cs
+@@ -1,11 +1,9 @@
+ ﻿using Microsoft.AspNetCore.Authorization;
+-using Microsoft.AspNetCore.Http;
+ using Microsoft.AspNetCore.Mvc;
+ using OscarCinema.Application.DTOs.TicketSeat;
+ using OscarCinema.Application.Interfaces;
+-using OscarCinema.Domain.Entities;
+-using OscarCinema.Domain.Interfaces;
+-using OscarCinema.Infrastructure.Repositories;
++using Microsoft.Extensions.Logging;
++using System.Threading.Tasks;
+ 
+ namespace OscarCinema.API.Controllers
+ {
+@@ -22,133 +20,15 @@ namespace OscarCinema.API.Controllers
+             _logger = logger;
+         }
+ 
+-        [Authorize(Policy = "JustAdmin")]
+-        [HttpPost]
+-        public async Task<ActionResult<TicketSeatResponse>> Create([FromBody] CreateTicketSeat dto)
+-        {
+-            _logger.LogInformation("Creating ticket seat for ticket {TicketId} and seat {SeatId}",
+-                dto.TicketId, dto.SeatId);
+-
+-            var createdTicketSeat = await _ticketSeatService.CreateAsync(dto);
+-
+-            _logger.LogInformation("Ticket seat created with ID: {Id}", createdTicketSeat.Id);
+-
+-            return CreatedAtAction(
+-                nameof(GetById),
+-                new { id = createdTicketSeat.Id },
+-                createdTicketSeat);
+-        }
+-
+-        [Authorize(Policy = "JustAdmin")]
+-        [HttpPost("multiple")]
+-        public async Task<ActionResult<TicketSeatResponse>> CreateMultiple([FromBody] IEnumerable<CreateTicketSeat> dto)
+-        {
+-            _logger.LogInformation("Creating multiple ticket seats. Count: {Count}", dto.Count());
+-
+-            var createdTicketSeat = await _ticketSeatService.CreateMultipleAsync(dto);
+-
+-            _logger.LogInformation("Multiple ticket seats created successfully. Total created: {Count}",
+-                createdTicketSeat.Count());
+-
+-            return Ok(createdTicketSeat);
+-        }
+-
+-        [Authorize(Policy = "User")]
+-        [HttpGet("{id}")]
+-        public async Task<ActionResult<TicketSeatResponse>> GetById(int id)
+-        {
+-            _logger.LogDebug("Searching ticket seat by ID: {Id}", id);
+-
+-            var ticketSeat = await _ticketSeatService.GetByIdAsync(id);
+-
+-            if (ticketSeat == null)
+-            {
+-                _logger.LogWarning("Ticket seat not found: {Id}", id);
+-                return NotFound();
+-            }
+-
+-            return Ok(ticketSeat);
+-        }
+-
+-        [Authorize]
+-        [HttpGet("ticket/{id}")]
+-        public async Task<ActionResult<IEnumerable<TicketSeatResponse>>> GetByTicketId(int id)
+-        {
+-            _logger.LogDebug("Getting ticket seats for ticket ID: {TicketId}", id);
+-
+-            var ticketSeat = await _ticketSeatService.GetByTicketIdAsync(id);
+-
+-            if (ticketSeat == null)
+-            {
+-                _logger.LogWarning("No ticket seats found for ticket ID: {TicketId}", id);
+-                return NotFound();
+-            }
+-
+-            _logger.LogDebug("Returning {Count} ticket seats for ticket ID: {TicketId}", ticketSeat.Count(), id);
+-            return Ok(ticketSeat);
+-        }
+-
+-        [Authorize]
+-        [HttpGet("seat/{id}")]
+-        public async Task<ActionResult<IEnumerable<TicketSeatResponse>>> GetBySeatId(int id)
+-        {
+-            _logger.LogDebug("Getting ticket seats for seat ID: {SeatId}", id);
+-
+-            var ticketSeat = await _ticketSeatService.GetBySeatIdAsync(id);
+-
+-            if (ticketSeat == null)
+-            {
+-                _logger.LogWarning("No ticket seats found for seat ID: {SeatId}", id);
+-                return NotFound();
+-            }
+-
+-            _logger.LogDebug("Returning {Count} ticket seats for seat ID: {SeatId}", ticketSeat.Count(), id);
+-            return Ok(ticketSeat);
+-        }
+-
+-        [Authorize]
+-        [HttpPut("price/{id:int}")]
+-        public async Task<ActionResult<TicketSeatResponse>> UpdatePriceAsync(int id, [FromBody] decimal newPrice)
+-        {
+-            _logger.LogInformation("Updating price for ticket seat ID: {Id} to {NewPrice}", id, newPrice);
+-
+-            var updatedTicketSeat = await _ticketSeatService.UpdatePriceAsync(id, newPrice);
+-
+-            _logger.LogInformation("Ticket seat price updated successfully: {Id}", id);
+-
+-            return Ok(updatedTicketSeat);
+-        }
+-
+-        [Authorize]
+-        [HttpPut("calculate/{id:int}")]
+-        public async Task<ActionResult<decimal>> CalculateTicketTotal(int id)
+-        {
+-            _logger.LogInformation("Calculating total for ticket ID: {TicketId}", id);
+-
+-            var newValue = await _ticketSeatService.CalculateTicketTotalAsync(id);
+-
+-            _logger.LogInformation("Ticket total calculated: {Total} for ticket ID: {TicketId}", newValue, id);
+-
+-            return Ok(newValue);
+-        }
+-
+         [Authorize]
+-        [HttpDelete("{id}")]
+-        public async Task<ActionResult> Delete(int id)
++        [HttpPut("{ticketId:int}/seat/{seatId:int}/price")]
++        public async Task<ActionResult<TicketSeatResponse>> UpdatePrice(int ticketId, int seatId, [FromBody] decimal newPrice)
+         {
+-            _logger.LogInformation("Deleting ticket seat: {Id}", id);
+-
+-            var deleted = await _ticketSeatService.DeleteAsync(id);
++            _logger.LogInformation("Updating price for TicketId {TicketId}, SeatId {SeatId} to {NewPrice}", ticketId, seatId, newPrice);
+ 
+-            if (!deleted)
+-            {
+-                _logger.LogWarning("Attempt to delete ticket seat not found: {Id}", id);
+-                return NotFound($"TicketSeat with ID {id} not found");
+-            }
++            var updatedSeat = await _ticketSeatService.UpdatePriceAsync(ticketId, seatId, newPrice);
+ 
+-            _logger.LogInformation("Ticket seat deleted successfully: {Id}", id);
+-            return NoContent();
++            return Ok(updatedSeat);
+         }
+     }
+ }
+-
+diff --git a/src/OscarCinema.Application/DTOs/Room/CreateRoom.cs b/src/OscarCinema.Application/DTOs/Room/CreateRoom.cs
+index 94991f0..7f95bea 100644
+--- a/src/OscarCinema.Application/DTOs/Room/CreateRoom.cs
++++ b/src/OscarCinema.Application/DTOs/Room/CreateRoom.cs
+@@ -17,7 +17,5 @@ namespace OscarCinema.Application.DTOs.Room
+         [Required]
+         [StringLength(50, MinimumLength = 2)]
+         public string Name { get; set; } = string.Empty;
+-
+-        public List<CreateSeat>? Seats { get; set; } = new();
+     }
+ }
+diff --git a/src/OscarCinema.Application/DTOs/Session/CreateSession.cs b/src/OscarCinema.Application/DTOs/Session/CreateSession.cs
+index 693469d..bace77f 100644
+--- a/src/OscarCinema.Application/DTOs/Session/CreateSession.cs
++++ b/src/OscarCinema.Application/DTOs/Session/CreateSession.cs
+@@ -2,6 +2,7 @@
+ using OscarCinema.Domain.Enums.Movie;
+ using System;
+ using System.Collections.Generic;
++using System.ComponentModel.DataAnnotations;
+ using System.Linq;
+ using System.Text;
+ using System.Threading.Tasks;
+@@ -10,11 +11,20 @@ namespace OscarCinema.Application.DTOs.Session
+ {
+     public class CreateSession
+     {
++        [Required]
+         public int MovieId { get; set; }
++
++        [Required]
+         public int RoomId { get; set; }
++
++        [Required]
+         public int ExhibitionTypeId { get; set; }
++
++        [Required]
+         public DateTime StartTime { get; set; }
+-        public TimeSpan? TrailerTime { get; set; }
+-        public TimeSpan? CleaningTime { get; set; }
++
++        [Required]
++        [Range(1, int.MaxValue, ErrorMessage = "Duration must be greater than 0")]
++        public int DurationMinutes { get; set; }
+     }
+ }
+diff --git a/src/OscarCinema.Application/DTOs/Session/SessionResponse.cs b/src/OscarCinema.Application/DTOs/Session/SessionResponse.cs
+index 94d4639..48eccda 100644
+--- a/src/OscarCinema.Application/DTOs/Session/SessionResponse.cs
++++ b/src/OscarCinema.Application/DTOs/Session/SessionResponse.cs
+@@ -1,9 +1,4 @@
+-﻿using OscarCinema.Domain.Enums.Movie;
+-using System;
+-using System.Collections.Generic;
+-using System.Linq;
+-using System.Text;
+-using System.Threading.Tasks;
++﻿using System;
+ 
+ namespace OscarCinema.Application.DTOs.Session
+ {
+@@ -14,7 +9,7 @@ namespace OscarCinema.Application.DTOs.Session
+         public int RoomId { get; set; }
+         public int ExhibitionTypeId { get; set; }
+         public DateTime StartTime { get; set; }
+-        public TimeSpan? TrailerTime { get; set; }
+-        public TimeSpan? CleaningTime { get; set; }
++        public int DurationMinutes { get; set; }
++        public bool IsFinished { get; set; }
+     }
+ }
+diff --git a/src/OscarCinema.Application/DTOs/Session/UpdateSession.cs b/src/OscarCinema.Application/DTOs/Session/UpdateSession.cs
+index 33ff8d7..f6715cb 100644
+--- a/src/OscarCinema.Application/DTOs/Session/UpdateSession.cs
++++ b/src/OscarCinema.Application/DTOs/Session/UpdateSession.cs
+@@ -1,6 +1,7 @@
+ ﻿using OscarCinema.Domain.Entities.Pricing;
+ using System;
+ using System.Collections.Generic;
++using System.ComponentModel.DataAnnotations;
+ using System.Linq;
+ using System.Text;
+ using System.Threading.Tasks;
+@@ -9,11 +10,20 @@ namespace OscarCinema.Application.DTOs.Session
+ {
+     public class UpdateSession
+     {
++        [Required]
+         public int MovieId { get; set; }
+-        public int RoomId { get; set; } = new();
++
++        [Required]
++        public int RoomId { get; set; }
++
++        [Required]
+         public int ExhibitionTypeId { get; set; }
++
++        [Required]
+         public DateTime StartTime { get; set; }
+-        public TimeSpan? TrailerTime { get; set; }
+-        public TimeSpan? CleaningTime { get; set; }
++
++        [Required]
++        [Range(1, int.MaxValue, ErrorMessage = "Duration must be greater than 0")]
++        public int DurationMinutes { get; set; }
+     }
+ }
+diff --git a/src/OscarCinema.Application/DTOs/Ticket/CreateTicket.cs b/src/OscarCinema.Application/DTOs/Ticket/CreateTicket.cs
+index e625576..73983ff 100644
+--- a/src/OscarCinema.Application/DTOs/Ticket/CreateTicket.cs
++++ b/src/OscarCinema.Application/DTOs/Ticket/CreateTicket.cs
+@@ -21,6 +21,7 @@ namespace OscarCinema.Application.DTOs.Ticket
+         public PaymentMethod Method { get; set; }
+ 
+         [Required]
+-        public List<SeatSelection> Seats { get; set; }
++        [MinLength(1, ErrorMessage = "At least one seat must be selected.")]
++        public List<SeatSelection> Seats { get; set; } = new();
+     }
+ }
+diff --git a/src/OscarCinema.Application/DTOs/Ticket/SeatSelection.cs b/src/OscarCinema.Application/DTOs/Ticket/SeatSelection.cs
+index 1d15bd8..1df82c2 100644
+--- a/src/OscarCinema.Application/DTOs/Ticket/SeatSelection.cs
++++ b/src/OscarCinema.Application/DTOs/Ticket/SeatSelection.cs
+@@ -1,6 +1,7 @@
+ ﻿using OscarCinema.Domain.Enums.Ticket;
+ using System;
+ using System.Collections.Generic;
++using System.ComponentModel.DataAnnotations;
+ using System.Linq;
+ using System.Text;
+ using System.Threading.Tasks;
+@@ -9,8 +10,14 @@ namespace OscarCinema.Application.DTOs.Ticket
+ {
+     public class SeatSelection
+     {
++        [Required]
+         public int SeatId { get; set; }
++
++        [Required]
+         public TicketType Type { get; set; }
+-        public bool IsOccupied { get; set; }
++
++        [Required]
++        [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero.")]
++        public decimal Price { get; set; }
+     }
+ }
+diff --git a/src/OscarCinema.Application/DTOs/Ticket/TicketResponse.cs b/src/OscarCinema.Application/DTOs/Ticket/TicketResponse.cs
+index 7a604ba..017429d 100644
+--- a/src/OscarCinema.Application/DTOs/Ticket/TicketResponse.cs
++++ b/src/OscarCinema.Application/DTOs/Ticket/TicketResponse.cs
+@@ -16,8 +16,8 @@ namespace OscarCinema.Application.DTOs.Ticket
+         public int SessionId { get; set; }
+         public PaymentMethod Method { get; set; }
+         public PaymentStatus PaymentStatus { get; set; }
+-        public IEnumerable<TicketSeatResponse> TicketSeats { get; set; } = new List<TicketSeatResponse>();
+         public decimal TotalValue { get; set; }
+         public bool Paid { get; set; }
++        public IEnumerable<TicketSeatResponse> Seats { get; set; } = new List<TicketSeatResponse>();
+     }
+ }
+diff --git a/src/OscarCinema.Application/DTOs/TicketSeat/TicketSeatResponse.cs b/src/OscarCinema.Application/DTOs/TicketSeat/TicketSeatResponse.cs
+index 67e2365..000c8f1 100644
+--- a/src/OscarCinema.Application/DTOs/TicketSeat/TicketSeatResponse.cs
++++ b/src/OscarCinema.Application/DTOs/TicketSeat/TicketSeatResponse.cs
+@@ -9,8 +9,6 @@ namespace OscarCinema.Application.DTOs.TicketSeat
+ {
+     public class TicketSeatResponse
+     {
+-        public int Id { get; set; }
+-        public int TicketId { get; set; }
+         public int SeatId { get; set; }
+         public TicketType Type { get; set; }
+         public decimal Price { get; set; }
+diff --git a/src/OscarCinema.Application/Interfaces/ISessionService.cs b/src/OscarCinema.Application/Interfaces/ISessionService.cs
+index ffc7682..8f49277 100644
+--- a/src/OscarCinema.Application/Interfaces/ISessionService.cs
++++ b/src/OscarCinema.Application/Interfaces/ISessionService.cs
+@@ -1,20 +1,23 @@
+ ﻿using OscarCinema.Application.DTOs.Pagination;
+ using OscarCinema.Application.DTOs.Session;
++using OscarCinema.Domain.Entities;
++using OscarCinema.Domain.Enums.Ticket;
+ using System;
+ using System.Collections.Generic;
+-using System.Linq;
+-using System.Text;
+ using System.Threading.Tasks;
+ 
+ namespace OscarCinema.Application.Interfaces
+ {
+     public interface ISessionService
+     {
+-        Task<SessionResponse> CreateAsync(CreateSession dto);
+-        Task<SessionResponse?> UpdateAsync(int id, UpdateSession dto);
+-        Task<bool> DeleteAsync(int id);
++        Task<Session> CreateAsync(int movieId, int roomId, int exhibitionTypeId, DateTime startTime, int durationMinutes);
++        Task<Session> UpdateAsync(int sessionId, int movieId, int roomId, int exhibitionTypeId, DateTime startTime, int durationMinutes);
++        Task<Session?> GetByIdAsync(int id);
++        Task DeleteAsync(int id);
+         Task<PaginationResult<SessionResponse>> GetAllAsync(PaginationQuery query);
+-        Task<PaginationResult<SessionResponse>> GetAllByMovieIdAsync(PaginationQuery query, int movieId);
+-        Task<SessionResponse?> GetByIdAsync(int id);
++        Task<IEnumerable<SeatMapItem>> GetSeatMapAsync(int sessionId);
++        Task<bool> SeatsAreAvailableAsync(int sessionId, IEnumerable<int> seatIds);
++        Task<Ticket> CreateTicketAsync(int sessionId, int userId, PaymentMethod method, IEnumerable<(int seatId, int type, decimal price)> seats);
++        Task FinishSessionAsync(int sessionId);
+     }
+ }
+diff --git a/src/OscarCinema.Application/Interfaces/ITicketSeatService.cs b/src/OscarCinema.Application/Interfaces/ITicketSeatService.cs
+index 95ffeff..f18e98b 100644
+--- a/src/OscarCinema.Application/Interfaces/ITicketSeatService.cs
++++ b/src/OscarCinema.Application/Interfaces/ITicketSeatService.cs
+@@ -9,13 +9,6 @@ namespace OscarCinema.Application.Interfaces
+ {
+     public interface ITicketSeatService
+     {
+-        Task<TicketSeatResponse> CreateAsync(CreateTicketSeat dto);
+-        Task<TicketSeatResponse?> GetByIdAsync(int id);
+-        Task<IEnumerable<TicketSeatResponse>> GetByTicketIdAsync(int ticketId);
+-        Task<IEnumerable<TicketSeatResponse>> GetBySeatIdAsync(int seatId);
+-        Task<TicketSeatResponse?> UpdatePriceAsync(int id, decimal newPrice);
+-        Task<bool> DeleteAsync(int id);
+-        Task<decimal> CalculateTicketTotalAsync(int ticketId);
+-        Task<IEnumerable<TicketSeatResponse>> CreateMultipleAsync(IEnumerable<CreateTicketSeat> dtos);
++        Task<TicketSeatResponse> UpdatePriceAsync(int ticketId, int seatId, decimal newPrice);
+     }
+ }
+diff --git a/src/OscarCinema.Application/Interfaces/ITicketService.cs b/src/OscarCinema.Application/Interfaces/ITicketService.cs
+index 954b643..410560e 100644
+--- a/src/OscarCinema.Application/Interfaces/ITicketService.cs
++++ b/src/OscarCinema.Application/Interfaces/ITicketService.cs
+@@ -1,9 +1,7 @@
+ ﻿using OscarCinema.Application.DTOs.Pagination;
+ using OscarCinema.Application.DTOs.Ticket;
+-using System;
++using OscarCinema.Domain.Entities;
+ using System.Collections.Generic;
+-using System.Linq;
+-using System.Text;
+ using System.Threading.Tasks;
+ 
+ namespace OscarCinema.Application.Interfaces
+@@ -11,11 +9,13 @@ namespace OscarCinema.Application.Interfaces
+     public interface ITicketService
+     {
+         Task<TicketResponse> CreateAsync(CreateTicket dto);
+-        Task<TicketResponse?> UpdateAsync(int id, UpdateTicket dto);
+-        Task<bool> DeleteAsync(int id);
+-        Task<TicketResponse?> GetByIdAsync(int id);
+-        Task<PaginationResult<TicketResponse>> GetAllAsync(PaginationQuery query);
+-        Task<IEnumerable<TicketResponse>> GetAllByUserIdAsync(int userId);
+         Task<IEnumerable<TicketResponse>> GetAllBySessionIdAsync(int sessionId);
++        Task<IEnumerable<TicketResponse>> GetAllByUserIdAsync(int userId);
++        Task<PaginationResult<TicketResponse>> GetAllAsync(PaginationQuery query);
++        Task<TicketResponse?> GetByIdAsync(int id);
++        Task<TicketResponse> UpdateAsync(int id, UpdateTicket dto);
++        Task<bool> DeleteAsync(int id);
++        Task MarkTicketAsPaidAsync(int ticketId);
++        Task MarkTicketAsPendingAsync(int ticketId);
+     }
+ }
+diff --git a/src/OscarCinema.Application/Services/RoomService.cs b/src/OscarCinema.Application/Services/RoomService.cs
+index 47a3e43..596f318 100644
+--- a/src/OscarCinema.Application/Services/RoomService.cs
++++ b/src/OscarCinema.Application/Services/RoomService.cs
+@@ -30,16 +30,12 @@ namespace OscarCinema.Application.Services
+ 
+         public async Task<RoomResponse> CreateAsync(CreateRoom dto)
+         {
+-            _logger.LogInformation("Creating new room: {RoomName} (Number: {RoomNumber}) with {SeatCount} seats",
+-                dto.Name, dto.Number, dto.Seats.Count);
++            _logger.LogInformation("Creating new room: {RoomName} (Number: {RoomNumber})",
++                dto.Name, dto.Number);
+ 
+             var room = new Room(dto.Number, dto.Name);
+ 
+-            foreach (var seatDto in dto.Seats)
+-            {
+-                var seat = new Seat(seatDto.Row, seatDto.Number, false, seatDto.SeatTypeId);
+-                room.AddSeat(seat);
+-            }
++
+ 
+             await _unitOfWork.RoomRepository.AddAsync(room);
+             await _unitOfWork.CommitAsync();
+diff --git a/src/OscarCinema.Application/Services/SessionService.cs b/src/OscarCinema.Application/Services/SessionService.cs
+index 8d6a255..2aaa685 100644
+--- a/src/OscarCinema.Application/Services/SessionService.cs
++++ b/src/OscarCinema.Application/Services/SessionService.cs
+@@ -2,18 +2,17 @@
+ using Microsoft.EntityFrameworkCore;
+ using Microsoft.Extensions.Logging;
+ using OscarCinema.Application.DTOs.Pagination;
+-using OscarCinema.Application.DTOs.Room;
+ using OscarCinema.Application.DTOs.Session;
++using OscarCinema.Application.DTOs.User;
+ using OscarCinema.Application.Interfaces;
+ using OscarCinema.Domain.Entities;
+-using OscarCinema.Domain.Enums.Movie;
++using OscarCinema.Domain.Enums.Ticket;
+ using OscarCinema.Domain.Interfaces;
++using OscarCinema.Domain.Validation;
+ using System;
+ using System.Collections.Generic;
+ using System.Linq;
+-using System.Text;
+ using System.Threading.Tasks;
+-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+ 
+ namespace OscarCinema.Application.Services
+ {
+@@ -30,59 +29,43 @@ namespace OscarCinema.Application.Services
+             _logger = logger;
+         }
+ 
+-        public async Task<SessionResponse> CreateAsync(CreateSession dto)
++        public async Task<Session> CreateAsync(int movieId, int roomId, int exhibitionTypeId, DateTime startTime, int durationMinutes)
+         {
+-            _logger.LogInformation("Creating new session for movie {MovieId} in room {RoomId} at {StartTime}",
+-                dto.MovieId, dto.RoomId, dto.StartTime);
+-
+-            var entity = _mapper.Map<Session>(dto);
+-            await _unitOfWork.SessionRepository.AddAsync(entity);
++            var movie = await _unitOfWork.MovieRepository.GetByIdAsync(movieId)
++                ?? throw new DomainExceptionValidation("Movie not found.");
++            var room = await _unitOfWork.RoomRepository.GetByIdAsync(roomId)
++                ?? throw new DomainExceptionValidation("Room not found.");
++            var exhibition = await _unitOfWork.ExhibitionTypeRepository.GetByIdAsync(exhibitionTypeId)
++                ?? throw new DomainExceptionValidation("ExhibitionType not found.");
++
++            var hasConflict = await _unitOfWork.SessionRepository.HasTimeConflictAsync(roomId, startTime, durationMinutes);
++            DomainExceptionValidation.When(hasConflict, "Room is already occupied during this time.");
++
++            var session = new Session(movieId, roomId, exhibitionTypeId, startTime, durationMinutes);
++            await _unitOfWork.SessionRepository.AddAsync(session);
+             await _unitOfWork.CommitAsync();
+ 
+-            _logger.LogInformation("Session created successfully for movie {MovieId}", dto.MovieId);
+-            return _mapper.Map<SessionResponse>(entity);
++            return session;
+         }
+ 
+-        public async Task<SessionResponse?> UpdateAsync(int id, UpdateSession dto)
++        public async Task<Session> UpdateAsync(int sessionId, int movieId, int roomId, int exhibitionTypeId, DateTime startTime, int durationMinutes)
+         {
+-            _logger.LogInformation("Updating session ID: {SessionId}", id);
+-
+-            var entity = await _unitOfWork.SessionRepository.GetByIdAsync(id);
+-            if (entity == null)
+-            {
+-                _logger.LogWarning("Session not found for update: {SessionId}", id);
+-                return null;
+-            }
++            var session = await _unitOfWork.SessionRepository.GetByIdAsync(sessionId)
++                ?? throw new DomainExceptionValidation("Session not found.");
+ 
+-            entity.Update(dto.MovieId, dto.StartTime, dto.RoomId, dto.ExhibitionTypeId);
+-            await _unitOfWork.SessionRepository.UpdateAsync(entity);
+-            await _unitOfWork.CommitAsync();
+-
+-            _logger.LogInformation("Session updated successfully: {SessionId}", id);
+-            return _mapper.Map<SessionResponse>(entity);
+-        }
++            var hasConflict = await _unitOfWork.SessionRepository.HasTimeConflictAsync(roomId, startTime, durationMinutes, sessionId);
++            DomainExceptionValidation.When(hasConflict, "Room is already occupied during this time.");
+ 
+-        public async Task<bool> DeleteAsync(int id)
+-        {
+-            _logger.LogInformation("Deleting session: {SessionId}", id);
+-
+-            var entity = await _unitOfWork.SessionRepository.GetByIdAsync(id);
+-            if (entity == null)
+-            {
+-                _logger.LogWarning("Session not found for deletion: {SessionId}", id);
+-                return false;
+-            }
+-
+-            await _unitOfWork.SessionRepository.DeleteAsync(id);
++            session.Update(movieId, roomId, exhibitionTypeId, startTime, durationMinutes);
++            await _unitOfWork.SessionRepository.UpdateAsync(session);
+             await _unitOfWork.CommitAsync();
+ 
+-            _logger.LogInformation("Session deleted successfully: {SessionId}", id);
+-            return true;
++            return session;
+         }
+ 
+         public async Task<PaginationResult<SessionResponse>> GetAllAsync(PaginationQuery query)
+         {
+-            _logger.LogDebug("Getting all sessions with pagination");
++            _logger.LogDebug("Getting all users with pagination");
+ 
+             var baseQuery = _unitOfWork.SessionRepository.GetAllQueryable();
+ 
+@@ -96,7 +79,7 @@ namespace OscarCinema.Application.Services
+ 
+             var sessionDtos = _mapper.Map<IEnumerable<SessionResponse>>(sessions);
+ 
+-            _logger.LogDebug("Retrieved {SessionCount} sessions", sessionDtos.Count());
++            _logger.LogDebug("Retrieved {SessionCount} users.", sessions.Count());
+ 
+             return new PaginationResult<SessionResponse>
+             {
+@@ -108,49 +91,77 @@ namespace OscarCinema.Application.Services
+             };
+         }
+ 
+-        public async Task<PaginationResult<SessionResponse>> GetAllByMovieIdAsync(PaginationQuery query, int movieId)
++        public async Task<Session?> GetByIdAsync(int id)
+         {
+-            _logger.LogDebug("Getting all sessions with pagination");
++            return await _unitOfWork.SessionRepository.GetByIdAsync(id);
++        }
+ 
+-            var baseQuery = _unitOfWork.SessionRepository.GetAllQueryable();
++        public async Task DeleteAsync(int id)
++        {
++            await _unitOfWork.SessionRepository.DeleteAsync(id);
++            await _unitOfWork.CommitAsync();
++        }
+ 
+-            var filteredQuery = baseQuery.Where(s => s.MovieId == movieId);
++        public async Task<IEnumerable<SeatMapItem>> GetSeatMapAsync(int sessionId)
++        {
++            var session = await _unitOfWork.SessionRepository.GetDetailedAsync(sessionId)
++                ?? throw new DomainExceptionValidation("Session not found.");
+ 
+-            var totalItems = await filteredQuery.CountAsync();
++            return session.GetSeatMap();
++        }
+ 
+-            var sessions = await baseQuery
+-                .OrderBy(r => r.Id)
+-                .Skip((query.PageNumber - 1) * query.PageSize)
+-                .Take(query.PageSize)
+-                .ToListAsync();
++        public async Task<bool> SeatsAreAvailableAsync(int sessionId, IEnumerable<int> seatIds)
++        {
++            var session = await _unitOfWork.SessionRepository.GetDetailedAsync(sessionId)
++                ?? throw new DomainExceptionValidation("Session not found.");
+ 
+-            var sessionDtos = _mapper.Map<IEnumerable<SessionResponse>>(sessions);
++            return session.AreSeatsAvailable(seatIds);
++        }
+ 
+-            _logger.LogDebug("Retrieved {SessionCount} sessions", sessionDtos.Count());
++        public async Task<Ticket> CreateTicketAsync(int sessionId, int userId, PaymentMethod method, IEnumerable<(int seatId, int type, decimal price)> seats)
++        {
++            var session = await _unitOfWork.SessionRepository.GetDetailedAsync(sessionId)
++                ?? throw new DomainExceptionValidation("Session not found.");
+ 
+-            return new PaginationResult<SessionResponse>
++            var seatIds = seats.Select(s => s.seatId).ToList();
++            DomainExceptionValidation.When(!session.AreSeatsAvailable(seatIds), "One or more seats are already occupied.");
++
++            var ticket = new Ticket(
++                userId,
++                session.MovieId,
++                session.RoomId,
++                session.Id,
++                method
++            );
++
++            foreach (var item in seats)
+             {
+-                CurrentPage = query.PageNumber,
+-                PageSize = query.PageSize,
+-                TotalItems = totalItems,
+-                TotalPages = (int)Math.Ceiling(totalItems / (double)query.PageSize),
+-                Data = sessionDtos
+-            };
++                DomainExceptionValidation.When(!Enum.IsDefined(typeof(TicketType), item.type),
++                    $"Invalid TicketType: {item.type}");
++
++                var ticketSeat = new TicketSeat(ticket.Id, item.seatId, (TicketType)item.type, item.price);
++                ticket.AddTicketSeat(ticketSeat);
++            }
++
++            session.AddTicket(ticket);
++            await _unitOfWork.TicketRepository.AddAsync(ticket);
++            await _unitOfWork.SessionRepository.UpdateAsync(session);
++            await _unitOfWork.CommitAsync();
++
++            return ticket;
+         }
+ 
+-        public async Task<SessionResponse?> GetByIdAsync(int id)
++        public async Task FinishSessionAsync(int sessionId)
+         {
+-            _logger.LogDebug("Getting session by ID: {SessionId}", id);
++            var session = await _unitOfWork.SessionRepository.GetByIdAsync(sessionId)
++                ?? throw new DomainExceptionValidation("Session not found.");
+ 
+-            var entity = await _unitOfWork.SessionRepository.GetByIdAsync(id);
+-            if (entity == null)
+-            {
+-                _logger.LogWarning("Session not found: {SessionId}", id);
+-                return null;
+-            }
++            session.Finish();
+ 
+-            _logger.LogDebug("Session found: ID {SessionId} for movie {MovieId}", id, entity.MovieId);
+-            return _mapper.Map<SessionResponse>(entity);
++            await _unitOfWork.SessionRepository.UpdateAsync(session);
++            await _unitOfWork.CommitAsync();
+         }
++
++
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/src/OscarCinema.Application/Services/TicketSeatService.cs b/src/OscarCinema.Application/Services/TicketSeatService.cs
+index 271b12a..aa4f138 100644
+--- a/src/OscarCinema.Application/Services/TicketSeatService.cs
++++ b/src/OscarCinema.Application/Services/TicketSeatService.cs
+@@ -2,142 +2,37 @@
+ using Microsoft.Extensions.Logging;
+ using OscarCinema.Application.DTOs.TicketSeat;
+ using OscarCinema.Application.Interfaces;
+-using OscarCinema.Domain.Entities;
+ using OscarCinema.Domain.Interfaces;
+-using System;
+-using System.Collections.Generic;
+-using System.Linq;
+-using System.Text;
+-using System.Threading.Tasks;
++using OscarCinema.Domain.Validation;
+ 
+-namespace OscarCinema.Application.Services
++public class TicketSeatService : ITicketSeatService
+ {
+-    public class TicketSeatService : ITicketSeatService
+-    {
+-        private readonly IUnitOfWork _unitOfWork;
+-        private readonly IMapper _mapper;
+-        private readonly ILogger<TicketSeatService> _logger;
+-
+-        public TicketSeatService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<TicketSeatService> logger)
+-        {
+-            _unitOfWork = unitOfWork;
+-            _mapper = mapper;
+-            _logger = logger;
+-        }
+-
+-        public async Task<TicketSeatResponse> CreateAsync(CreateTicketSeat dto)
+-        {
+-            _logger.LogInformation("Creating ticket seat for ticket {TicketId} and seat {SeatId} with price {Price}",
+-                dto.TicketId, dto.SeatId, dto.Price);
+-
+-            var ticketSeat = new TicketSeat(dto.TicketId, dto.SeatId, dto.Type, dto.Price);
+-            await _unitOfWork.TicketSeatRepository.AddAsync(ticketSeat);
+-            await _unitOfWork.CommitAsync();
+-
+-            _logger.LogInformation("Ticket seat created successfully: ID {TicketSeatId} for ticket {TicketId}",
+-                ticketSeat.Id, dto.TicketId);
+-            return _mapper.Map<TicketSeatResponse>(ticketSeat);
+-        }
+-
+-        public async Task<IEnumerable<TicketSeatResponse>> CreateMultipleAsync(IEnumerable<CreateTicketSeat> dtos)
+-        {
+-            _logger.LogInformation("Creating multiple ticket seats. Count: {Count}", dtos.Count());
+-
+-            var ticketSeats = dtos.Select(dto =>
+-                new TicketSeat(dto.TicketId, dto.SeatId, dto.Type, dto.Price)
+-            ).ToList();
+-
+-            await _unitOfWork.TicketSeatRepository.CreateRangeAsync(ticketSeats);
+-            await _unitOfWork.CommitAsync();
+-
+-            _logger.LogInformation("Multiple ticket seats created successfully. Total created: {Count}", ticketSeats.Count);
+-            return _mapper.Map<IEnumerable<TicketSeatResponse>>(ticketSeats);
+-        }
+-
+-        public async Task<TicketSeatResponse?> GetByIdAsync(int id)
+-        {
+-            _logger.LogDebug("Getting ticket seat by ID: {TicketSeatId}", id);
+-
+-            var ticketSeat = await _unitOfWork.TicketSeatRepository.GetByIdAsync(id);
+-
+-            if (ticketSeat == null)
+-            {
+-                _logger.LogWarning("Ticket seat not found: {TicketSeatId}", id);
+-                return null;
+-            }
+-
+-            _logger.LogDebug("Ticket seat found: ID {TicketSeatId} for ticket {TicketId}", id, ticketSeat.TicketId);
+-            return _mapper.Map<TicketSeatResponse>(ticketSeat);
+-        }
++    private readonly IUnitOfWork _unitOfWork;
++    private readonly IMapper _mapper;
++    private readonly ILogger<TicketSeatService> _logger;
+ 
+-        public async Task<IEnumerable<TicketSeatResponse>> GetByTicketIdAsync(int ticketId)
+-        {
+-            _logger.LogDebug("Getting ticket seats for ticket ID: {TicketId}", ticketId);
+-
+-            var ticketSeats = await _unitOfWork.TicketSeatRepository.GetByTicketIdAsync(ticketId);
+-            var result = _mapper.Map<IEnumerable<TicketSeatResponse>>(ticketSeats);
+-
+-            _logger.LogDebug("Retrieved {Count} ticket seats for ticket ID: {TicketId}", result.Count(), ticketId);
+-            return result;
+-        }
+-
+-        public async Task<IEnumerable<TicketSeatResponse>> GetBySeatIdAsync(int seatId)
+-        {
+-            _logger.LogDebug("Getting ticket seats for seat ID: {SeatId}", seatId);
+-
+-            var ticketSeats = await _unitOfWork.TicketSeatRepository.GetBySeatIdAsync(seatId);
+-            var result = _mapper.Map<IEnumerable<TicketSeatResponse>>(ticketSeats);
+-
+-            _logger.LogDebug("Retrieved {Count} ticket seats for seat ID: {SeatId}", result.Count(), seatId);
+-            return result;
+-        }
+-
+-        public async Task<TicketSeatResponse?> UpdatePriceAsync(int id, decimal newPrice)
+-        {
+-            _logger.LogInformation("Updating price for ticket seat ID: {TicketSeatId} to {NewPrice}", id, newPrice);
+-
+-            var ticketSeat = await _unitOfWork.TicketSeatRepository.GetByIdAsync(id);
+-            if (ticketSeat == null)
+-            {
+-                _logger.LogWarning("Ticket seat not found for price update: {TicketSeatId}", id);
+-                return null;
+-            }
+-
+-            ticketSeat.UpdatePrice(newPrice);
+-            await _unitOfWork.TicketSeatRepository.UpdateAsync(ticketSeat);
+-            await _unitOfWork.CommitAsync();
+-
+-            _logger.LogInformation("Ticket seat price updated successfully: ID {TicketSeatId}", id);
+-            return _mapper.Map<TicketSeatResponse>(ticketSeat);
+-        }
+-
+-        public async Task<bool> DeleteAsync(int id)
+-        {
+-            _logger.LogInformation("Deleting ticket seat: {TicketSeatId}", id);
++    public TicketSeatService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<TicketSeatService> logger)
++    {
++        _unitOfWork = unitOfWork;
++        _mapper = mapper;
++        _logger = logger;
++    }
+ 
+-            var ticketSeat = await _unitOfWork.TicketSeatRepository.GetByIdAsync(id);
+-            if (ticketSeat == null)
+-            {
+-                _logger.LogWarning("Ticket seat not found for deletion: {TicketSeatId}", id);
+-                return false;
+-            }
++    public async Task<TicketSeatResponse> UpdatePriceAsync(int ticketId, int seatId, decimal newPrice)
++    {
++        _logger.LogInformation("Updating ticket seat price - TicketId: {TicketId}, SeatId: {SeatId}", ticketId, seatId);
+ 
+-            await _unitOfWork.TicketSeatRepository.DeleteAsync(id);
+-            await _unitOfWork.CommitAsync();
++        var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(ticketId)
++            ?? throw new DomainExceptionValidation("Ticket not found.");
+ 
+-            _logger.LogInformation("Ticket seat deleted successfully: {TicketSeatId}", id);
+-            return true;
+-        }
++        var seat = ticket.TicketSeats.FirstOrDefault(ts => ts.SeatId == seatId)
++            ?? throw new DomainExceptionValidation("TicketSeat not found.");
+ 
+-        public async Task<decimal> CalculateTicketTotalAsync(int ticketId)
+-        {
+-            _logger.LogDebug("Calculating total for ticket ID: {TicketId}", ticketId);
++        seat.UpdatePrice(newPrice);
+ 
+-            var ticketSeats = await _unitOfWork.TicketSeatRepository.GetByTicketIdAsync(ticketId);
+-            var total = ticketSeats.Sum(ts => ts.Price);
++        await _unitOfWork.TicketRepository.UpdateAsync(ticket);
++        await _unitOfWork.CommitAsync();
+ 
+-            _logger.LogDebug("Calculated total for ticket ID {TicketId}: {Total}", ticketId, total);
+-            return total;
+-        }
++        return _mapper.Map<TicketSeatResponse>(seat);
+     }
+ }
+\ No newline at end of file
+diff --git a/src/OscarCinema.Application/Services/TicketService.cs b/src/OscarCinema.Application/Services/TicketService.cs
+index 1061938..afcb4e2 100644
+--- a/src/OscarCinema.Application/Services/TicketService.cs
++++ b/src/OscarCinema.Application/Services/TicketService.cs
+@@ -2,9 +2,9 @@
+ using Microsoft.EntityFrameworkCore;
+ using Microsoft.Extensions.Logging;
+ using OscarCinema.Application.DTOs.Pagination;
+-using OscarCinema.Application.DTOs.Room;
++using OscarCinema.Application.DTOs.SeatType;
+ using OscarCinema.Application.DTOs.Ticket;
+-using OscarCinema.Application.DTOs.TicketSeat;
++using OscarCinema.Application.DTOs.User;
+ using OscarCinema.Application.Interfaces;
+ using OscarCinema.Domain.Entities;
+ using OscarCinema.Domain.Enums.Ticket;
+@@ -12,9 +12,7 @@ using OscarCinema.Domain.Interfaces;
+ using OscarCinema.Domain.Validation;
+ using System;
+ using System.Collections.Generic;
+-using System.Diagnostics;
+ using System.Linq;
+-using System.Text;
+ using System.Threading.Tasks;
+ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+ 
+@@ -24,139 +22,63 @@ namespace OscarCinema.Application.Services
+     {
+         private readonly IUnitOfWork _unitOfWork;
+         private readonly IMapper _mapper;
+-        private readonly ITicketSeatService _ticketSeatService;
+-        private readonly IPricingService _pricingService;
+         private readonly ILogger<TicketService> _logger;
+ 
+-        public TicketService(
+-            IUnitOfWork unitOfWork,
+-            ITicketSeatService ticketSeatService,
+-            IPricingService pricingService,
+-            IMapper mapper,
+-            ILogger<TicketService> logger)
++        public TicketService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<TicketService> logger)
+         {
+             _unitOfWork = unitOfWork;
+-            _ticketSeatService = ticketSeatService;
+-            _pricingService = pricingService;
+             _mapper = mapper;
+             _logger = logger;
+         }
+ 
+         public async Task<TicketResponse> CreateAsync(CreateTicket dto)
+         {
+-            _logger.LogInformation("Creating new ticket for session {SessionId} with {SeatCount} seats for user {UserId}",
+-                dto.SessionId, dto.Seats.Count);
++            _logger.LogInformation("Creating ticket for SessionId {SessionId} and UserId {UserId}", dto.SessionId, dto.UserId);
+ 
+-            var session = await _unitOfWork.SessionRepository.GetByIdAsync(dto.SessionId);
+-            DomainExceptionValidation.When(session == null, "Session not found");
++            var session = await _unitOfWork.SessionRepository.GetDetailedAsync(dto.SessionId)
++                ?? throw new DomainExceptionValidation("Session not found.");
+ 
+-            var user = await _unitOfWork.UserRepository.GetByIdAsync(dto.UserId);
+-            DomainExceptionValidation.When(user == null, "User not found");
++            var seatIds = dto.Seats.Select(s => s.SeatId).ToList();
++            DomainExceptionValidation.When(!session.AreSeatsAvailable(seatIds), "One or more seats are already occupied.");
+ 
+-            var ticket = _mapper.Map<Ticket>(dto);
+-            ticket.SetSessionData(session.MovieId, session.RoomId);
++            var ticket = new Ticket(dto.UserId, session.MovieId, session.RoomId, dto.SessionId, dto.Method);
+ 
+-            await _unitOfWork.TicketRepository.AddAsync(ticket);
+-            await _unitOfWork.CommitAsync();
+-
+-            _logger.LogDebug("Ticket base created with ID: {TicketId}", ticket.Id);
+-
+-            foreach (var seatDto in dto.Seats)
++            foreach (var seat in dto.Seats)
+             {
+-                if (seatDto.IsOccupied)
+-                    throw new DomainExceptionValidation("Seat is already taken");
+-
+-                var seat = await _unitOfWork.SeatRepository.GetByIdAsync(seatDto.SeatId);
+-
+-                var basePrice = _pricingService.CalculateSeatPrice(session.ExhibitionType, seat.SeatType);
+-
+-                var finalPrice = _pricingService.ApplyTicketType(basePrice, seatDto.Type);
+-
+-                ticket.AddTicketSeat(new TicketSeat(
+-                    ticketId: ticket.Id,
+-                    seatId: seatDto.SeatId,
+-                    type: seatDto.Type,
+-                    price: finalPrice
+-                ));
+-            }
+-
+-            ticket.CalculateTotalFromSeats();
+-            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
+-            await _unitOfWork.CommitAsync();
+-
+-            var response = _mapper.Map<TicketResponse>(ticket);
+-            response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
+-
+-            _logger.LogInformation("Ticket created successfully: ID {TicketId} with total {TotalPrice}",
+-                ticket.Id, ticket.TotalValue);
+-
+-            return response;
+-        }
+-
+-        public async Task<TicketResponse?> UpdateAsync(int id, UpdateTicket dto)
+-        {
+-            _logger.LogInformation("Updating ticket ID: {TicketId}", id);
++                DomainExceptionValidation.When(!Enum.IsDefined(typeof(TicketType), seat.Type),
++                    $"Invalid TicketType: {seat.Type}");
+ 
+-            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
+-            if (ticket == null)
+-            {
+-                _logger.LogWarning("Ticket not found for update: {TicketId}", id);
+-                return null;
++                var ticketSeat = new TicketSeat(ticket.Id, seat.SeatId, seat.Type, seat.Price);
++                ticket.AddTicketSeat(ticketSeat);
+             }
+ 
+-            _mapper.Map(dto, ticket);
++            session.AddTicket(ticket);
+ 
+-            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
++            await _unitOfWork.TicketRepository.AddAsync(ticket);
++            await _unitOfWork.SessionRepository.UpdateAsync(session);
+             await _unitOfWork.CommitAsync();
+ 
+-            var response = _mapper.Map<TicketResponse>(ticket);
+-            response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
+-
+-            _logger.LogInformation("Ticket updated successfully: {TicketId}", id);
+-            return response;
++            _logger.LogInformation("Ticket created successfully: ID {TicketId}", ticket.Id);
++            return _mapper.Map<TicketResponse>(ticket);
+         }
+ 
+-        public async Task<bool> DeleteAsync(int id)
++        public async Task<IEnumerable<TicketResponse>> GetAllBySessionIdAsync(int sessionId)
+         {
+-            _logger.LogInformation("Deleting ticket: {TicketId}", id);
+-
+-            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
+-            if (ticket == null)
+-            {
+-                _logger.LogWarning("Ticket not found for deletion: {TicketId}", id);
+-                return false;
+-            }
+-
+-            await _unitOfWork.TicketRepository.DeleteAsync(id);
+-            await _unitOfWork.CommitAsync();
+-
+-            _logger.LogInformation("Ticket deleted successfully: {TicketId}", id);
+-            return true;
++            var tickets = await _unitOfWork.TicketRepository.GetAllBySessionId(sessionId);
++            return _mapper.Map<IEnumerable<TicketResponse>>(tickets);
+         }
+ 
+-        public async Task<TicketResponse?> GetByIdAsync(int id)
++        public async Task<IEnumerable<TicketResponse>> GetAllByUserIdAsync(int userId)
+         {
+-            _logger.LogDebug("Getting ticket by ID: {TicketId}", id);
+-
+-            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
+-            if (ticket == null)
+-            {
+-                _logger.LogWarning("Ticket not found: {TicketId}", id);
+-                return null;
+-            }
+-
+-            var response = _mapper.Map<TicketResponse>(ticket);
+-            response.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
+-
+-            _logger.LogDebug("Ticket found: ID {TicketId} with {SeatCount} seats", id, response.TicketSeats.Count());
+-            return response;
++            var tickets = await _unitOfWork.TicketRepository.GetAllByUserIdAsync(userId);
++            return _mapper.Map<IEnumerable<TicketResponse>>(tickets);
+         }
+ 
+         public async Task<PaginationResult<TicketResponse>> GetAllAsync(PaginationQuery query)
+         {
+-            _logger.LogDebug("Getting all tickets with pagination");
++            _logger.LogDebug("Getting all sessions with pagination");
+ 
+-            var baseQuery = _unitOfWork.RoomRepository.GetAllQueryable();
++            var baseQuery = _unitOfWork.TicketRepository.GetAllQueryable();
+ 
+             var totalItems = await baseQuery.CountAsync();
+ 
+@@ -180,40 +102,60 @@ namespace OscarCinema.Application.Services
+             };
+         }
+ 
+-        public async Task<IEnumerable<TicketResponse>> GetAllByUserIdAsync(int userId)
++        public async Task<TicketResponse?> GetByIdAsync(int id)
+         {
+-            _logger.LogDebug("Getting all tickets for user ID: {UserId}", userId);
++            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
++            if (ticket == null) return null;
++            return _mapper.Map<TicketResponse>(ticket);
++        }
+ 
+-            var tickets = await _unitOfWork.TicketRepository.GetAllByUserIdAsync(userId);
+-            var response = new List<TicketResponse>();
++        public async Task<TicketResponse> UpdateAsync(int id, UpdateTicket dto)
++        {
++            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id)
++                ?? throw new DomainExceptionValidation("Ticket not found.");
+ 
+-            foreach (var ticket in tickets)
+-            {
+-                var dto = _mapper.Map<TicketResponse>(ticket);
+-                dto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
+-                response.Add(dto);
+-            }
++            ticket.UpdatePaymentStatus(dto.PaymentStatus);
++
++            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
++            await _unitOfWork.CommitAsync();
+ 
+-            _logger.LogDebug("Retrieved {Count} tickets for user ID: {UserId}", response.Count, userId);
+-            return response;
++            return _mapper.Map<TicketResponse>(ticket);
+         }
+ 
+-        public async Task<IEnumerable<TicketResponse>> GetAllBySessionIdAsync(int sessionId)
++        public async Task<bool> DeleteAsync(int id)
+         {
+-            _logger.LogDebug("Getting all tickets for session ID: {SessionId}", sessionId);
++            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(id);
++            if (ticket == null) return false;
+ 
+-            var tickets = await _unitOfWork.TicketRepository.GetAllBySessionId(sessionId);
+-            var response = new List<TicketResponse>();
++            await _unitOfWork.TicketRepository.DeleteAsync(id);
++            await _unitOfWork.CommitAsync();
++            return true;
++        }
+ 
+-            foreach (var ticket in tickets)
+-            {
+-                var dto = _mapper.Map<TicketResponse>(ticket);
+-                dto.TicketSeats = await _ticketSeatService.GetByTicketIdAsync(ticket.Id);
+-                response.Add(dto);
+-            }
++        public async Task MarkTicketAsPaidAsync(int ticketId)
++        {
++            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(ticketId)
++                ?? throw new DomainExceptionValidation("Ticket not found.");
++
++            ticket.MarkAsPaid();
++
++            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
++            await _unitOfWork.CommitAsync();
++
++            _logger.LogInformation("Ticket marked as paid: ID {TicketId}", ticketId);
++        }
++
++        public async Task MarkTicketAsPendingAsync(int ticketId)
++        {
++            var ticket = await _unitOfWork.TicketRepository.GetByIdAsync(ticketId)
++                ?? throw new DomainExceptionValidation("Ticket not found.");
++
++            ticket.MarkAsPending();
++
++            await _unitOfWork.TicketRepository.UpdateAsync(ticket);
++            await _unitOfWork.CommitAsync();
+ 
+-            _logger.LogDebug("Retrieved {Count} tickets for session ID: {SessionId}", response.Count, sessionId);
+-            return response;
++            _logger.LogInformation("Ticket marked as pending: ID {TicketId}", ticketId);
+         }
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/src/OscarCinema.Application/Services/UserService.cs b/src/OscarCinema.Application/Services/UserService.cs
+index 73b83f7..89b6536 100644
+--- a/src/OscarCinema.Application/Services/UserService.cs
++++ b/src/OscarCinema.Application/Services/UserService.cs
+@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
+ using OscarCinema.Application.DTOs.Pagination;
+ using OscarCinema.Application.DTOs.User;
+ using OscarCinema.Application.Interfaces;
++using OscarCinema.Domain.Common.ValueObjects;
+ using OscarCinema.Domain.Entities;
+ using OscarCinema.Domain.Entities.Pricing;
+ using OscarCinema.Domain.Enums.User;
+@@ -32,8 +33,10 @@ namespace OscarCinema.Application.Services
+ 
+         public async Task<UserResponse> CreateAsync(CreateUser request)
+         {
++            var cpf = new Cpf(request.DocumentNumber);
++
+             var exists = await _unitOfWork.UserRepository
+-    .FindByDocumentIdAsync(request.DocumentNumber);
++                .FindByDocumentIdAsync(cpf.Number);
+ 
+             if (exists != null)
+                 throw new InvalidOperationException("Document already registered.");
+@@ -41,7 +44,7 @@ namespace OscarCinema.Application.Services
+             var user = new User(
+                 request.ApplicationUserId,
+                 request.Name,
+-                request.DocumentNumber,
++                cpf.Number,
+                 request.Email,
+                 request.Role
+             );
+@@ -52,6 +55,7 @@ namespace OscarCinema.Application.Services
+             return _mapper.Map<UserResponse>(user);
+         }
+ 
++
+         public async Task<UserResponse?> UpdateAsync(int id, UpdateUser request)
+         {
+             _logger.LogInformation("Updating user ID: {UserId}", id);
+diff --git a/src/OscarCinema.Domain/Entities/Session.cs b/src/OscarCinema.Domain/Entities/Session.cs
+index 50be7d8..42eedba 100644
+--- a/src/OscarCinema.Domain/Entities/Session.cs
++++ b/src/OscarCinema.Domain/Entities/Session.cs
+@@ -1,122 +1,88 @@
+-﻿using OscarCinema.Domain.Entities.Pricing;
+-using OscarCinema.Domain.Enums.Movie;
++﻿using OscarCinema.Domain.Entities;
++using OscarCinema.Domain.Entities.Pricing;
+ using OscarCinema.Domain.Validation;
+-using System;
+-using System.Collections.Generic;
+-using System.Linq;
+-using System.Text;
+-using System.Threading.Tasks;
+-using static System.Runtime.InteropServices.JavaScript.JSType;
+-
+-namespace OscarCinema.Domain.Entities
++
++public class Session
+ {
+-    public class Session
++    public int Id { get; private set; }
++
++    public Movie Movie { get; private set; }
++    public int MovieId { get; private set; }
++
++    public Room Room { get; private set; }
++    public int RoomId { get; private set; }
++
++    public ExhibitionType ExhibitionType { get; private set; }
++    public int ExhibitionTypeId { get; private set; }
++
++    public DateTime StartTime { get; private set; }
++    public int DurationMinutes { get; private set; }
++    public DateTime EndTime => StartTime.AddMinutes(DurationMinutes);
++
++    public bool IsFinished { get; private set; } = false;
++
++    private readonly List<Ticket> _tickets = new();
++    public IReadOnlyList<Ticket> Tickets => _tickets.AsReadOnly();
++
++    private Session() { }
++
++    public Session(int movieId, int roomId, int exhibitionTypeId, DateTime startTime, int durationMinutes)
+     {
+-        public int Id { get; private set; }
+-
+-        public Movie Movie { get; private set; } = null!;
+-        public int MovieId { get; private set; }
+-
+-        public Room Room { get; private set; } = null!;
+-        public int RoomId { get; private set; }
+-
+-        private List<Ticket> _tickets = new();
+-        public IReadOnlyList<Ticket> Tickets => _tickets.AsReadOnly();
+-
+-        public ExhibitionType ExhibitionType { get; private set; }
+-        public int ExhibitionTypeId { get; private set; }
+-
+-        public DateTime StartTime { get; private set; }
+-        public TimeSpan TrailerTime { get; private set; }
+-        public TimeSpan CleaningTime { get; private set; }
+-
+-        public DateTime EndTime => StartTime + TimeSpan.FromMinutes(Movie?.Duration ?? 0) + TrailerTime + CleaningTime;
+-
+-        public Session() { }
+-
+-
+-        public Session(
+-            int movieId,
+-            int roomId,
+-            int exhibitionTypeId,
+-            DateTime startTime,
+-            TimeSpan trailerTime,
+-            TimeSpan cleaningTime)
+-        {
+-            ValidateDomain(movieId, startTime, roomId, exhibitionTypeId, trailerTime, cleaningTime);
+-
+-            MovieId = movieId;
+-            RoomId = roomId;
+-            ExhibitionTypeId = exhibitionTypeId;
+-            StartTime = startTime;
+-            TrailerTime = trailerTime;
+-            CleaningTime = cleaningTime;
+-        }
+-
+-        public void Update(
+-            int movieId,
+-            DateTime startTime,
+-            int roomId,
+-            int exhibitionTypeId,
+-            TimeSpan? trailerTime = null,
+-            TimeSpan? cleaningTime = null)
+-        {
+-            ValidateDomain(movieId, startTime, roomId, exhibitionTypeId, trailerTime, cleaningTime);
+-
+-            MovieId = movieId;
+-            StartTime = startTime;
+-            RoomId = roomId;
+-            ExhibitionTypeId = exhibitionTypeId;
+-
+-            if (trailerTime.HasValue)
+-                TrailerTime = trailerTime.Value;
+-
+-            if (cleaningTime.HasValue)
+-                CleaningTime = cleaningTime.Value;
+-        }
+-
+-        public void AddTicket(Ticket ticket)
+-        {
+-            DomainExceptionValidation.When(ticket == null, "Ticket cannot be null");
+-            _tickets.Add(ticket);
+-        }
+-
+-        public bool HasStarted()
+-        {
+-            return DateTime.Now >= StartTime;
+-        }
+-
+-        public bool IsActive()
+-        {
+-            var now = DateTime.Now;
+-            return now >= StartTime && now <= EndTime;
+-        }
+-
+-        private void ValidateDomain(
+-            int movieId,
+-            DateTime startTime,
+-            int roomId,
+-            int exhibitionTypeId,
+-            TimeSpan? trailerTime = null,
+-            TimeSpan? cleaningTime = null)
+-        {
+-            DomainExceptionValidation.When(movieId <= 0,
+-                "Movie ID must be greater than 0.");
+-
+-            DomainExceptionValidation.When(startTime <= DateTime.Now.AddMinutes(30),
+-                "Session start time must be at least 30 minutes in the future.");
+-
+-            DomainExceptionValidation.When(roomId <= 0,
+-                "Room ID must be greater than 0.");
+-
+-            DomainExceptionValidation.When(exhibitionTypeId <= 0,
+-                "Room ID must be greater than 0.");
+-
+-            DomainExceptionValidation.When(trailerTime.HasValue && trailerTime <= TimeSpan.Zero,
+-                "Trailer time must be greater than zero.");
+-
+-            DomainExceptionValidation.When(cleaningTime.HasValue && cleaningTime <= TimeSpan.Zero,
+-                "Cleaning time must be greater than zero.");
+-        }
++        ValidateDomain(movieId, roomId, exhibitionTypeId, startTime, durationMinutes);
++
++        MovieId = movieId;
++        RoomId = roomId;
++        ExhibitionTypeId = exhibitionTypeId;
++        StartTime = startTime;
++        DurationMinutes = durationMinutes;
++        IsFinished = false; // inicializa
+     }
++
++    public void Update(int movieId, int roomId, int exhibitionTypeId, DateTime startTime, int durationMinutes)
++    {
++        ValidateDomain(movieId, roomId, exhibitionTypeId, startTime, durationMinutes);
++
++        MovieId = movieId;
++        RoomId = roomId;
++        ExhibitionTypeId = exhibitionTypeId;
++        StartTime = startTime;
++        DurationMinutes = durationMinutes;
++    }
++
++    private void ValidateDomain(int movieId, int roomId, int exhibitionTypeId, DateTime startTime, int durationMinutes)
++    {
++        DomainExceptionValidation.When(movieId <= 0, "MovieId must be greater than 0");
++        DomainExceptionValidation.When(roomId <= 0, "RoomId must be greater than 0");
++        DomainExceptionValidation.When(exhibitionTypeId <= 0, "ExhibitionTypeId must be greater than 0");
++        DomainExceptionValidation.When(durationMinutes <= 0, "Duration must be greater than 0");
++        DomainExceptionValidation.When(startTime <= DateTime.Now.AddMinutes(30), "StartTime must be at least 30 minutes in the future");
++    }
++
++    public void Finish() => IsFinished = true;
++
++    public IEnumerable<SeatMapItem> GetSeatMap()
++    {
++        var roomSeats = Room.Seats;
++        var occupiedSeatIds = _tickets.SelectMany(t => t.TicketSeats).Select(ts => ts.SeatId).ToHashSet();
++
++        foreach (var seat in roomSeats)
++            yield return new SeatMapItem(seat.Id, seat.Row, seat.Number, occupiedSeatIds.Contains(seat.Id));
++    }
++
++    public bool AreSeatsAvailable(IEnumerable<int> seatIds)
++    {
++        var occupiedSeatIds = _tickets.SelectMany(t => t.TicketSeats).Select(ts => ts.SeatId).ToHashSet();
++        return seatIds.All(id => !occupiedSeatIds.Contains(id));
++    }
++
++    public void AddTicket(Ticket ticket)
++    {
++        DomainExceptionValidation.When(ticket == null, "Ticket cannot be null");
++        _tickets.Add(ticket);
++    }
++
++    public bool HasStarted() => DateTime.Now >= StartTime;
++    public bool IsActive() => DateTime.Now >= StartTime && DateTime.Now <= StartTime.AddMinutes(DurationMinutes);
+ }
++
++public record SeatMapItem(int SeatId, int Row, int Number, bool IsOccupied);
+diff --git a/src/OscarCinema.Domain/Entities/Ticket.cs b/src/OscarCinema.Domain/Entities/Ticket.cs
+index 0f46628..5b0c43a 100644
+--- a/src/OscarCinema.Domain/Entities/Ticket.cs
++++ b/src/OscarCinema.Domain/Entities/Ticket.cs
+@@ -3,9 +3,6 @@ using OscarCinema.Domain.Validation;
+ using System;
+ using System.Collections.Generic;
+ using System.Linq;
+-using System.Text;
+-using System.Threading.Tasks;
+-using static System.Runtime.InteropServices.JavaScript.JSType;
+ 
+ namespace OscarCinema.Domain.Entities
+ {
+@@ -14,39 +11,24 @@ namespace OscarCinema.Domain.Entities
+         public int Id { get; private set; }
+         public DateTime Date { get; private set; }
+ 
+-        public User User { get; private set; }
+         public int UserId { get; private set; }
+-
+-        public Movie Movie { get; private set; }
+         public int MovieId { get; private set; }
+-
+-        public Room Room { get; private set; }
+         public int RoomId { get; private set; }
+-
+         public Session Session { get; private set; }
+         public int SessionId { get; private set; }
+ 
+-        private List<TicketSeat> _ticketSeats = new();
++        private readonly List<TicketSeat> _ticketSeats = new();
+         public IReadOnlyList<TicketSeat> TicketSeats => _ticketSeats.AsReadOnly();
+ 
+         public PaymentMethod Method { get; private set; }
+         public PaymentStatus PaymentStatus { get; private set; }
+         public decimal TotalValue { get; private set; }
++        public bool Paid { get; private set; }
+ 
+-        public bool Paid { get; private set; } = false;
++        private Ticket() { }
+ 
+-        public Ticket() { }
+-
+-        public Ticket(
+-            int userId,
+-            int movieId,
+-            int roomId,
+-            int sessionId,
+-            PaymentMethod method,
+-            PaymentStatus paymentStatus,
+-            bool paid)
++        public Ticket(int userId, int movieId, int roomId, int sessionId, PaymentMethod method)
+         {
+-
+             ValidateDomain(userId, movieId, roomId, sessionId, method);
+ 
+             Date = DateTime.Now;
+@@ -55,62 +37,16 @@ namespace OscarCinema.Domain.Entities
+             RoomId = roomId;
+             SessionId = sessionId;
+             Method = method;
+-            PaymentStatus = paymentStatus;
+-            Paid = paid;
+-            TotalValue = 0;
+-        }
+-
+-        internal Ticket(
+-            DateTime date,
+-            int userId,
+-            int movieId,
+-            int roomId,
+-            int sessionId,
+-            PaymentMethod method,
+-            PaymentStatus paymentStatus,
+-            bool paid)
+-        {
+-            ValidateDomain(date, userId, movieId, roomId, sessionId, method);
+-
+-            Date = date;
+-            UserId = userId;
+-            MovieId = movieId;
+-            RoomId = roomId;
+-            SessionId = sessionId;
+-            Method = method;
+-            PaymentStatus = paymentStatus;
+-            Paid = paid;
++            PaymentStatus = PaymentStatus.Pending;
++            Paid = false;
+             TotalValue = 0;
+         }
+ 
+-        public void Update(
+-           DateTime date,
+-           int userId,
+-           int movieId,
+-           int roomId,
+-           int sessionId,
+-           PaymentMethod method,
+-           PaymentStatus paymentStatus,
+-           bool paid)
+-        {
+-            ValidateDomain(date, userId, movieId, roomId, sessionId, method);
+-
+-            Date = date;
+-            UserId = userId;
+-            MovieId = movieId;
+-            RoomId = roomId;
+-            SessionId = sessionId;
+-            Method = method;
+-            PaymentStatus = paymentStatus;
+-            Paid = paid;
+-        }
+-
+         public void AddTicketSeat(TicketSeat ticketSeat)
+         {
+             DomainExceptionValidation.When(ticketSeat == null, "TicketSeat cannot be null");
+ 
+             _ticketSeats.Add(ticketSeat);
+-
+             CalculateTotalFromSeats();
+         }
+ 
+@@ -123,12 +59,6 @@ namespace OscarCinema.Domain.Entities
+             CalculateTotalFromSeats();
+         }
+ 
+-        public void SetSessionData(int movieId, int roomId)
+-        {
+-            MovieId = movieId;
+-            RoomId = roomId;
+-        }
+-
+         public void CalculateTotalFromSeats()
+         {
+             TotalValue = _ticketSeats.Sum(ts => ts.Price);
+@@ -154,29 +84,11 @@ namespace OscarCinema.Domain.Entities
+ 
+         private void ValidateDomain(int userId, int movieId, int roomId, int sessionId, PaymentMethod method)
+         {
+-
+-            DomainExceptionValidation.When(userId <= 0, "User ID must be greater than 0.");
+-            DomainExceptionValidation.When(movieId <= 0, "Movie ID must be greater than 0.");
+-            DomainExceptionValidation.When(roomId <= 0, "Room ID must be greater than 0.");
+-            DomainExceptionValidation.When(sessionId <= 0, "Session ID must be greater than 0.");
+-
+-            DomainExceptionValidation.When(!Enum.IsDefined(typeof(PaymentMethod), method),
+-                "Invalid payment method.");
+-        }
+-
+-        private void ValidateDomain(DateTime date, int userId, int movieId, int roomId, int sessionId, PaymentMethod method)
+-        {
+-            DomainExceptionValidation.When(date < DateTime.Now,
+-                "Ticket date cannot be in the past.");
+-
+             DomainExceptionValidation.When(userId <= 0, "User ID must be greater than 0.");
+             DomainExceptionValidation.When(movieId <= 0, "Movie ID must be greater than 0.");
+             DomainExceptionValidation.When(roomId <= 0, "Room ID must be greater than 0.");
+             DomainExceptionValidation.When(sessionId <= 0, "Session ID must be greater than 0.");
+-
+-            DomainExceptionValidation.When(!Enum.IsDefined(typeof(PaymentMethod), method),
+-                "Invalid payment method.");
++            DomainExceptionValidation.When(!Enum.IsDefined(typeof(PaymentMethod), method), "Invalid payment method.");
+         }
+-
+     }
+-}
++}
+\ No newline at end of file
+diff --git a/src/OscarCinema.Domain/Entities/TicketSeat.cs b/src/OscarCinema.Domain/Entities/TicketSeat.cs
+index 8e349c4..750a9cd 100644
+--- a/src/OscarCinema.Domain/Entities/TicketSeat.cs
++++ b/src/OscarCinema.Domain/Entities/TicketSeat.cs
+@@ -10,16 +10,18 @@ namespace OscarCinema.Domain.Entities
+ {
+     public class TicketSeat
+     {
+-        public int Id { get; set; }
++        public int Id { get; private set; }
+ 
+-        public Ticket Ticket {  get; private set; }
+         public int TicketId { get; private set; }
++        public Ticket Ticket { get; private set; }
+ 
+-        public Seat Seat { get; private set; }
+         public int SeatId { get; private set; }
++        public Seat Seat { get; private set; }
+ 
+-        public TicketType Type { get; private set; }
+         public decimal Price { get; private set; }
++        public TicketType Type { get; private set; }
++
++        private TicketSeat() { }
+ 
+         public TicketSeat(int ticketId, int seatId, TicketType type, decimal price)
+         {
+diff --git a/src/OscarCinema.Domain/Interfaces/ISessionRepository.cs b/src/OscarCinema.Domain/Interfaces/ISessionRepository.cs
+index 5099a04..2351cf9 100644
+--- a/src/OscarCinema.Domain/Interfaces/ISessionRepository.cs
++++ b/src/OscarCinema.Domain/Interfaces/ISessionRepository.cs
+@@ -1,14 +1,21 @@
+ ﻿using OscarCinema.Domain.Entities;
+ using System;
+ using System.Collections.Generic;
+-using System.Linq;
+-using System.Text;
+ using System.Threading.Tasks;
+ 
+ namespace OscarCinema.Domain.Interfaces
+ {
+     public interface ISessionRepository : IGenericRepository<Session>
+     {
+-        Task<IEnumerable<Session>> GetAllByMovieId( int movieId);
++        Task<IEnumerable<Session>> GetAllByMovieIdAsync(int movieId);
++
++        Task<bool> HasTimeConflictAsync(
++            int roomId,
++            DateTime startTime,
++            int durationMinutes,
++            int? ignoreSessionId = null
++        );
++
++        Task<Session?> GetDetailedAsync(int sessionId);
+     }
+ }
+diff --git a/src/OscarCinema.Domain/Interfaces/ITicketSeatRepository.cs b/src/OscarCinema.Domain/Interfaces/ITicketSeatRepository.cs
+index cf45f5b..f7120df 100644
+--- a/src/OscarCinema.Domain/Interfaces/ITicketSeatRepository.cs
++++ b/src/OscarCinema.Domain/Interfaces/ITicketSeatRepository.cs
+@@ -7,12 +7,10 @@ using System.Threading.Tasks;
+ 
+ namespace OscarCinema.Domain.Interfaces
+ {
+-   public interface ITicketSeatRepository : IGenericRepository<TicketSeat>
++   public interface ITicketSeatRepository 
+     {
+-        Task<IEnumerable<TicketSeat>> GetByTicketIdAsync(int ticketId);
+-        Task<IEnumerable<TicketSeat>> GetBySeatIdAsync(int seatId);
+-        Task<TicketSeat> GetByTicketAndSeatAsync(int ticketId, int seatId);
+-        Task CreateRangeAsync(IEnumerable<TicketSeat> ticketSeats);
+-        Task DeleteByTicketIdAsync(int ticketId);
++        Task<TicketSeat?> GetByTicketAndSeatAsync(int ticketId, int seatId);
++        Task UpdateAsync(TicketSeat ticketSeat);
++
+     }
+ }
+diff --git a/src/OscarCinema.Domain/OscarCinema.Domain.csproj b/src/OscarCinema.Domain/OscarCinema.Domain.csproj
+index fa71b7a..4e3ad58 100644
+--- a/src/OscarCinema.Domain/OscarCinema.Domain.csproj
++++ b/src/OscarCinema.Domain/OscarCinema.Domain.csproj
+@@ -6,4 +6,10 @@
+     <Nullable>enable</Nullable>
+   </PropertyGroup>
+ 
++  <ItemGroup>
++    <Compile Remove="obj\**" />
++    <EmbeddedResource Remove="obj\**" />
++    <None Remove="obj\**" />
++  </ItemGroup>
++
+ </Project>
+diff --git a/src/OscarCinema.Infrastructure/EntitiesConfiguration/SessionConfiguration.cs b/src/OscarCinema.Infrastructure/EntitiesConfiguration/SessionConfiguration.cs
+index be6a891..454d06e 100644
+--- a/src/OscarCinema.Infrastructure/EntitiesConfiguration/SessionConfiguration.cs
++++ b/src/OscarCinema.Infrastructure/EntitiesConfiguration/SessionConfiguration.cs
+@@ -1,12 +1,6 @@
+ ﻿using Microsoft.EntityFrameworkCore;
+ using Microsoft.EntityFrameworkCore.Metadata.Builders;
+ using OscarCinema.Domain.Entities;
+-using OscarCinema.Domain.Enums.Movie;
+-using System;
+-using System.Collections.Generic;
+-using System.Linq;
+-using System.Text;
+-using System.Threading.Tasks;
+ 
+ namespace OscarCinema.Infrastructure.EntitiesConfiguration
+ {
+@@ -23,22 +17,107 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
+             builder.Property(s => s.StartTime)
+                 .IsRequired();
+ 
+-            builder.Property(s => s.TrailerTime)
++            builder.Property(s => s.DurationMinutes)
+                 .IsRequired();
+ 
+-            builder.Property(s => s.CleaningTime)
++            builder.Property(s => s.IsFinished)
++                .IsRequired()
++                .HasDefaultValue(false);
++
++            builder.HasOne(s => s.Movie)
++                .WithMany()
++                .HasForeignKey(s => s.MovieId)
++                .OnDelete(DeleteBehavior.Restrict)
++                .IsRequired();
++
++            builder.HasOne(s => s.Room)
++                .WithMany()
++                .HasForeignKey(s => s.RoomId)
++                .OnDelete(DeleteBehavior.Restrict)
+                 .IsRequired();
+ 
+             builder.HasOne(s => s.ExhibitionType)
+-                .WithMany() 
++                .WithMany()
+                 .HasForeignKey(s => s.ExhibitionTypeId)
+                 .OnDelete(DeleteBehavior.Restrict)
+                 .IsRequired();
+ 
+-            builder.Property(s => s.ExhibitionTypeId)
++            builder.HasMany(s => s.Tickets)
++                .WithOne(t => t.Session)
++                .HasForeignKey(t => t.SessionId)
++                .OnDelete(DeleteBehavior.Cascade);
++        }
++    }
++
++    public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
++    {
++        public void Configure(EntityTypeBuilder<Ticket> builder)
++        {
++            builder.ToTable("Tickets");
++            builder.HasKey(t => t.Id);
++
++            builder.Property(t => t.Date).IsRequired();
++            builder.Property(t => t.Method).HasConversion<string>().HasMaxLength(20).IsRequired();
++            builder.Property(t => t.PaymentStatus).HasConversion<string>().HasMaxLength(20).IsRequired();
++            builder.Property(t => t.TotalValue).HasPrecision(10, 2).IsRequired();
++            builder.Property(t => t.Paid).IsRequired().HasDefaultValue(false);
++
++            builder.HasOne<Ticket>()
++                .WithMany()
++                .HasForeignKey(t => t.UserId)
++                .OnDelete(DeleteBehavior.Restrict);
++
++            builder.HasOne<Ticket>()
++                .WithMany()
++                .HasForeignKey(t => t.MovieId)
++                .OnDelete(DeleteBehavior.Restrict);
++
++            builder.HasOne<Ticket>()
++                .WithMany()
++                .HasForeignKey(t => t.RoomId)
++                .OnDelete(DeleteBehavior.Restrict);
++
++            builder.HasOne(t => t.Session)
++                .WithMany(s => s.Tickets)
++                .HasForeignKey(t => t.SessionId)
++                .OnDelete(DeleteBehavior.Restrict);
++
++            builder.HasMany(t => t.TicketSeats)
++                .WithOne(ts => ts.Ticket)
++                .HasForeignKey(ts => ts.TicketId)
++                .OnDelete(DeleteBehavior.Cascade);
++        }
++    }
++
++    public class TicketSeatConfiguration : IEntityTypeConfiguration<TicketSeat>
++    {
++        public void Configure(EntityTypeBuilder<TicketSeat> builder)
++        {
++            builder.ToTable("TicketSeats");
++
++            builder.HasKey(ts => new { ts.TicketId, ts.SeatId });
++
++            builder.Property(ts => ts.Type)
++                .HasConversion<string>()
++                .HasMaxLength(20)
++                .IsRequired();
++
++            builder.Property(ts => ts.Price)
++                .HasPrecision(10, 2)
+                 .IsRequired();
+ 
+-            builder.Ignore(s => s.EndTime);
++            builder.HasOne(ts => ts.Ticket)
++                .WithMany(t => t.TicketSeats)
++                .HasForeignKey(ts => ts.TicketId)
++                .OnDelete(DeleteBehavior.Cascade);
++
++            builder.HasOne(ts => ts.Seat)
++                .WithMany(s => s.TicketSeats)
++                .HasForeignKey(ts => ts.SeatId)
++                .OnDelete(DeleteBehavior.Restrict);
++
++            builder.HasIndex(ts => ts.TicketId);
++            builder.HasIndex(ts => ts.SeatId);
+         }
+     }
+ }
+diff --git a/src/OscarCinema.Infrastructure/EntitiesConfiguration/TicketConfiguration.cs b/src/OscarCinema.Infrastructure/EntitiesConfiguration/TicketConfiguration.cs
+index 1bff209..425eb79 100644
+--- a/src/OscarCinema.Infrastructure/EntitiesConfiguration/TicketConfiguration.cs
++++ b/src/OscarCinema.Infrastructure/EntitiesConfiguration/TicketConfiguration.cs
+@@ -1,52 +1,43 @@
+ ﻿using Microsoft.EntityFrameworkCore;
+ using Microsoft.EntityFrameworkCore.Metadata.Builders;
+ using OscarCinema.Domain.Entities;
+-using OscarCinema.Domain.Enums.Ticket;
+-using System;
+-using System.Collections.Generic;
+-using System.Linq;
+-using System.Text;
+-using System.Threading.Tasks;
+ 
+-namespace OscarCinema.Infrastructure.EntitiesConfiguration
++public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
+ {
+-    public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
++    public void Configure(EntityTypeBuilder<Ticket> builder)
+     {
+-        public void Configure(EntityTypeBuilder<Ticket> builder)
+-        {
+-            builder.ToTable("Tickets");
+-            builder.HasKey(t => t.Id);
++        builder.ToTable("Tickets");
++        builder.HasKey(t => t.Id);
+ 
+-            builder.Property(t => t.Date).IsRequired();
+-            builder.Property(t => t.Method).HasConversion<string>().HasMaxLength(20).IsRequired();
+-            builder.Property(t => t.PaymentStatus).HasConversion<string>().HasMaxLength(20).IsRequired();
+-            builder.Property(t => t.TotalValue).HasPrecision(10, 2).IsRequired();
+-            builder.Property(t => t.Paid).IsRequired().HasDefaultValue(false);
++        builder.Property(t => t.Date).IsRequired();
++        builder.Property(t => t.Method).HasConversion<string>().HasMaxLength(20).IsRequired();
++        builder.Property(t => t.PaymentStatus).HasConversion<string>().HasMaxLength(20).IsRequired();
++        builder.Property(t => t.TotalValue).HasPrecision(10, 2).IsRequired();
++        builder.Property(t => t.Paid).IsRequired().HasDefaultValue(false);
+ 
+-            builder.HasOne(t => t.User)
+-                .WithMany(u => u.Tickets)
+-                .HasForeignKey(t => t.UserId)
+-                .OnDelete(DeleteBehavior.Restrict);
++        builder.HasOne<Ticket>()
++            .WithMany()
++            .HasForeignKey(t => t.UserId)
++            .OnDelete(DeleteBehavior.Restrict);
+ 
+-            builder.HasOne(t => t.Movie)
+-                .WithMany()
+-                .HasForeignKey(t => t.MovieId)
+-                .OnDelete(DeleteBehavior.Restrict);
++        builder.HasOne<Ticket>()
++            .WithMany()
++            .HasForeignKey(t => t.MovieId)
++            .OnDelete(DeleteBehavior.Restrict);
+ 
+-            builder.HasOne(t => t.Room)
+-                .WithMany()
+-                .HasForeignKey(t => t.RoomId)
+-                .OnDelete(DeleteBehavior.Restrict);
++        builder.HasOne<Ticket>()
++            .WithMany()
++            .HasForeignKey(t => t.RoomId)
++            .OnDelete(DeleteBehavior.Restrict);
+ 
+-            builder.HasOne(t => t.Session)
+-                .WithMany(s => s.Tickets)
+-                .HasForeignKey(t => t.SessionId)
+-                .OnDelete(DeleteBehavior.Restrict);
++        builder.HasOne(t => t.Session)
++            .WithMany(s => s.Tickets)
++            .HasForeignKey(t => t.SessionId)
++            .OnDelete(DeleteBehavior.Restrict);
+ 
+-            builder.HasMany(t => t.TicketSeats)
+-                .WithOne(ts => ts.Ticket)
+-                .HasForeignKey(ts => ts.TicketId)
+-                .OnDelete(DeleteBehavior.Cascade);
+-        }
++        builder.HasMany(t => t.TicketSeats)
++            .WithOne(ts => ts.Ticket)
++            .HasForeignKey(ts => ts.TicketId)
++            .OnDelete(DeleteBehavior.Cascade);
+     }
+-}
++}
+\ No newline at end of file
+diff --git a/src/OscarCinema.Infrastructure/EntitiesConfiguration/TicketSeatConfiguration.cs b/src/OscarCinema.Infrastructure/EntitiesConfiguration/TicketSeatConfiguration.cs
+index 21d9394..07a8a51 100644
+--- a/src/OscarCinema.Infrastructure/EntitiesConfiguration/TicketSeatConfiguration.cs
++++ b/src/OscarCinema.Infrastructure/EntitiesConfiguration/TicketSeatConfiguration.cs
+@@ -1,44 +1,35 @@
+ ﻿using Microsoft.EntityFrameworkCore;
+ using Microsoft.EntityFrameworkCore.Metadata.Builders;
+ using OscarCinema.Domain.Entities;
+-using System;
+-using System.Collections.Generic;
+-using System.Linq;
+-using System.Text;
+-using System.Threading.Tasks;
+ 
+-namespace OscarCinema.Infrastructure.EntitiesConfiguration
++public class TicketSeatConfiguration : IEntityTypeConfiguration<TicketSeat>
+ {
+-    public class TicketSeatConfiguration : IEntityTypeConfiguration<TicketSeat>
++    public void Configure(EntityTypeBuilder<TicketSeat> builder)
+     {
+-        public void Configure(EntityTypeBuilder<TicketSeat> builder)
+-        {
+-            builder.ToTable("TicketSeats");
++        builder.ToTable("TicketSeats");
+ 
+-            builder.HasKey(ts => new { ts.TicketId, ts.SeatId });
++        builder.HasKey(ts => new { ts.TicketId, ts.SeatId });
+ 
+-            builder.Property(ts => ts.Type)
+-                .HasConversion<string>()
+-                .HasMaxLength(20)
+-                .IsRequired();
++        builder.Property(ts => ts.Type)
++            .HasConversion<string>()
++            .HasMaxLength(20)
++            .IsRequired();
+ 
+-            builder.Property(ts => ts.Price)
+-                .HasPrecision(10, 2)
+-                .IsRequired();
++        builder.Property(ts => ts.Price)
++            .HasPrecision(10, 2)
++            .IsRequired();
+ 
+-            builder.HasOne(ts => ts.Ticket)
+-                .WithMany(t => t.TicketSeats)
+-                .HasForeignKey(ts => ts.TicketId)
+-                .OnDelete(DeleteBehavior.Cascade);
++        builder.HasOne(ts => ts.Ticket)
++            .WithMany(t => t.TicketSeats)
++            .HasForeignKey(ts => ts.TicketId)
++            .OnDelete(DeleteBehavior.Cascade);
+ 
+-            builder.HasOne(ts => ts.Seat)
+-                .WithMany(s => s.TicketSeats)
+-                .HasForeignKey(ts => ts.SeatId)
+-                .OnDelete(DeleteBehavior.Restrict);
++        builder.HasOne(ts => ts.Seat)
++            .WithMany(s => s.TicketSeats)
++            .HasForeignKey(ts => ts.SeatId)
++            .OnDelete(DeleteBehavior.Restrict);
+ 
+-            builder.HasIndex(ts => ts.TicketId);
+-
+-            builder.HasIndex(ts => ts.SeatId);
+-        }
++        builder.HasIndex(ts => ts.TicketId);
++        builder.HasIndex(ts => ts.SeatId);
+     }
+ }
+\ No newline at end of file
+diff --git a/src/OscarCinema.Infrastructure/EntitiesConfiguration/UserConfiguration.cs b/src/OscarCinema.Infrastructure/EntitiesConfiguration/UserConfiguration.cs
+index 82c314c..030b2f1 100644
+--- a/src/OscarCinema.Infrastructure/EntitiesConfiguration/UserConfiguration.cs
++++ b/src/OscarCinema.Infrastructure/EntitiesConfiguration/UserConfiguration.cs
+@@ -20,37 +20,34 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
+             builder.HasKey(u => u.Id);
+ 
+             builder.Property(u => u.Name)
+-                   .IsRequired()
+-                   .HasMaxLength(100);
++                .IsRequired()
++                .HasMaxLength(100);
+ 
+             builder.Property(u => u.Email)
+-                   .IsRequired()
+-                   .HasMaxLength(255);
+-
+-            builder.Property(u => u.Role)
+-                   .IsRequired()
+-                   .HasConversion<int>();
++                .IsRequired()
++                .HasMaxLength(255);
+ 
+             builder.HasIndex(u => u.Email).IsUnique();
+-            builder.HasIndex("DocumentNumber").IsUnique();
++
++            builder.Property(u => u.Role)
++                .IsRequired()
++                .HasConversion<int>();
+ 
+             builder.Property(u => u.DocumentNumber)
+-                   .HasConversion(
+-                       new ValueConverter<Cpf, string>(
+-                           cpf => cpf.Number,
+-                           number => new Cpf(number)
+-                       )
+-                   )
+-                   .HasColumnName("DocumentNumber")
+-                   .HasMaxLength(11)
+-                   .IsRequired();
++                .HasConversion(
++                    cpf => cpf.Number,
++                    number => new Cpf(number)
++                )
++                .HasColumnName("DocumentNumber")
++                .HasMaxLength(11)
++                .IsRequired();
++
++            builder.HasIndex("DocumentNumber").IsUnique();
+ 
+             builder.Property(u => u.ApplicationUserId)
+-                   .IsRequired()
+-                   .HasMaxLength(450);
++                .IsRequired();
+ 
+-            builder.HasIndex(u => u.ApplicationUserId)
+-                   .IsUnique();
++            builder.HasIndex(u => u.ApplicationUserId).IsUnique();
+ 
+             builder.ToTable("Users");
+         }
+diff --git a/src/OscarCinema.Infrastructure/Migrations/20251208201051_SessionCentralization.Designer.cs b/src/OscarCinema.Infrastructure/Migrations/20251208201051_SessionCentralization.Designer.cs
+new file mode 100644
+index 0000000..0584f4a
+--- /dev/null
++++ b/src/OscarCinema.Infrastructure/Migrations/20251208201051_SessionCentralization.Designer.cs
+@@ -0,0 +1,713 @@
++﻿// <auto-generated />
++using System;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.EntityFrameworkCore.Infrastructure;
++using Microsoft.EntityFrameworkCore.Metadata;
++using Microsoft.EntityFrameworkCore.Migrations;
++using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
++using OscarCinema.Infrastructure.Context;
++
++#nullable disable
++
++namespace OscarCinema.Infrastructure.Migrations
++{
++    [DbContext(typeof(OscarCinemaContext))]
++    [Migration("20251208201051_SessionCentralization")]
++    partial class SessionCentralization
++    {
++        /// <inheritdoc />
++        protected override void BuildTargetModel(ModelBuilder modelBuilder)
++        {
++#pragma warning disable 612, 618
++            modelBuilder
++                .HasAnnotation("ProductVersion", "8.0.22")
++                .HasAnnotation("Relational:MaxIdentifierLength", 64);
++
++            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
++
++            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<string>("ConcurrencyStamp")
++                        .IsConcurrencyToken()
++                        .HasColumnType("longtext");
++
++                    b.Property<string>("Name")
++                        .HasMaxLength(256)
++                        .HasColumnType("varchar(256)");
++
++                    b.Property<string>("NormalizedName")
++                        .HasMaxLength(256)
++                        .HasColumnType("varchar(256)");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("NormalizedName")
++                        .IsUnique()
++                        .HasDatabaseName("RoleNameIndex");
++
++                    b.ToTable("AspNetRoles", (string)null);
++
++                    b.HasData(
++                        new
++                        {
++                            Id = 1,
++                            Name = "ADMIN",
++                            NormalizedName = "ADMIN"
++                        },
++                        new
++                        {
++                            Id = 2,
++                            Name = "EMPLOYEE",
++                            NormalizedName = "EMPLOYEE"
++                        },
++                        new
++                        {
++                            Id = 3,
++                            Name = "USER",
++                            NormalizedName = "USER"
++                        });
++                });
++
++            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<string>("ClaimType")
++                        .HasColumnType("longtext");
++
++                    b.Property<string>("ClaimValue")
++                        .HasColumnType("longtext");
++
++                    b.Property<int>("RoleId")
++                        .HasColumnType("int");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("RoleId");
++
++                    b.ToTable("AspNetRoleClaims", (string)null);
++                });
++
++            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<string>("ClaimType")
++                        .HasColumnType("longtext");
++
++                    b.Property<string>("ClaimValue")
++                        .HasColumnType("longtext");
++
++                    b.Property<int>("UserId")
++                        .HasColumnType("int");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("UserId");
++
++                    b.ToTable("AspNetUserClaims", (string)null);
++                });
++
++            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
++                {
++                    b.Property<string>("LoginProvider")
++                        .HasColumnType("varchar(255)");
++
++                    b.Property<string>("ProviderKey")
++                        .HasColumnType("varchar(255)");
++
++                    b.Property<string>("ProviderDisplayName")
++                        .HasColumnType("longtext");
++
++                    b.Property<int>("UserId")
++                        .HasColumnType("int");
++
++                    b.HasKey("LoginProvider", "ProviderKey");
++
++                    b.HasIndex("UserId");
++
++                    b.ToTable("AspNetUserLogins", (string)null);
++                });
++
++            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
++                {
++                    b.Property<int>("UserId")
++                        .HasColumnType("int");
++
++                    b.Property<int>("RoleId")
++                        .HasColumnType("int");
++
++                    b.HasKey("UserId", "RoleId");
++
++                    b.HasIndex("RoleId");
++
++                    b.ToTable("AspNetUserRoles", (string)null);
++                });
++
++            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
++                {
++                    b.Property<int>("UserId")
++                        .HasColumnType("int");
++
++                    b.Property<string>("LoginProvider")
++                        .HasColumnType("varchar(255)");
++
++                    b.Property<string>("Name")
++                        .HasColumnType("varchar(255)");
++
++                    b.Property<string>("Value")
++                        .HasColumnType("longtext");
++
++                    b.HasKey("UserId", "LoginProvider", "Name");
++
++                    b.ToTable("AspNetUserTokens", (string)null);
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.Movie", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<int>("AgeRating")
++                        .HasColumnType("int");
++
++                    b.Property<string>("Description")
++                        .IsRequired()
++                        .HasColumnType("longtext");
++
++                    b.Property<int>("Duration")
++                        .HasColumnType("int");
++
++                    b.Property<int>("Genre")
++                        .HasColumnType("int");
++
++                    b.Property<string>("ImageUrl")
++                        .IsRequired()
++                        .HasColumnType("longtext");
++
++                    b.Property<string>("Title")
++                        .IsRequired()
++                        .HasMaxLength(100)
++                        .HasColumnType("varchar(100)");
++
++                    b.HasKey("Id");
++
++                    b.ToTable("Movies");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.Pricing.ExhibitionType", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<string>("Description")
++                        .IsRequired()
++                        .HasColumnType("longtext");
++
++                    b.Property<string>("Name")
++                        .IsRequired()
++                        .HasColumnType("longtext");
++
++                    b.Property<decimal>("Price")
++                        .HasColumnType("decimal(65,30)");
++
++                    b.Property<string>("TechnicalSpecs")
++                        .IsRequired()
++                        .HasColumnType("longtext");
++
++                    b.HasKey("Id");
++
++                    b.ToTable("ExhibitionTypes");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.Pricing.SeatType", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<string>("Description")
++                        .IsRequired()
++                        .HasColumnType("longtext");
++
++                    b.Property<string>("Name")
++                        .IsRequired()
++                        .HasColumnType("longtext");
++
++                    b.Property<decimal>("Price")
++                        .HasColumnType("decimal(65,30)");
++
++                    b.HasKey("Id");
++
++                    b.ToTable("SeatTypes");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.Room", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<string>("Name")
++                        .IsRequired()
++                        .HasColumnType("longtext");
++
++                    b.Property<int>("Number")
++                        .HasColumnType("int");
++
++                    b.HasKey("Id");
++
++                    b.ToTable("Rooms");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.Seat", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<bool>("IsOccupied")
++                        .HasColumnType("tinyint(1)");
++
++                    b.Property<int>("Number")
++                        .HasColumnType("int");
++
++                    b.Property<int>("RoomId")
++                        .HasColumnType("int");
++
++                    b.Property<string>("Row")
++                        .IsRequired()
++                        .HasColumnType("varchar(1)");
++
++                    b.Property<int>("SeatTypeId")
++                        .HasColumnType("int");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("RoomId");
++
++                    b.HasIndex("SeatTypeId");
++
++                    b.ToTable("Seats");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.Ticket", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<DateTime>("Date")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<int>("Method")
++                        .HasColumnType("int");
++
++                    b.Property<int>("MovieId")
++                        .HasColumnType("int");
++
++                    b.Property<bool>("Paid")
++                        .HasColumnType("tinyint(1)");
++
++                    b.Property<int>("PaymentStatus")
++                        .HasColumnType("int");
++
++                    b.Property<int>("RoomId")
++                        .HasColumnType("int");
++
++                    b.Property<int>("SessionId")
++                        .HasColumnType("int");
++
++                    b.Property<decimal>("TotalValue")
++                        .HasColumnType("decimal(65,30)");
++
++                    b.Property<int>("UserId")
++                        .HasColumnType("int");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("SessionId");
++
++                    b.HasIndex("UserId");
++
++                    b.ToTable("Tickets");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.TicketSeat", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<decimal>("Price")
++                        .HasColumnType("decimal(65,30)");
++
++                    b.Property<int>("SeatId")
++                        .HasColumnType("int");
++
++                    b.Property<int>("TicketId")
++                        .HasColumnType("int");
++
++                    b.Property<int>("Type")
++                        .HasColumnType("int");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("SeatId");
++
++                    b.HasIndex("TicketId");
++
++                    b.ToTable("TicketSeats");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.User", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<int>("ApplicationUserId")
++                        .HasMaxLength(450)
++                        .HasColumnType("int");
++
++                    b.Property<string>("DocumentNumber")
++                        .IsRequired()
++                        .HasMaxLength(11)
++                        .HasColumnType("varchar(11)")
++                        .HasColumnName("DocumentNumber");
++
++                    b.Property<string>("Email")
++                        .IsRequired()
++                        .HasMaxLength(255)
++                        .HasColumnType("varchar(255)");
++
++                    b.Property<string>("Name")
++                        .IsRequired()
++                        .HasMaxLength(100)
++                        .HasColumnType("varchar(100)");
++
++                    b.Property<int>("Role")
++                        .HasColumnType("int");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("ApplicationUserId")
++                        .IsUnique();
++
++                    b.HasIndex("DocumentNumber")
++                        .IsUnique();
++
++                    b.HasIndex("Email")
++                        .IsUnique();
++
++                    b.ToTable("Users", (string)null);
++                });
++
++            modelBuilder.Entity("OscarCinema.Infrastructure.Identity.ApplicationUser", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<int>("AccessFailedCount")
++                        .HasColumnType("int");
++
++                    b.Property<string>("ConcurrencyStamp")
++                        .IsConcurrencyToken()
++                        .HasColumnType("longtext");
++
++                    b.Property<string>("DocumentNumber")
++                        .IsRequired()
++                        .HasColumnType("longtext");
++
++                    b.Property<string>("Email")
++                        .HasMaxLength(256)
++                        .HasColumnType("varchar(256)");
++
++                    b.Property<bool>("EmailConfirmed")
++                        .HasColumnType("tinyint(1)");
++
++                    b.Property<bool>("LockoutEnabled")
++                        .HasColumnType("tinyint(1)");
++
++                    b.Property<DateTimeOffset?>("LockoutEnd")
++                        .HasColumnType("datetime(6)");
++
++                    b.Property<string>("Name")
++                        .IsRequired()
++                        .HasColumnType("longtext");
++
++                    b.Property<string>("NormalizedEmail")
++                        .HasMaxLength(256)
++                        .HasColumnType("varchar(256)");
++
++                    b.Property<string>("NormalizedUserName")
++                        .HasMaxLength(256)
++                        .HasColumnType("varchar(256)");
++
++                    b.Property<string>("PasswordHash")
++                        .HasColumnType("longtext");
++
++                    b.Property<string>("PhoneNumber")
++                        .HasColumnType("longtext");
++
++                    b.Property<bool>("PhoneNumberConfirmed")
++                        .HasColumnType("tinyint(1)");
++
++                    b.Property<int>("Role")
++                        .HasColumnType("int");
++
++                    b.Property<string>("SecurityStamp")
++                        .HasColumnType("longtext");
++
++                    b.Property<bool>("TwoFactorEnabled")
++                        .HasColumnType("tinyint(1)");
++
++                    b.Property<string>("UserName")
++                        .HasMaxLength(256)
++                        .HasColumnType("varchar(256)");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("NormalizedEmail")
++                        .HasDatabaseName("EmailIndex");
++
++                    b.HasIndex("NormalizedUserName")
++                        .IsUnique()
++                        .HasDatabaseName("UserNameIndex");
++
++                    b.ToTable("AspNetUsers", (string)null);
++                });
++
++            modelBuilder.Entity("Session", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<int>("DurationMinutes")
++                        .HasColumnType("int");
++
++                    b.Property<int>("ExhibitionTypeId")
++                        .HasColumnType("int");
++
++                    b.Property<bool>("IsFinished")
++                        .HasColumnType("tinyint(1)");
++
++                    b.Property<int>("MovieId")
++                        .HasColumnType("int");
++
++                    b.Property<int>("RoomId")
++                        .HasColumnType("int");
++
++                    b.Property<DateTime>("StartTime")
++                        .HasColumnType("datetime(6)");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("ExhibitionTypeId");
++
++                    b.HasIndex("MovieId");
++
++                    b.HasIndex("RoomId");
++
++                    b.ToTable("Sessions");
++                });
++
++            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
++                {
++                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
++                        .WithMany()
++                        .HasForeignKey("RoleId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++                });
++
++            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
++                {
++                    b.HasOne("OscarCinema.Infrastructure.Identity.ApplicationUser", null)
++                        .WithMany()
++                        .HasForeignKey("UserId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++                });
++
++            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
++                {
++                    b.HasOne("OscarCinema.Infrastructure.Identity.ApplicationUser", null)
++                        .WithMany()
++                        .HasForeignKey("UserId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++                });
++
++            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
++                {
++                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
++                        .WithMany()
++                        .HasForeignKey("RoleId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.HasOne("OscarCinema.Infrastructure.Identity.ApplicationUser", null)
++                        .WithMany()
++                        .HasForeignKey("UserId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++                });
++
++            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
++                {
++                    b.HasOne("OscarCinema.Infrastructure.Identity.ApplicationUser", null)
++                        .WithMany()
++                        .HasForeignKey("UserId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.Seat", b =>
++                {
++                    b.HasOne("OscarCinema.Domain.Entities.Room", "Room")
++                        .WithMany("Seats")
++                        .HasForeignKey("RoomId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.HasOne("OscarCinema.Domain.Entities.Pricing.SeatType", "SeatType")
++                        .WithMany()
++                        .HasForeignKey("SeatTypeId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.Navigation("Room");
++
++                    b.Navigation("SeatType");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.Ticket", b =>
++                {
++                    b.HasOne("Session", "Session")
++                        .WithMany("Tickets")
++                        .HasForeignKey("SessionId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.HasOne("OscarCinema.Domain.Entities.User", null)
++                        .WithMany("Tickets")
++                        .HasForeignKey("UserId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.Navigation("Session");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.TicketSeat", b =>
++                {
++                    b.HasOne("OscarCinema.Domain.Entities.Seat", "Seat")
++                        .WithMany("TicketSeats")
++                        .HasForeignKey("SeatId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.HasOne("OscarCinema.Domain.Entities.Ticket", "Ticket")
++                        .WithMany("TicketSeats")
++                        .HasForeignKey("TicketId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.Navigation("Seat");
++
++                    b.Navigation("Ticket");
++                });
++
++            modelBuilder.Entity("Session", b =>
++                {
++                    b.HasOne("OscarCinema.Domain.Entities.Pricing.ExhibitionType", "ExhibitionType")
++                        .WithMany()
++                        .HasForeignKey("ExhibitionTypeId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.HasOne("OscarCinema.Domain.Entities.Movie", "Movie")
++                        .WithMany()
++                        .HasForeignKey("MovieId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.HasOne("OscarCinema.Domain.Entities.Room", "Room")
++                        .WithMany()
++                        .HasForeignKey("RoomId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.Navigation("ExhibitionType");
++
++                    b.Navigation("Movie");
++
++                    b.Navigation("Room");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.Room", b =>
++                {
++                    b.Navigation("Seats");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.Seat", b =>
++                {
++                    b.Navigation("TicketSeats");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.Ticket", b =>
++                {
++                    b.Navigation("TicketSeats");
++                });
++
++            modelBuilder.Entity("OscarCinema.Domain.Entities.User", b =>
++                {
++                    b.Navigation("Tickets");
++                });
++
++            modelBuilder.Entity("Session", b =>
++                {
++                    b.Navigation("Tickets");
++                });
++#pragma warning restore 612, 618
++        }
++    }
++}
+diff --git a/src/OscarCinema.Infrastructure/Migrations/20251208201051_SessionCentralization.cs b/src/OscarCinema.Infrastructure/Migrations/20251208201051_SessionCentralization.cs
+new file mode 100644
+index 0000000..42decb4
+--- /dev/null
++++ b/src/OscarCinema.Infrastructure/Migrations/20251208201051_SessionCentralization.cs
+@@ -0,0 +1,105 @@
++﻿using System;
++using Microsoft.EntityFrameworkCore.Migrations;
++
++#nullable disable
++
++namespace OscarCinema.Infrastructure.Migrations
++{
++    /// <inheritdoc />
++    public partial class SessionCentralization : Migration
++    {
++        /// <inheritdoc />
++        protected override void Up(MigrationBuilder migrationBuilder)
++        {
++            migrationBuilder.DropForeignKey(
++                name: "FK_Tickets_Movies_MovieId",
++                table: "Tickets");
++
++            migrationBuilder.DropForeignKey(
++                name: "FK_Tickets_Rooms_RoomId",
++                table: "Tickets");
++
++            migrationBuilder.DropIndex(
++                name: "IX_Tickets_MovieId",
++                table: "Tickets");
++
++            migrationBuilder.DropIndex(
++                name: "IX_Tickets_RoomId",
++                table: "Tickets");
++
++            migrationBuilder.DropColumn(
++                name: "CleaningTime",
++                table: "Sessions");
++
++            migrationBuilder.DropColumn(
++                name: "TrailerTime",
++                table: "Sessions");
++
++            migrationBuilder.AddColumn<int>(
++                name: "DurationMinutes",
++                table: "Sessions",
++                type: "int",
++                nullable: false,
++                defaultValue: 0);
++
++            migrationBuilder.AddColumn<bool>(
++                name: "IsFinished",
++                table: "Sessions",
++                type: "tinyint(1)",
++                nullable: false,
++                defaultValue: false);
++        }
++
++        /// <inheritdoc />
++        protected override void Down(MigrationBuilder migrationBuilder)
++        {
++            migrationBuilder.DropColumn(
++                name: "DurationMinutes",
++                table: "Sessions");
++
++            migrationBuilder.DropColumn(
++                name: "IsFinished",
++                table: "Sessions");
++
++            migrationBuilder.AddColumn<TimeSpan>(
++                name: "CleaningTime",
++                table: "Sessions",
++                type: "time(6)",
++                nullable: false,
++                defaultValue: new TimeSpan(0, 0, 0, 0, 0));
++
++            migrationBuilder.AddColumn<TimeSpan>(
++                name: "TrailerTime",
++                table: "Sessions",
++                type: "time(6)",
++                nullable: false,
++                defaultValue: new TimeSpan(0, 0, 0, 0, 0));
++
++            migrationBuilder.CreateIndex(
++                name: "IX_Tickets_MovieId",
++                table: "Tickets",
++                column: "MovieId");
++
++            migrationBuilder.CreateIndex(
++                name: "IX_Tickets_RoomId",
++                table: "Tickets",
++                column: "RoomId");
++
++            migrationBuilder.AddForeignKey(
++                name: "FK_Tickets_Movies_MovieId",
++                table: "Tickets",
++                column: "MovieId",
++                principalTable: "Movies",
++                principalColumn: "Id",
++                onDelete: ReferentialAction.Cascade);
++
++            migrationBuilder.AddForeignKey(
++                name: "FK_Tickets_Rooms_RoomId",
++                table: "Tickets",
++                column: "RoomId",
++                principalTable: "Rooms",
++                principalColumn: "Id",
++                onDelete: ReferentialAction.Cascade);
++        }
++    }
++}
+diff --git a/src/OscarCinema.Infrastructure/Migrations/OscarCinemaContextModelSnapshot.cs b/src/OscarCinema.Infrastructure/Migrations/OscarCinemaContextModelSnapshot.cs
+index 21f5079..e42a69a 100644
+--- a/src/OscarCinema.Infrastructure/Migrations/OscarCinemaContextModelSnapshot.cs
++++ b/src/OscarCinema.Infrastructure/Migrations/OscarCinemaContextModelSnapshot.cs
+@@ -314,43 +314,6 @@ namespace OscarCinema.Infrastructure.Migrations
+                     b.ToTable("Seats");
+                 });
+ 
+-            modelBuilder.Entity("OscarCinema.Domain.Entities.Session", b =>
+-                {
+-                    b.Property<int>("Id")
+-                        .ValueGeneratedOnAdd()
+-                        .HasColumnType("int");
+-
+-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+-
+-                    b.Property<TimeSpan>("CleaningTime")
+-                        .HasColumnType("time(6)");
+-
+-                    b.Property<int>("ExhibitionTypeId")
+-                        .HasColumnType("int");
+-
+-                    b.Property<int>("MovieId")
+-                        .HasColumnType("int");
+-
+-                    b.Property<int>("RoomId")
+-                        .HasColumnType("int");
+-
+-                    b.Property<DateTime>("StartTime")
+-                        .HasColumnType("datetime(6)");
+-
+-                    b.Property<TimeSpan>("TrailerTime")
+-                        .HasColumnType("time(6)");
+-
+-                    b.HasKey("Id");
+-
+-                    b.HasIndex("ExhibitionTypeId");
+-
+-                    b.HasIndex("MovieId");
+-
+-                    b.HasIndex("RoomId");
+-
+-                    b.ToTable("Sessions");
+-                });
+-
+             modelBuilder.Entity("OscarCinema.Domain.Entities.Ticket", b =>
+                 {
+                     b.Property<int>("Id")
+@@ -388,10 +351,6 @@ namespace OscarCinema.Infrastructure.Migrations
+ 
+                     b.HasKey("Id");
+ 
+-                    b.HasIndex("MovieId");
+-
+-                    b.HasIndex("RoomId");
+-
+                     b.HasIndex("SessionId");
+ 
+                     b.HasIndex("UserId");
+@@ -551,6 +510,43 @@ namespace OscarCinema.Infrastructure.Migrations
+                     b.ToTable("AspNetUsers", (string)null);
+                 });
+ 
++            modelBuilder.Entity("Session", b =>
++                {
++                    b.Property<int>("Id")
++                        .ValueGeneratedOnAdd()
++                        .HasColumnType("int");
++
++                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
++
++                    b.Property<int>("DurationMinutes")
++                        .HasColumnType("int");
++
++                    b.Property<int>("ExhibitionTypeId")
++                        .HasColumnType("int");
++
++                    b.Property<bool>("IsFinished")
++                        .HasColumnType("tinyint(1)");
++
++                    b.Property<int>("MovieId")
++                        .HasColumnType("int");
++
++                    b.Property<int>("RoomId")
++                        .HasColumnType("int");
++
++                    b.Property<DateTime>("StartTime")
++                        .HasColumnType("datetime(6)");
++
++                    b.HasKey("Id");
++
++                    b.HasIndex("ExhibitionTypeId");
++
++                    b.HasIndex("MovieId");
++
++                    b.HasIndex("RoomId");
++
++                    b.ToTable("Sessions");
++                });
++
+             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
+                 {
+                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
+@@ -621,66 +617,21 @@ namespace OscarCinema.Infrastructure.Migrations
+                     b.Navigation("SeatType");
+                 });
+ 
+-            modelBuilder.Entity("OscarCinema.Domain.Entities.Session", b =>
+-                {
+-                    b.HasOne("OscarCinema.Domain.Entities.Pricing.ExhibitionType", "ExhibitionType")
+-                        .WithMany()
+-                        .HasForeignKey("ExhibitionTypeId")
+-                        .OnDelete(DeleteBehavior.Cascade)
+-                        .IsRequired();
+-
+-                    b.HasOne("OscarCinema.Domain.Entities.Movie", "Movie")
+-                        .WithMany()
+-                        .HasForeignKey("MovieId")
+-                        .OnDelete(DeleteBehavior.Cascade)
+-                        .IsRequired();
+-
+-                    b.HasOne("OscarCinema.Domain.Entities.Room", "Room")
+-                        .WithMany()
+-                        .HasForeignKey("RoomId")
+-                        .OnDelete(DeleteBehavior.Cascade)
+-                        .IsRequired();
+-
+-                    b.Navigation("ExhibitionType");
+-
+-                    b.Navigation("Movie");
+-
+-                    b.Navigation("Room");
+-                });
+-
+             modelBuilder.Entity("OscarCinema.Domain.Entities.Ticket", b =>
+                 {
+-                    b.HasOne("OscarCinema.Domain.Entities.Movie", "Movie")
+-                        .WithMany()
+-                        .HasForeignKey("MovieId")
+-                        .OnDelete(DeleteBehavior.Cascade)
+-                        .IsRequired();
+-
+-                    b.HasOne("OscarCinema.Domain.Entities.Room", "Room")
+-                        .WithMany()
+-                        .HasForeignKey("RoomId")
+-                        .OnDelete(DeleteBehavior.Cascade)
+-                        .IsRequired();
+-
+-                    b.HasOne("OscarCinema.Domain.Entities.Session", "Session")
++                    b.HasOne("Session", "Session")
+                         .WithMany("Tickets")
+                         .HasForeignKey("SessionId")
+                         .OnDelete(DeleteBehavior.Cascade)
+                         .IsRequired();
+ 
+-                    b.HasOne("OscarCinema.Domain.Entities.User", "User")
++                    b.HasOne("OscarCinema.Domain.Entities.User", null)
+                         .WithMany("Tickets")
+                         .HasForeignKey("UserId")
+                         .OnDelete(DeleteBehavior.Cascade)
+                         .IsRequired();
+ 
+-                    b.Navigation("Movie");
+-
+-                    b.Navigation("Room");
+-
+                     b.Navigation("Session");
+-
+-                    b.Navigation("User");
+                 });
+ 
+             modelBuilder.Entity("OscarCinema.Domain.Entities.TicketSeat", b =>
+@@ -702,6 +653,33 @@ namespace OscarCinema.Infrastructure.Migrations
+                     b.Navigation("Ticket");
+                 });
+ 
++            modelBuilder.Entity("Session", b =>
++                {
++                    b.HasOne("OscarCinema.Domain.Entities.Pricing.ExhibitionType", "ExhibitionType")
++                        .WithMany()
++                        .HasForeignKey("ExhibitionTypeId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.HasOne("OscarCinema.Domain.Entities.Movie", "Movie")
++                        .WithMany()
++                        .HasForeignKey("MovieId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.HasOne("OscarCinema.Domain.Entities.Room", "Room")
++                        .WithMany()
++                        .HasForeignKey("RoomId")
++                        .OnDelete(DeleteBehavior.Cascade)
++                        .IsRequired();
++
++                    b.Navigation("ExhibitionType");
++
++                    b.Navigation("Movie");
++
++                    b.Navigation("Room");
++                });
++
+             modelBuilder.Entity("OscarCinema.Domain.Entities.Room", b =>
+                 {
+                     b.Navigation("Seats");
+@@ -712,11 +690,6 @@ namespace OscarCinema.Infrastructure.Migrations
+                     b.Navigation("TicketSeats");
+                 });
+ 
+-            modelBuilder.Entity("OscarCinema.Domain.Entities.Session", b =>
+-                {
+-                    b.Navigation("Tickets");
+-                });
+-
+             modelBuilder.Entity("OscarCinema.Domain.Entities.Ticket", b =>
+                 {
+                     b.Navigation("TicketSeats");
+@@ -726,6 +699,11 @@ namespace OscarCinema.Infrastructure.Migrations
+                 {
+                     b.Navigation("Tickets");
+                 });
++
++            modelBuilder.Entity("Session", b =>
++                {
++                    b.Navigation("Tickets");
++                });
+ #pragma warning restore 612, 618
+         }
+     }
+diff --git a/src/OscarCinema.Infrastructure/Repositories/SessionRepository.cs b/src/OscarCinema.Infrastructure/Repositories/SessionRepository.cs
+index d864c1f..b1fa8e8 100644
+--- a/src/OscarCinema.Infrastructure/Repositories/SessionRepository.cs
++++ b/src/OscarCinema.Infrastructure/Repositories/SessionRepository.cs
+@@ -5,7 +5,6 @@ using OscarCinema.Infrastructure.Context;
+ using System;
+ using System.Collections.Generic;
+ using System.Linq;
+-using System.Text;
+ using System.Threading.Tasks;
+ 
+ namespace OscarCinema.Infrastructure.Repositories
+@@ -14,18 +13,52 @@ namespace OscarCinema.Infrastructure.Repositories
+     {
+         public SessionRepository(OscarCinemaContext context) : base(context) { }
+ 
+-        public virtual async Task<Session?> GetByIdAsync(int id)
++        public async Task<Session?> GetDetailedAsync(int id)
+         {
+             return await _context.Sessions
++                .Include(s => s.Movie)
++                .Include(s => s.Room)
++                    .ThenInclude(r => r.Seats)
+                 .Include(s => s.ExhibitionType)
++                .Include(s => s.Tickets)
++                    .ThenInclude(t => t.TicketSeats)
+                 .FirstOrDefaultAsync(s => s.Id == id);
+         }
+ 
+-        public async Task<IEnumerable<Session>> GetAllByMovieId(int movieId)
++        public async Task<bool> HasTimeConflictAsync(
++            int roomId,
++            DateTime startTime,
++            int durationMinutes,
++            int? ignoreSessionId = null
++        )
+         {
+-            return _context.Sessions
++            var endTime = startTime.AddMinutes(durationMinutes);
++
++            var query = _context.Sessions
++                .Where(s =>
++                    s.RoomId == roomId &&
++                    !s.IsFinished &&
++                    s.StartTime < endTime &&
++                    s.StartTime.AddMinutes(s.DurationMinutes) > startTime
++                );
++
++            if (ignoreSessionId.HasValue)
++            {
++                query = query.Where(s => s.Id != ignoreSessionId.Value);
++            }
++
++            return await query.AnyAsync();
++        }
++
++        public async Task<IEnumerable<Session>> GetAllByMovieIdAsync(int movieId)
++        {
++            return await _context.Sessions
+                 .Where(s => s.MovieId == movieId)
+-                .AsNoTracking();
++                .Include(s => s.Movie)
++                .Include(s => s.Room)
++                .Include(s => s.ExhibitionType)
++                .AsNoTracking()
++                .ToListAsync();
+         }
+     }
+ }
+diff --git a/src/OscarCinema.Infrastructure/Repositories/TicketSeatRepository.cs b/src/OscarCinema.Infrastructure/Repositories/TicketSeatRepository.cs
+index 72775d4..99c6793 100644
+--- a/src/OscarCinema.Infrastructure/Repositories/TicketSeatRepository.cs
++++ b/src/OscarCinema.Infrastructure/Repositories/TicketSeatRepository.cs
+@@ -2,32 +2,17 @@
+ using OscarCinema.Domain.Entities;
+ using OscarCinema.Domain.Interfaces;
+ using OscarCinema.Infrastructure.Context;
+-using System;
+-using System.Collections.Generic;
+-using System.Linq;
+-using System.Text;
+ using System.Threading.Tasks;
+ 
+ namespace OscarCinema.Infrastructure.Repositories
+ {
+-    public class TicketSeatRepository : GenericRepository<TicketSeat>, ITicketSeatRepository
++    public class TicketSeatRepository : ITicketSeatRepository
+     {
+-        public TicketSeatRepository(OscarCinemaContext context) : base(context) { }
++        private readonly OscarCinemaContext _context;
+ 
+-        public async Task<IEnumerable<TicketSeat>> GetByTicketIdAsync(int ticketId)
++        public TicketSeatRepository(OscarCinemaContext context)
+         {
+-            return await _context.TicketSeats
+-                .Include(ts => ts.Seat)
+-                .Where(ts => ts.TicketId == ticketId)
+-                .ToListAsync();
+-        }
+-
+-        public async Task<IEnumerable<TicketSeat>> GetBySeatIdAsync(int seatId)
+-        {
+-            return await _context.TicketSeats
+-                .Include(ts => ts.Ticket)
+-                .Where(ts => ts.SeatId == seatId)
+-                .ToListAsync();
++            _context = context;
+         }
+ 
+         public async Task<TicketSeat?> GetByTicketAndSeatAsync(int ticketId, int seatId)
+@@ -36,16 +21,9 @@ namespace OscarCinema.Infrastructure.Repositories
+                 .FirstOrDefaultAsync(ts => ts.TicketId == ticketId && ts.SeatId == seatId);
+         }
+ 
+-        public async Task CreateRangeAsync(IEnumerable<TicketSeat> ticketSeats)
+-        {
+-            await _context.TicketSeats.AddRangeAsync(ticketSeats);
+-            await _context.SaveChangesAsync();
+-        }
+-
+-        public async Task DeleteByTicketIdAsync(int ticketId)
++        public async Task UpdateAsync(TicketSeat ticketSeat)
+         {
+-            var ticketSeats = await GetByTicketIdAsync(ticketId);
+-            _context.TicketSeats.RemoveRange(ticketSeats);
++            _context.TicketSeats.Update(ticketSeat);
+             await _context.SaveChangesAsync();
+         }
+     }
+diff --git a/src/OscarCinema.Infrastructure/Repositories/UserRepository.cs b/src/OscarCinema.Infrastructure/Repositories/UserRepository.cs
+index ced5237..3157c32 100644
+--- a/src/OscarCinema.Infrastructure/Repositories/UserRepository.cs
++++ b/src/OscarCinema.Infrastructure/Repositories/UserRepository.cs
+@@ -1,5 +1,7 @@
+ ﻿using Microsoft.AspNetCore.Identity;
+ using Microsoft.EntityFrameworkCore;
++using OscarCinema.Domain.Common.Utils;
++using OscarCinema.Domain.Common.ValueObjects;
+ using OscarCinema.Domain.Entities;
+ using OscarCinema.Domain.Interfaces;
+ using OscarCinema.Infrastructure.Context;
+@@ -15,38 +17,46 @@ namespace OscarCinema.Infrastructure.Repositories
+     public class UserRepository : GenericRepository<User>, IUserRepository
+     {
+         private readonly UserManager<ApplicationUser> _userManager;
+-        public UserRepository(OscarCinemaContext context, UserManager<ApplicationUser> userManager)
+-    : base(context)
++
++        public UserRepository(
++            OscarCinemaContext context,
++            UserManager<ApplicationUser> userManager
++        ) : base(context)
+         {
+             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
+         }
+ 
+-        public async Task<User> FindByUsernameAsync(string username)
++        public async Task<User?> FindByUsernameAsync(string username)
+         {
+             var appUser = await _userManager.FindByNameAsync(username);
+-            return appUser?.ToDomainUser();
++            if (appUser == null) return null;
++
++            return await _context.Users
++                .FirstOrDefaultAsync(u => u.ApplicationUserId == appUser.Id);
+         }
+ 
+-        public async Task<User> FindByDocumentIdAsync(string documentId)
++        public async Task<User?> FindByDocumentIdAsync(string documentNumber)
+         {
+-            var appUser = await _userManager.FindByNameAsync(documentId);
+-            return appUser?.ToDomainUser();
++            var cleaned = CpfUtils.Clean(documentNumber);
++
++            return await _context.Users
++                .AsNoTracking()
++                .FirstOrDefaultAsync(u => u.DocumentNumber == new Cpf(cleaned));
+         }
+ 
+         public async Task<bool> CheckPasswordAsync(User user, string password)
+         {
+-            var appUser = await _userManager.FindByIdAsync(user.Id.ToString());
++            var appUser = await _userManager.FindByIdAsync(user.ApplicationUserId.ToString());
++            if (appUser == null) return false;
++
+             return await _userManager.CheckPasswordAsync(appUser, password);
+         }
+ 
+-        public async Task<User> GetByApplicationUserIdAsync(int applicationUserId)
++        public async Task<User?> GetByApplicationUserIdAsync(int applicationUserId)
+         {
+-            var appUser = await _userManager.FindByIdAsync(applicationUserId.ToString());
+-            if (appUser == null) return null;
+-
+-            var domainUser = await _context.Users
+-                                   .FirstOrDefaultAsync(u => u.ApplicationUserId == applicationUserId);
+-            return domainUser;
++            return await _context.Users
++                .FirstOrDefaultAsync(u => u.ApplicationUserId == applicationUserId);
+         }
+     }
++
+ }
+-- 
+2.49.0.windows.1
+

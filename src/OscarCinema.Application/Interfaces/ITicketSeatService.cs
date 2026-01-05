@@ -9,13 +9,6 @@ namespace OscarCinema.Application.Interfaces
 {
     public interface ITicketSeatService
     {
-        Task<TicketSeatResponse> CreateAsync(CreateTicketSeat dto);
-        Task<TicketSeatResponse?> GetByIdAsync(int id);
-        Task<IEnumerable<TicketSeatResponse>> GetByTicketIdAsync(int ticketId);
-        Task<IEnumerable<TicketSeatResponse>> GetBySeatIdAsync(int seatId);
-        Task<TicketSeatResponse?> UpdatePriceAsync(int id, decimal newPrice);
-        Task<bool> DeleteAsync(int id);
-        Task<decimal> CalculateTicketTotalAsync(int ticketId);
-        Task<IEnumerable<TicketSeatResponse>> CreateMultipleAsync(IEnumerable<CreateTicketSeat> dtos);
+        Task<TicketSeatResponse> UpdatePriceAsync(int ticketId, int seatId, decimal newPrice);
     }
 }

@@ -7,12 +7,9 @@ using System.Threading.Tasks;
 
 namespace OscarCinema.Domain.Interfaces
 {
-   public interface ITicketSeatRepository : IGenericRepository<TicketSeat>
+   public interface ITicketSeatRepository 
     {
-        Task<IEnumerable<TicketSeat>> GetByTicketIdAsync(int ticketId);
-        Task<IEnumerable<TicketSeat>> GetBySeatIdAsync(int seatId);
-        Task<TicketSeat> GetByTicketAndSeatAsync(int ticketId, int seatId);
-        Task AddRangeAsync(IEnumerable<TicketSeat> ticketSeats);
-        Task DeleteByTicketIdAsync(int ticketId);
+        Task<TicketSeat?> GetByTicketAndSeatAsync(int ticketId, int seatId);
+        Task UpdateAsync(TicketSeat ticketSeat);
     }
 }

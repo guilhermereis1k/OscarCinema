@@ -30,16 +30,12 @@ namespace OscarCinema.Application.Services
 
         public async Task<RoomResponse> CreateAsync(CreateRoom dto)
         {
-            _logger.LogInformation("Creating new room: {RoomName} (Number: {RoomNumber}) with {SeatCount} seats",
-                dto.Name, dto.Number, dto.Seats.Count);
+            _logger.LogInformation("Creating new room: {RoomName} (Number: {RoomNumber})",
+                dto.Name, dto.Number);
 
             var room = new Room(dto.Number, dto.Name);
 
-            foreach (var seatDto in dto.Seats)
-            {
-                var seat = new Seat(seatDto.Row, seatDto.Number, false, seatDto.SeatTypeId);
-                room.AddSeat(seat);
-            }
+
 
             await _unitOfWork.RoomRepository.AddAsync(room);
             await _unitOfWork.CommitAsync();

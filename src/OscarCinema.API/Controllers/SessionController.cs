@@ -1,122 +1,74 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using OscarCinema.Application.DTOs.Pagination;
+﻿using Microsoft.AspNetCore.Mvc;
 using OscarCinema.Application.DTOs.Session;
 using OscarCinema.Application.Interfaces;
-using OscarCinema.Application.Services;
-using OscarCinema.Domain.Entities;
-using OscarCinema.Domain.Interfaces;
-using OscarCinema.Infrastructure.Repositories;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using OscarCinema.Domain.Validation;
 
-namespace OscarCinema.API.Controllers
+[ApiController]
+[Route("api/[controller]")]
+public class SessionController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class SessionController : ControllerBase
+    private readonly ISessionService _sessionService;
+
+    public SessionController(ISessionService sessionService)
     {
-        private readonly ISessionService _sessionService;
-        private readonly ILogger<SessionController> _logger;
+        _sessionService = sessionService;
+    }
 
-        public SessionController(ISessionService sessionService, ILogger<SessionController> logger)
+    [HttpPost]
+    public async Task<ActionResult> Create([FromBody] CreateSession dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        try
         {
-            _sessionService = sessionService;
-            _logger = logger;
-        }
-
-        [Authorize(Policy = "AdminOrEmployee")]
-        [HttpPost("create")]
-        public async Task<ActionResult<SessionResponse>> Create([FromBody] CreateSession dto)
-        {
-            _logger.LogInformation("Creating new session for movie {MovieId} in room {RoomId} at {SessionDate}",
-                dto.MovieId, dto.RoomId, dto.StartTime);
-
-            var createdSession = await _sessionService.CreateAsync(dto);
-
-            _logger.LogInformation("Session created with ID: {Id}", createdSession.Id);
-
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = createdSession.Id },
-                createdSession);
-        }
-
-        [AllowAnonymous]
-        [HttpGet("{id}")]
-        public async Task<ActionResult<SessionResponse>> GetById(int id)
-        {
-            _logger.LogDebug("Searching session by ID: {Id}", id);
-
-            var session = await _sessionService.GetByIdAsync(id);
-
-            if (session == null)
-            {
-                _logger.LogWarning("Session not found: {Id}", id);
-                return NotFound();
-            }
-
+            var session = await _sessionService.CreateAsync(
+                dto.MovieId, dto.RoomId, dto.ExhibitionTypeId, dto.StartTime, dto.DurationMinutes
+            );
             return Ok(session);
         }
-
-        [AllowAnonymous]
-        [HttpGet("movie/{id}")]
-        public async Task<ActionResult<PaginationResult<SessionResponse>>> GetAllByMovieId([FromQuery] PaginationQuery query, int id)
+        catch (DomainExceptionValidation ex)
         {
-            _logger.LogDebug("Listing all sessions with pagination");
-
-            var pageResult = await _sessionService.GetAllByMovieIdAsync(query, id);
-
-            _logger.LogDebug(
-                "Returning {Count} items for the current page.", pageResult.Data.Count());
-
-            return Ok(pageResult);
+            return BadRequest(ex.Message);
         }
+    }
 
-        [AllowAnonymous]
-        [HttpGet]
-        public async Task<ActionResult<PaginationResult<SessionResponse>>> GetAll([FromQuery] PaginationQuery query, int id)
+    [HttpPut("{id}")]
+    public async Task<ActionResult> Update(int id, [FromBody] UpdateSession dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        try
         {
-            _logger.LogDebug("Listing all sessions with pagination.");
-
-            var pageResult = await _sessionService.GetAllAsync(query);
-
-            _logger.LogDebug(
-                "Returning {Count} items for the current page.", pageResult.Data.Count());
-
-            return Ok(pageResult);
+            var session = await _sessionService.UpdateAsync(
+                id, dto.MovieId, dto.RoomId, dto.ExhibitionTypeId, dto.StartTime, dto.DurationMinutes
+            );
+            return Ok(session);
         }
-
-        [Authorize(Policy = "AdminOrEmployee")]
-        [HttpPut("{id:int}")]
-        public async Task<ActionResult<SessionResponse>> Update(int id, [FromBody] UpdateSession dto)
+        catch (DomainExceptionValidation ex)
         {
-            _logger.LogInformation("Updating session ID: {Id} with data: {@Dto}", id, dto);
-
-            var updatedSession = await _sessionService.UpdateAsync(id, dto);
-
-            _logger.LogInformation("Session updated successfully: {Id}", id);
-
-            return Ok(updatedSession);
+            return BadRequest(ex.Message);
         }
+    }
 
-        [Authorize(Policy = "AdminOrEmployee")]
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(int id)
+    [HttpGet("{id}")]
+    public async Task<ActionResult> GetById(int id)
+    {
+        var session = await _sessionService.GetByIdAsync(id);
+        if (session == null) return NotFound();
+        return Ok(session);
+    }
+
+    [HttpPost("{id}/finish")]
+    public async Task<ActionResult> Finish(int id)
+    {
+        try
         {
-            _logger.LogInformation("Deleting session: {Id}", id);
-
-            var deleted = await _sessionService.DeleteAsync(id);
-
-            if (!deleted)
-            {
-                _logger.LogWarning("Attempt to delete session not found: {Id}", id);
-                return NotFound($"Session with ID {id} not found");
-            }
-
-            _logger.LogInformation("Session deleted successfully: {Id}", id);
+            await _sessionService.FinishSessionAsync(id);
             return NoContent();
+        }
+        catch (DomainExceptionValidation ex)
+        {
+            return BadRequest(ex.Message);
         }
     }
 }
-

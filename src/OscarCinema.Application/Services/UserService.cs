@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.User;
 using OscarCinema.Application.Interfaces;
+using OscarCinema.Domain.Common.ValueObjects;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Entities.Pricing;
 using OscarCinema.Domain.Enums.User;
@@ -32,8 +33,10 @@ namespace OscarCinema.Application.Services
 
         public async Task<UserResponse> CreateAsync(CreateUser request)
         {
+            var cpf = new Cpf(request.DocumentNumber);
+
             var exists = await _unitOfWork.UserRepository
-    .FindByDocumentIdAsync(request.DocumentNumber);
+                .FindByDocumentIdAsync(cpf.Number);
 
             if (exists != null)
                 throw new InvalidOperationException("Document already registered.");
@@ -41,7 +44,7 @@ namespace OscarCinema.Application.Services
             var user = new User(
                 request.ApplicationUserId,
                 request.Name,
-                request.DocumentNumber,
+                cpf.Number,
                 request.Email,
                 request.Role
             );
@@ -51,6 +54,7 @@ namespace OscarCinema.Application.Services
 
             return _mapper.Map<UserResponse>(user);
         }
+
 
         public async Task<UserResponse?> UpdateAsync(int id, UpdateUser request)
         {

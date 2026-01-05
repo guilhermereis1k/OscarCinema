@@ -3,9 +3,6 @@ using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OscarCinema.Domain.Entities
 {
@@ -14,39 +11,24 @@ namespace OscarCinema.Domain.Entities
         public int Id { get; private set; }
         public DateTime Date { get; private set; }
 
-        public User User { get; private set; }
         public int UserId { get; private set; }
-
-        public Movie Movie { get; private set; }
         public int MovieId { get; private set; }
-
-        public Room Room { get; private set; }
         public int RoomId { get; private set; }
-
         public Session Session { get; private set; }
         public int SessionId { get; private set; }
 
-        private List<TicketSeat> _ticketSeats = new();
+        private readonly List<TicketSeat> _ticketSeats = new();
         public IReadOnlyList<TicketSeat> TicketSeats => _ticketSeats.AsReadOnly();
 
         public PaymentMethod Method { get; private set; }
         public PaymentStatus PaymentStatus { get; private set; }
         public decimal TotalValue { get; private set; }
+        public bool Paid { get; private set; }
 
-        public bool Paid { get; private set; } = false;
+        private Ticket() { }
 
-        public Ticket() { }
-
-        public Ticket(
-            int userId,
-            int movieId,
-            int roomId,
-            int sessionId,
-            PaymentMethod method,
-            PaymentStatus paymentStatus,
-            bool paid)
+        public Ticket(int userId, int movieId, int roomId, int sessionId, PaymentMethod method)
         {
-
             ValidateDomain(userId, movieId, roomId, sessionId, method);
 
             Date = DateTime.Now;
@@ -55,54 +37,9 @@ namespace OscarCinema.Domain.Entities
             RoomId = roomId;
             SessionId = sessionId;
             Method = method;
-            PaymentStatus = paymentStatus;
-            Paid = paid;
+            PaymentStatus = PaymentStatus.Pending;
+            Paid = false;
             TotalValue = 0;
-        }
-
-        internal Ticket(
-            DateTime date,
-            int userId,
-            int movieId,
-            int roomId,
-            int sessionId,
-            PaymentMethod method,
-            PaymentStatus paymentStatus,
-            bool paid)
-        {
-            ValidateDomain(date, userId, movieId, roomId, sessionId, method);
-
-            Date = date;
-            UserId = userId;
-            MovieId = movieId;
-            RoomId = roomId;
-            SessionId = sessionId;
-            Method = method;
-            PaymentStatus = paymentStatus;
-            Paid = paid;
-            TotalValue = 0;
-        }
-
-        public void Update(
-           DateTime date,
-           int userId,
-           int movieId,
-           int roomId,
-           int sessionId,
-           PaymentMethod method,
-           PaymentStatus paymentStatus,
-           bool paid)
-        {
-            ValidateDomain(date, userId, movieId, roomId, sessionId, method);
-
-            Date = date;
-            UserId = userId;
-            MovieId = movieId;
-            RoomId = roomId;
-            SessionId = sessionId;
-            Method = method;
-            PaymentStatus = paymentStatus;
-            Paid = paid;
         }
 
         public void AddTicketSeat(TicketSeat ticketSeat)
@@ -110,7 +47,6 @@ namespace OscarCinema.Domain.Entities
             DomainExceptionValidation.When(ticketSeat == null, "TicketSeat cannot be null");
 
             _ticketSeats.Add(ticketSeat);
-
             CalculateTotalFromSeats();
         }
 
@@ -121,12 +57,6 @@ namespace OscarCinema.Domain.Entities
 
             _ticketSeats.Remove(ticketSeat);
             CalculateTotalFromSeats();
-        }
-
-        public void SetSessionData(int movieId, int roomId)
-        {
-            MovieId = movieId;
-            RoomId = roomId;
         }
 
         public void CalculateTotalFromSeats()
@@ -154,29 +84,11 @@ namespace OscarCinema.Domain.Entities
 
         private void ValidateDomain(int userId, int movieId, int roomId, int sessionId, PaymentMethod method)
         {
-
             DomainExceptionValidation.When(userId <= 0, "User ID must be greater than 0.");
             DomainExceptionValidation.When(movieId <= 0, "Movie ID must be greater than 0.");
             DomainExceptionValidation.When(roomId <= 0, "Room ID must be greater than 0.");
             DomainExceptionValidation.When(sessionId <= 0, "Session ID must be greater than 0.");
-
-            DomainExceptionValidation.When(!Enum.IsDefined(typeof(PaymentMethod), method),
-                "Invalid payment method.");
+            DomainExceptionValidation.When(!Enum.IsDefined(typeof(PaymentMethod), method), "Invalid payment method.");
         }
-
-        private void ValidateDomain(DateTime date, int userId, int movieId, int roomId, int sessionId, PaymentMethod method)
-        {
-            DomainExceptionValidation.When(date < DateTime.Now,
-                "Ticket date cannot be in the past.");
-
-            DomainExceptionValidation.When(userId <= 0, "User ID must be greater than 0.");
-            DomainExceptionValidation.When(movieId <= 0, "Movie ID must be greater than 0.");
-            DomainExceptionValidation.When(roomId <= 0, "Room ID must be greater than 0.");
-            DomainExceptionValidation.When(sessionId <= 0, "Session ID must be greater than 0.");
-
-            DomainExceptionValidation.When(!Enum.IsDefined(typeof(PaymentMethod), method),
-                "Invalid payment method.");
-        }
-
     }
 }

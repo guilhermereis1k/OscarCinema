@@ -21,6 +21,7 @@ namespace OscarCinema.Application.DTOs.Ticket
         public PaymentMethod Method { get; set; }
 
         [Required]
-        public List<SeatSelection> Seats { get; set; }
+        [MinLength(1, ErrorMessage = "At least one seat must be selected.")]
+        public List<SeatSelection> Seats { get; set; } = new();
     }
 }

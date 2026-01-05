@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OscarCinema.Infrastructure.Context;
 
@@ -11,9 +12,11 @@ using OscarCinema.Infrastructure.Context;
 namespace OscarCinema.Infrastructure.Migrations
 {
     [DbContext(typeof(OscarCinemaContext))]
-    partial class OscarCinemaContextModelSnapshot : ModelSnapshot
+    [Migration("20251208201051_SessionCentralization")]
+    partial class SessionCentralization
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -20,37 +20,34 @@ namespace OscarCinema.Infrastructure.EntitiesConfiguration
             builder.HasKey(u => u.Id);
 
             builder.Property(u => u.Name)
-                   .IsRequired()
-                   .HasMaxLength(100);
+                .IsRequired()
+                .HasMaxLength(100);
 
             builder.Property(u => u.Email)
-                   .IsRequired()
-                   .HasMaxLength(255);
-
-            builder.Property(u => u.Role)
-                   .IsRequired()
-                   .HasConversion<int>();
+                .IsRequired()
+                .HasMaxLength(255);
 
             builder.HasIndex(u => u.Email).IsUnique();
-            builder.HasIndex("DocumentNumber").IsUnique();
+
+            builder.Property(u => u.Role)
+                .IsRequired()
+                .HasConversion<int>();
 
             builder.Property(u => u.DocumentNumber)
-                   .HasConversion(
-                       new ValueConverter<Cpf, string>(
-                           cpf => cpf.Number,
-                           number => new Cpf(number)
-                       )
-                   )
-                   .HasColumnName("DocumentNumber")
-                   .HasMaxLength(11)
-                   .IsRequired();
+                .HasConversion(
+                    cpf => cpf.Number,
+                    number => new Cpf(number)
+                )
+                .HasColumnName("DocumentNumber")
+                .HasMaxLength(11)
+                .IsRequired();
+
+            builder.HasIndex("DocumentNumber").IsUnique();
 
             builder.Property(u => u.ApplicationUserId)
-                   .IsRequired()
-                   .HasMaxLength(450);
+                .IsRequired();
 
-            builder.HasIndex(u => u.ApplicationUserId)
-                   .IsUnique();
+            builder.HasIndex(u => u.ApplicationUserId).IsUnique();
 
             builder.ToTable("Users");
         }

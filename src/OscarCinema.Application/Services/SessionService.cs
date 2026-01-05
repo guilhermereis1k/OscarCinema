@@ -2,19 +2,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OscarCinema.Application.DTOs.Pagination;
-using OscarCinema.Application.DTOs.Room;
 using OscarCinema.Application.DTOs.Session;
+using OscarCinema.Application.DTOs.User;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Domain.Entities;
-using OscarCinema.Domain.Enums.Movie;
+using OscarCinema.Domain.Enums.Ticket;
 using OscarCinema.Domain.Interfaces;
 using OscarCinema.Domain.Validation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OscarCinema.Application.Services
 {
@@ -31,75 +29,43 @@ namespace OscarCinema.Application.Services
             _logger = logger;
         }
 
-        public async Task<SessionResponse> CreateAsync(CreateSession dto)
+        public async Task<Session> CreateAsync(int movieId, int roomId, int exhibitionTypeId, DateTime startTime, int durationMinutes)
         {
-            _logger.LogInformation(
-                "Creating new session for movie {MovieId} in room {RoomId} at {StartTime}",
-                dto.MovieId, dto.RoomId, dto.StartTime
-            );
+            var movie = await _unitOfWork.MovieRepository.GetByIdAsync(movieId)
+                ?? throw new DomainExceptionValidation("Movie not found.");
+            var room = await _unitOfWork.RoomRepository.GetByIdAsync(roomId)
+                ?? throw new DomainExceptionValidation("Room not found.");
+            var exhibition = await _unitOfWork.ExhibitionTypeRepository.GetByIdAsync(exhibitionTypeId)
+                ?? throw new DomainExceptionValidation("ExhibitionType not found.");
 
-            var movie = await _unitOfWork.MovieRepository.GetByIdAsync(dto.MovieId);
-            if (movie == null)
-                throw new DomainExceptionValidation("MovieId does not exist.");
+            var hasConflict = await _unitOfWork.SessionRepository.HasTimeConflictAsync(roomId, startTime, durationMinutes);
+            DomainExceptionValidation.When(hasConflict, "Room is already occupied during this time.");
 
-            var room = await _unitOfWork.RoomRepository.GetByIdAsync(dto.RoomId);
-            if (room == null)
-                throw new DomainExceptionValidation("RoomId does not exist.");
-
-            var exhibition = await _unitOfWork.ExhibitionTypeRepository.GetByIdAsync(dto.ExhibitionTypeId);
-            if (exhibition == null)
-                throw new DomainExceptionValidation("ExhibitionTypeId does not exist.");
-
-            var entity = _mapper.Map<Session>(dto);
-
-            await _unitOfWork.SessionRepository.AddAsync(entity);
+            var session = new Session(movieId, roomId, exhibitionTypeId, startTime, durationMinutes);
+            await _unitOfWork.SessionRepository.AddAsync(session);
             await _unitOfWork.CommitAsync();
 
-            _logger.LogInformation("Session created successfully for movie {MovieId}", dto.MovieId);
-
-            return _mapper.Map<SessionResponse>(entity);
+            return session;
         }
 
-        public async Task<SessionResponse?> UpdateAsync(int id, UpdateSession dto)
+        public async Task<Session> UpdateAsync(int sessionId, int movieId, int roomId, int exhibitionTypeId, DateTime startTime, int durationMinutes)
         {
-            _logger.LogInformation("Updating session ID: {SessionId}", id);
+            var session = await _unitOfWork.SessionRepository.GetByIdAsync(sessionId)
+                ?? throw new DomainExceptionValidation("Session not found.");
 
-            var entity = await _unitOfWork.SessionRepository.GetByIdAsync(id);
-            if (entity == null)
-            {
-                _logger.LogWarning("Session not found for update: {SessionId}", id);
-                return null;
-            }
+            var hasConflict = await _unitOfWork.SessionRepository.HasTimeConflictAsync(roomId, startTime, durationMinutes, sessionId);
+            DomainExceptionValidation.When(hasConflict, "Room is already occupied during this time.");
 
-            entity.Update(dto.MovieId, dto.StartTime, dto.RoomId, dto.ExhibitionTypeId);
-            await _unitOfWork.SessionRepository.UpdateAsync(entity);
+            session.Update(movieId, roomId, exhibitionTypeId, startTime, durationMinutes);
+            await _unitOfWork.SessionRepository.UpdateAsync(session);
             await _unitOfWork.CommitAsync();
 
-            _logger.LogInformation("Session updated successfully: {SessionId}", id);
-            return _mapper.Map<SessionResponse>(entity);
-        }
-
-        public async Task<bool> DeleteAsync(int id)
-        {
-            _logger.LogInformation("Deleting session: {SessionId}", id);
-
-            var entity = await _unitOfWork.SessionRepository.GetByIdAsync(id);
-            if (entity == null)
-            {
-                _logger.LogWarning("Session not found for deletion: {SessionId}", id);
-                return false;
-            }
-
-            await _unitOfWork.SessionRepository.DeleteAsync(id);
-            await _unitOfWork.CommitAsync();
-
-            _logger.LogInformation("Session deleted successfully: {SessionId}", id);
-            return true;
+            return session;
         }
 
         public async Task<PaginationResult<SessionResponse>> GetAllAsync(PaginationQuery query)
         {
-            _logger.LogDebug("Getting all sessions with pagination");
+            _logger.LogDebug("Getting all users with pagination");
 
             var baseQuery = _unitOfWork.SessionRepository.GetAllQueryable();
 
@@ -113,7 +79,7 @@ namespace OscarCinema.Application.Services
 
             var sessionDtos = _mapper.Map<IEnumerable<SessionResponse>>(sessions);
 
-            _logger.LogDebug("Retrieved {SessionCount} sessions", sessionDtos.Count());
+            _logger.LogDebug("Retrieved {SessionCount} users.", sessions.Count());
 
             return new PaginationResult<SessionResponse>
             {
@@ -125,49 +91,77 @@ namespace OscarCinema.Application.Services
             };
         }
 
-        public async Task<PaginationResult<SessionResponse>> GetAllByMovieIdAsync(PaginationQuery query, int movieId)
+        public async Task<Session?> GetByIdAsync(int id)
         {
-            _logger.LogDebug("Getting all sessions with pagination");
-
-            var baseQuery = _unitOfWork.SessionRepository.GetAllQueryable();
-
-            var filteredQuery = baseQuery.Where(s => s.MovieId == movieId);
-
-            var totalItems = await filteredQuery.CountAsync();
-
-            var sessions = await baseQuery
-                .OrderBy(r => r.Id)
-                .Skip((query.PageNumber - 1) * query.PageSize)
-                .Take(query.PageSize)
-                .ToListAsync();
-
-            var sessionDtos = _mapper.Map<IEnumerable<SessionResponse>>(sessions);
-
-            _logger.LogDebug("Retrieved {SessionCount} sessions", sessionDtos.Count());
-
-            return new PaginationResult<SessionResponse>
-            {
-                CurrentPage = query.PageNumber,
-                PageSize = query.PageSize,
-                TotalItems = totalItems,
-                TotalPages = (int)Math.Ceiling(totalItems / (double)query.PageSize),
-                Data = sessionDtos
-            };
+            return await _unitOfWork.SessionRepository.GetByIdAsync(id);
         }
 
-        public async Task<SessionResponse?> GetByIdAsync(int id)
+        public async Task DeleteAsync(int id)
         {
-            _logger.LogDebug("Getting session by ID: {SessionId}", id);
+            await _unitOfWork.SessionRepository.DeleteAsync(id);
+            await _unitOfWork.CommitAsync();
+        }
 
-            var entity = await _unitOfWork.SessionRepository.GetByIdAsync(id);
-            if (entity == null)
+        public async Task<IEnumerable<SeatMapItem>> GetSeatMapAsync(int sessionId)
+        {
+            var session = await _unitOfWork.SessionRepository.GetDetailedAsync(sessionId)
+                ?? throw new DomainExceptionValidation("Session not found.");
+
+            return session.GetSeatMap();
+        }
+
+        public async Task<bool> SeatsAreAvailableAsync(int sessionId, IEnumerable<int> seatIds)
+        {
+            var session = await _unitOfWork.SessionRepository.GetDetailedAsync(sessionId)
+                ?? throw new DomainExceptionValidation("Session not found.");
+
+            return session.AreSeatsAvailable(seatIds);
+        }
+
+        public async Task<Ticket> CreateTicketAsync(int sessionId, int userId, PaymentMethod method, IEnumerable<(int seatId, int type, decimal price)> seats)
+        {
+            var session = await _unitOfWork.SessionRepository.GetDetailedAsync(sessionId)
+                ?? throw new DomainExceptionValidation("Session not found.");
+
+            var seatIds = seats.Select(s => s.seatId).ToList();
+            DomainExceptionValidation.When(!session.AreSeatsAvailable(seatIds), "One or more seats are already occupied.");
+
+            var ticket = new Ticket(
+                userId,
+                session.MovieId,
+                session.RoomId,
+                session.Id,
+                method
+            );
+
+            foreach (var item in seats)
             {
-                _logger.LogWarning("Session not found: {SessionId}", id);
-                return null;
+                DomainExceptionValidation.When(!Enum.IsDefined(typeof(TicketType), item.type),
+                    $"Invalid TicketType: {item.type}");
+
+                var ticketSeat = new TicketSeat(ticket.Id, item.seatId, (TicketType)item.type, item.price);
+                ticket.AddTicketSeat(ticketSeat);
             }
 
-            _logger.LogDebug("Session found: ID {SessionId} for movie {MovieId}", id, entity.MovieId);
-            return _mapper.Map<SessionResponse>(entity);
+            session.AddTicket(ticket);
+            await _unitOfWork.TicketRepository.AddAsync(ticket);
+            await _unitOfWork.SessionRepository.UpdateAsync(session);
+            await _unitOfWork.CommitAsync();
+
+            return ticket;
         }
+
+        public async Task FinishSessionAsync(int sessionId)
+        {
+            var session = await _unitOfWork.SessionRepository.GetByIdAsync(sessionId)
+                ?? throw new DomainExceptionValidation("Session not found.");
+
+            session.Finish();
+
+            await _unitOfWork.SessionRepository.UpdateAsync(session);
+            await _unitOfWork.CommitAsync();
+        }
+
+
     }
 }
