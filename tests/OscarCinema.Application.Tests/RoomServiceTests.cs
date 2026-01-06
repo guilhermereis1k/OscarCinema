@@ -1,17 +1,15 @@
 using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Moq;
+using MockQueryable;
 using MockQueryable.Moq;
-using OscarCinema.Application.DTOs.ExhibitionType;
+using Moq;
 using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.Room;
 using OscarCinema.Application.DTOs.Seat;
 using OscarCinema.Application.Services;
 using OscarCinema.Domain.Entities;
-using OscarCinema.Domain.Entities.Pricing;
 using OscarCinema.Domain.Interfaces;
-using MockQueryable;
 
 namespace OscarCinema.Application.Tests
 {
@@ -39,7 +37,7 @@ namespace OscarCinema.Application.Tests
         public async Task GetByIdAsync_ShouldReturnDto_WhenRoomExists()
         {
             var room = new Room(1, "Sala IMAX");
-            var dto = new RoomResponse { Id = 1, Number = 1, Name = "Sala IMAX" };
+            var dto = new RoomResponse { Id = 1, Number = 1, Name = "Sala IMAX", Seats = new List<SeatResponse>() };
 
             _unitOfWorkMock
                 .Setup(u => u.RoomRepository.GetByIdAsync(1))
@@ -75,11 +73,6 @@ namespace OscarCinema.Application.Tests
             {
                 Number = 1,
                 Name = "Sala 1",
-                Seats = new List<CreateSeat>
-                {
-                    new CreateSeat { Row = 'A', Number = 1, SeatTypeId = 1 },
-                    new CreateSeat { Row = 'A', Number = 2, SeatTypeId = 1 }
-                }
             };
 
             var responseDto = new RoomResponse
@@ -182,7 +175,8 @@ namespace OscarCinema.Application.Tests
                 {
                     Id = 1,
                     Number = 2,
-                    Name = "Sala Reformada"
+                    Name = "Sala Reformada",
+                    Seats = new List<SeatResponse>()
                 });
 
             var result = await _service.UpdateAsync(1, updateDto);
@@ -201,16 +195,16 @@ namespace OscarCinema.Application.Tests
         public async Task GetAllAsync_ShouldReturnPaginatedRooms()
         {
             var rooms = new List<Room>
-        {
-            new Room(1, "Sala A"),
-            new Room(2, "Sala B")
-        };
+            {
+                new Room(1, "Sala A"),
+                new Room(2, "Sala B")
+            };
 
-                var responses = new List<RoomResponse>
-        {
-            new RoomResponse { Id = 1, Name = "Sala A", Number = 1 },
-            new RoomResponse { Id = 2, Name = "Sala B", Number = 2 }
-        };
+            var responses = new List<RoomResponse>
+            {
+                new RoomResponse { Id = 1, Name = "Sala A", Number = 1, Seats = new List<SeatResponse>() },
+                new RoomResponse { Id = 2, Name = "Sala B", Number = 2, Seats = new List<SeatResponse>() }
+            };
 
             var queryable = rooms.BuildMock();
 
