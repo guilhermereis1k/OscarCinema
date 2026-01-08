@@ -15,9 +15,5 @@ namespace OscarCinema.Application.DTOs.Ticket
 
         [Required]
         public TicketType Type { get; set; }
-
-        [Required]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero.")]
-        public decimal Price { get; set; }
     }
 }

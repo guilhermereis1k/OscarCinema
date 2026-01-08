@@ -1,25 +1,29 @@
 ﻿using AutoMapper;
 using OscarCinema.Application.DTOs.Ticket;
+using OscarCinema.Application.DTOs.TicketSeat;
 using OscarCinema.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OscarCinema.Application.Mappings
 {
     public class TicketDTOMappingProfile : Profile
     {
-        public TicketDTOMappingProfile() 
+        public TicketDTOMappingProfile()
         {
             CreateMap<CreateTicket, Ticket>()
-                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId));
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.Date, opt => opt.Ignore())
+                .ForMember(dest => dest.TicketSeats, opt => opt.Ignore());
 
             CreateMap<UpdateTicket, Ticket>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
 
-            CreateMap<Ticket, TicketResponse>();
+            CreateMap<TicketSeat, TicketSeatResponse>();
+
+            CreateMap<Ticket, TicketResponse>()
+                .ForMember(
+                    dest => dest.TicketSeats,
+                    opt => opt.MapFrom(src => src.TicketSeats)
+                );
         }
     }
 }

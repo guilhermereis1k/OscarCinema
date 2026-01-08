@@ -11,5 +11,6 @@ namespace OscarCinema.Domain.Interfaces
     {
         Task<IEnumerable<Ticket>> GetAllByUserIdAsync(int userId);
         Task<IEnumerable<Ticket>> GetAllBySessionId(int sessionId);
+        Task<Ticket> GetDetailedAsync(int id);
     }
 }

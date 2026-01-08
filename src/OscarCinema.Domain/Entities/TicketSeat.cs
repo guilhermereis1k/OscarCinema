@@ -23,9 +23,10 @@ namespace OscarCinema.Domain.Entities
 
         private TicketSeat() { }
 
-        public TicketSeat(int ticketId, int seatId, TicketType type, decimal price)
+        public TicketSeat(int seatId, TicketType type, decimal price)
         {
-            TicketId = ticketId;
+            DomainExceptionValidation.When(price <= 0, "Price must be positive");
+
             SeatId = seatId;
             Type = type;
             Price = price;
@@ -35,6 +36,14 @@ namespace OscarCinema.Domain.Entities
         {
             DomainExceptionValidation.When(newPrice <= 0, "Price must be positive");
             Price = newPrice;
+        }
+
+        internal void SetTicket(Ticket ticket)
+        {
+            DomainExceptionValidation.When(ticket == null, "Ticket cannot be null");
+
+            Ticket = ticket;
+            TicketId = ticket.Id;
         }
     }
 }

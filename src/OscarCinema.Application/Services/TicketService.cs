@@ -23,33 +23,101 @@ namespace OscarCinema.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<TicketService> _logger;
+        private readonly IPricingService _pricingService;
 
-        public TicketService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<TicketService> logger)
+        public TicketService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<TicketService> logger, IPricingService pricingService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
+            _pricingService = pricingService;
         }
 
         public async Task<TicketResponse> CreateAsync(CreateTicket dto)
         {
-            _logger.LogInformation("Creating ticket for SessionId {SessionId} and UserId {UserId}", dto.SessionId, dto.UserId);
+            _logger.LogWarning(
+                "[CREATE] Start | SessionId: {SessionId}, UserId: {UserId}",
+                dto.SessionId, dto.UserId
+            );
 
             var session = await _unitOfWork.SessionRepository.GetDetailedAsync(dto.SessionId)
                 ?? throw new DomainExceptionValidation("Session not found.");
 
+            _logger.LogWarning(
+                "[CREATE] Session loaded | RoomId: {RoomId}, Seats in room: {SeatCount}",
+                session.RoomId,
+                session.Room?.Seats?.Count ?? 0
+            );
+
             var seatIds = dto.Seats.Select(s => s.SeatId).ToList();
-            DomainExceptionValidation.When(!session.AreSeatsAvailable(seatIds), "One or more seats are already occupied.");
 
-            var ticket = new Ticket(dto.UserId, session.MovieId, session.RoomId, dto.SessionId, dto.Method);
+            DomainExceptionValidation.When(
+                !session.AreSeatsAvailable(seatIds),
+                "One or more seats are already occupied."
+            );
 
-            foreach (var seat in dto.Seats)
+            var ticket = new Ticket(
+                dto.UserId,
+                session.MovieId,
+                session.RoomId,
+                session.Id,
+                dto.Method
+            );
+
+            _logger.LogWarning("[CREATE] Ticket created in memory");
+
+            foreach (var seatDto in dto.Seats)
             {
-                DomainExceptionValidation.When(!Enum.IsDefined(typeof(TicketType), seat.Type),
-                    $"Invalid TicketType: {seat.Type}");
+                _logger.LogWarning(
+                    "[CREATE] Processing Seat | SeatId: {SeatId}, Type: {Type}",
+                    seatDto.SeatId, seatDto.Type
+                );
 
-                var ticketSeat = new TicketSeat(ticket.Id, seat.SeatId, seat.Type, seat.Price);
+                var seatEntity = session.Room.Seats
+                    .FirstOrDefault(s => s.Id == seatDto.SeatId);
+
+                DomainExceptionValidation.When(
+                    seatEntity == null,
+                    $"Seat {seatDto.SeatId} does not belong to room {session.RoomId}"
+                );
+
+                var basePrice = await _pricingService.CalculateSeatPriceAsync(
+                    session.ExhibitionTypeId,
+                    seatEntity.SeatTypeId
+                );
+
+                var finalPrice = _pricingService.ApplyTicketType(
+                    basePrice,
+                    seatDto.Type
+                );
+
+                var ticketSeat = new TicketSeat(
+                    seatEntity.Id,
+                    seatDto.Type,
+                    finalPrice
+                );
+
                 ticket.AddTicketSeat(ticketSeat);
+
+                _logger.LogWarning(
+                    "[CREATE] TicketSeat added | SeatId: {SeatId}, Type: {Type}, Price: {Price}",
+                    ticketSeat.SeatId,
+                    ticketSeat.Type,
+                    ticketSeat.Price
+                );
+            }
+
+            _logger.LogWarning(
+                "[CREATE] BEFORE SAVE | TicketSeats in memory: {Count}",
+                ticket.TicketSeats.Count
+            );
+
+            foreach (var ts in ticket.TicketSeats)
+            {
+                _logger.LogWarning(
+                    "[CREATE] MEMORY SEAT -> SeatId: {SeatId}, Type: {Type}, Price: {Price}, TicketId: {TicketId}",
+                    ts.SeatId, ts.Type, ts.Price, ts.TicketId
+                );
             }
 
             session.AddTicket(ticket);
@@ -58,8 +126,28 @@ namespace OscarCinema.Application.Services
             await _unitOfWork.SessionRepository.UpdateAsync(session);
             await _unitOfWork.CommitAsync();
 
-            _logger.LogInformation("Ticket created successfully: ID {TicketId}", ticket.Id);
-            return _mapper.Map<TicketResponse>(ticket);
+            _logger.LogWarning(
+                "[CREATE] AFTER SAVE | TicketId: {TicketId}",
+                ticket.Id
+            );
+
+            var createdTicket = await _unitOfWork.TicketRepository.GetDetailedAsync(ticket.Id)
+                ?? throw new DomainExceptionValidation("Failed to load created ticket.");
+
+            _logger.LogWarning(
+                "[CREATE] AFTER RELOAD | TicketSeats from DB: {Count}",
+                createdTicket.TicketSeats.Count
+            );
+
+            foreach (var ts in createdTicket.TicketSeats)
+            {
+                _logger.LogWarning(
+                    "[CREATE] DB SEAT -> Id: {Id}, SeatId: {SeatId}, Type: {Type}, Price: {Price}, TicketId: {TicketId}",
+                    ts.Id, ts.SeatId, ts.Type, ts.Price, ts.TicketId
+                );
+            }
+
+            return _mapper.Map<TicketResponse>(createdTicket);
         }
 
         public async Task<IEnumerable<TicketResponse>> GetAllBySessionIdAsync(int sessionId)

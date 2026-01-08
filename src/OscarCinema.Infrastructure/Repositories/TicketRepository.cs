@@ -24,5 +24,14 @@ namespace OscarCinema.Infrastructure.Repositories
                 .AsNoTracking()
                 .ToListAsync();
         }
+
+        public async Task<Ticket?> GetDetailedAsync(int id)
+        {
+            return await _context.Tickets
+                .Include(t => t.TicketSeats)
+                    .ThenInclude(ts => ts.Seat)
+                .FirstOrDefaultAsync(t => t.Id == id);
+        }
+
     }
 }

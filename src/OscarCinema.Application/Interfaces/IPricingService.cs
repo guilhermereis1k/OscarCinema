@@ -1,17 +1,15 @@
-﻿using OscarCinema.Domain.Entities.Pricing;
-using OscarCinema.Domain.Enums.Ticket;
-using System;
+﻿using OscarCinema.Domain.Enums.Ticket;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace OscarCinema.Application.Interfaces
 {
     public interface IPricingService
     {
-        decimal CalculateSeatPrice(ExhibitionType exhibitionType, SeatType seatType);
+        Task<decimal> CalculateSeatPriceAsync(int exhibitionTypeId, int seatTypeId);
+
+        decimal ApplyTicketType(decimal basePrice, TicketType type);
+
         decimal CalculateTotalPrice(IEnumerable<decimal> seatPrices);
-        public decimal ApplyTicketType(decimal basePrice, TicketType type);
     }
 }

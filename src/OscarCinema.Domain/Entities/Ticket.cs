@@ -42,11 +42,12 @@ namespace OscarCinema.Domain.Entities
             TotalValue = 0;
         }
 
-        public void AddTicketSeat(TicketSeat ticketSeat)
+        public void AddTicketSeat(TicketSeat seat)
         {
-            DomainExceptionValidation.When(ticketSeat == null, "TicketSeat cannot be null");
+            DomainExceptionValidation.When(seat == null, "TicketSeat cannot be null");
 
-            _ticketSeats.Add(ticketSeat);
+            seat.SetTicket(this);
+            _ticketSeats.Add(seat);
             CalculateTotalFromSeats();
         }
 

@@ -139,7 +139,7 @@ namespace OscarCinema.Application.Services
                 DomainExceptionValidation.When(!Enum.IsDefined(typeof(TicketType), item.type),
                     $"Invalid TicketType: {item.type}");
 
-                var ticketSeat = new TicketSeat(ticket.Id, item.seatId, (TicketType)item.type, item.price);
+                var ticketSeat = new TicketSeat(item.seatId, (TicketType)item.type, item.price);
                 ticket.AddTicketSeat(ticketSeat);
             }
 
