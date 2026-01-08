@@ -34,5 +34,14 @@ namespace OscarCinema.Infrastructure.Repositories
                 .Where(s => s.RoomId == roomId)
                 .ToListAsync();
         }
+
+        public async Task<bool> ExistsAsync(int roomId, char row, int number)
+        {
+            return await _context.Seats
+                .AnyAsync(s =>
+                    s.RoomId == roomId &&
+                    s.Row == row &&
+                    s.Number == number);
+        }
     }
 }

@@ -29,8 +29,10 @@ namespace OscarCinema.Application.Services
 
         public async Task<SeatResponse> CreateAsync(CreateSeat dto)
         {
-            _logger.LogInformation("Creating new seat - Row: {Row}, Number: {Number}, Room: {RoomId}",
-                dto.Row, dto.Number, dto.RoomId);
+            _logger.LogInformation(
+                "Creating new seat - Row: {Row}, Number: {Number}, Room: {RoomId}",
+                dto.Row, dto.Number, dto.RoomId
+            );
 
             var room = await _unitOfWork.RoomRepository.GetByIdAsync(dto.RoomId);
             if (room == null)
@@ -40,14 +42,27 @@ namespace OscarCinema.Application.Services
             if (seatType == null)
                 throw new DomainExceptionValidation("SeatTypeId does not exist.");
 
+            var seatAlreadyExists = await _unitOfWork.SeatRepository
+                .ExistsAsync(dto.RoomId, dto.Row, dto.Number);
+
+            if (seatAlreadyExists)
+                throw new DomainExceptionValidation(
+                    $"Seat {dto.Row}{dto.Number} already exists in this room."
+                );
+
             var entity = _mapper.Map<Seat>(dto);
+
             await _unitOfWork.SeatRepository.AddAsync(entity);
             await _unitOfWork.CommitAsync();
 
-            _logger.LogInformation("Seat created successfully: {Row}{Number} (ID: {SeatId})",
-                dto.Row, dto.Number, entity.Id);
+            _logger.LogInformation(
+                "Seat created successfully: {Row}{Number} (ID: {SeatId})",
+                dto.Row, dto.Number, entity.Id
+            );
+
             return _mapper.Map<SeatResponse>(entity);
         }
+
 
         public async Task<SeatResponse?> GetByIdAsync(int id)
         {

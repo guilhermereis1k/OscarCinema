@@ -11,5 +11,6 @@ namespace OscarCinema.Domain.Interfaces
     {
         Task<Seat> GetByRowAndNumberAsync(char row, int number);
         Task<IEnumerable<Seat>> GetSeatsByRoomIdAsync(int roomId);
+        Task<bool> ExistsAsync(int roomId, char row, int number);
     }
 }
