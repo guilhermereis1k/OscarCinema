@@ -13,9 +13,9 @@ namespace OscarCinema.Infrastructure.Context
         public OscarCinemaContext CreateDbContext(string[] args)
         {
             var optionsBuilder = new DbContextOptionsBuilder<OscarCinemaContext>();
-            optionsBuilder.UseMySql(
-                "Server=localhost,3306;Database=oscarcinemadb;User Id=root;Password=12345;",
-                ServerVersion.AutoDetect("Server=localhost,3306;Database=oscarcinemadb;User Id=root;Password=12345;")
+
+            optionsBuilder.UseNpgsql(
+                "Host=localhost;Port=5432;Database=oscarcinemadb;Username=postgres;Password=12345"
             );
 
             return new OscarCinemaContext(optionsBuilder.Options);

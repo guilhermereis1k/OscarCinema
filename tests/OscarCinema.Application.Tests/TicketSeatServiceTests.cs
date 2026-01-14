@@ -33,7 +33,12 @@ namespace OscarCinema.Application.Tests
         public async Task UpdatePriceAsync_UpdatesPrice_WhenTicketAndSeatExist()
         {
             var ticket = new Ticket(1, 1, 1, 1, PaymentMethod.CreditCard);
-            var seat = new TicketSeat(ticket.Id, 2, TicketType.Full, 25m);
+            var seat = new TicketSeat(
+                seatId: 2,
+                type: TicketType.Full,
+                price: 25m
+            );
+
             ticket.AddTicketSeat(seat);
 
             _uow.Setup(u => u.TicketRepository.GetByIdAsync(ticket.Id))

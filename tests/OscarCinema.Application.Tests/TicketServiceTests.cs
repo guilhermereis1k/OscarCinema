@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using OscarCinema.Application.DTOs.Pagination;
 using OscarCinema.Application.DTOs.Ticket;
+using OscarCinema.Application.Interfaces;
 using OscarCinema.Application.Services;
 using OscarCinema.Domain.Entities;
 using OscarCinema.Domain.Enums.Ticket;
@@ -17,6 +18,7 @@ namespace OscarCinema.Application.Tests
         private readonly Mock<IUnitOfWork> _unitOfWorkMock;
         private readonly Mock<IMapper> _mapperMock;
         private readonly Mock<ILogger<TicketService>> _loggerMock;
+        private readonly Mock<IPricingService> _pricingServiceMock;
         private readonly TicketService _service;
 
         public TicketServiceTests()
@@ -24,11 +26,13 @@ namespace OscarCinema.Application.Tests
             _unitOfWorkMock = new Mock<IUnitOfWork>();
             _mapperMock = new Mock<IMapper>();
             _loggerMock = new Mock<ILogger<TicketService>>();
+            _pricingServiceMock = new Mock<IPricingService>();
 
             _service = new TicketService(
                 _unitOfWorkMock.Object,
                 _mapperMock.Object,
-                _loggerMock.Object
+                _loggerMock.Object,
+                _pricingServiceMock.Object
             );
         }
 
@@ -80,9 +84,9 @@ namespace OscarCinema.Application.Tests
                 UserId = 1,
                 Method = PaymentMethod.CreditCard,
                 Seats = new List<SeatSelection>
-                {
-                    new SeatSelection { SeatId = 1, Type = TicketType.Full, Price = 25m }
-                }
+        {
+            new SeatSelection { SeatId = 1, Type = TicketType.Full}
+        }
             };
 
             var startTime = DateTime.Now.AddHours(1);
@@ -96,7 +100,42 @@ namespace OscarCinema.Application.Tests
                 durationMinutes: durationMinutes
             );
 
+            var sessionIdProperty = session.GetType().GetProperty("Id");
+            if (sessionIdProperty != null && sessionIdProperty.CanWrite)
+            {
+                sessionIdProperty.SetValue(session, 1);
+            }
 
+            var room = new Room(1, "Sala 1");
+
+            var seat = new Seat(
+                roomId: 1,
+                row: 'A',
+                number: 1,
+                seatTypeId: 1
+            );
+
+            var seatIdProperty = seat.GetType().GetProperty("Id");
+            if (seatIdProperty != null && seatIdProperty.CanWrite)
+            {
+                seatIdProperty.SetValue(seat, 1);
+            }
+
+            room.AddSeat(seat);
+
+            var roomProperty = session.GetType().GetProperty("Room");
+            if (roomProperty != null && roomProperty.CanWrite)
+            {
+                roomProperty.SetValue(session, room);
+            }
+
+            _pricingServiceMock
+                .Setup(p => p.CalculateSeatPriceAsync(It.IsAny<int>(), It.IsAny<int>()))
+                .ReturnsAsync(20.0m);
+
+            _pricingServiceMock
+                .Setup(p => p.ApplyTicketType(It.IsAny<decimal>(), It.IsAny<TicketType>()))
+                .Returns<decimal, TicketType>((basePrice, type) => basePrice);
 
             _unitOfWorkMock
                 .Setup(u => u.SessionRepository.GetDetailedAsync(1))
@@ -104,7 +143,15 @@ namespace OscarCinema.Application.Tests
 
             _unitOfWorkMock
                 .Setup(u => u.TicketRepository.AddAsync(It.IsAny<Ticket>()))
-                .Returns(Task.CompletedTask);
+                .Returns(Task.CompletedTask)
+                .Callback<Ticket>(ticket =>
+                {
+                    var idProperty = ticket.GetType().GetProperty("Id");
+                    if (idProperty != null && idProperty.CanWrite)
+                    {
+                        idProperty.SetValue(ticket, 1);
+                    }
+                });
 
             _unitOfWorkMock
                 .Setup(u => u.SessionRepository.UpdateAsync(session))
@@ -113,6 +160,52 @@ namespace OscarCinema.Application.Tests
             _unitOfWorkMock
                 .Setup(u => u.CommitAsync())
                 .Returns(Task.CompletedTask);
+
+            _unitOfWorkMock
+                .Setup(u => u.TicketRepository.GetDetailedAsync(1))
+                .ReturnsAsync(() =>
+                {
+                    var ticket = new Ticket(
+                        userId: 1,
+                        movieId: 1,
+                        roomId: 1,
+                        sessionId: 1,
+                        method: PaymentMethod.CreditCard
+                    );
+
+                    var idProperty = ticket.GetType().GetProperty("Id");
+                    if (idProperty != null && idProperty.CanWrite)
+                    {
+                        idProperty.SetValue(ticket, 1);
+                    }
+
+                    var ticketSeat = new TicketSeat(
+                        seatId: 1,
+                        type: TicketType.Full,
+                        price: 20.0m
+                    );
+
+                    var ticketSeatIdProperty = ticketSeat.GetType().GetProperty("Id");
+                    if (ticketSeatIdProperty != null && ticketSeatIdProperty.CanWrite)
+                    {
+                        ticketSeatIdProperty.SetValue(ticketSeat, 1);
+                    }
+
+                    var ticketIdProperty = ticketSeat.GetType().GetProperty("TicketId");
+                    if (ticketIdProperty != null && ticketIdProperty.CanWrite)
+                    {
+                        ticketIdProperty.SetValue(ticketSeat, 1);
+                    }
+
+                    var ticketSeatProperty = ticket.GetType().GetProperty("TicketSeats");
+                    if (ticketSeatProperty != null && ticketSeatProperty.CanWrite)
+                    {
+                        var ticketSeatsList = new List<TicketSeat> { ticketSeat };
+                        ticketSeatProperty.SetValue(ticket, ticketSeatsList);
+                    }
+
+                    return ticket;
+                });
 
             _mapperMock
                 .Setup(m => m.Map<TicketResponse>(It.IsAny<Ticket>()))

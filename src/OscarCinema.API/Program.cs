@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using MySqlConnector;
 using OscarCinema.API.Middleware;
 using OscarCinema.Application.Interfaces;
 using OscarCinema.Application.Mappings;
@@ -42,7 +41,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 Console.WriteLine($"Connection String: {connectionString}");
 
 builder.Services.AddDbContext<OscarCinemaContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddAutoMapper(cfg =>
 {
