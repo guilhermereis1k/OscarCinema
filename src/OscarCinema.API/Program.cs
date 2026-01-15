@@ -143,6 +143,31 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 
 builder.Host.UseSerilog();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontEnd", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:5173",
+                "https://localhost:5173",
+                "http://localhost:3000",
+                "https://localhost:3000"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .WithExposedHeaders("Content-Type", "WWW-Authenticate");
+    });
+});
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenLocalhost(7023, listenOptions =>
+    {
+        listenOptions.UseHttps();
+    });
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -151,12 +176,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-app.UseCors(b => b
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .SetIsOriginAllowed((host) => true)
-                .AllowCredentials()
-                );
+app.UseCors("FrontEnd");
 
 app.UseHttpsRedirection();
 
@@ -171,6 +191,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 
 app.UseAuthorization();
+
 
 app.MapControllers();
 

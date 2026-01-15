@@ -40,7 +40,6 @@ namespace OscarCinema.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Cria ApplicationUser (Identity)
             var appUser = new ApplicationUser
             {
                 UserName = request.Email,
@@ -60,7 +59,7 @@ namespace OscarCinema.API.Controllers
                 return BadRequest(roleResult.Errors);
             }
 
-            // Cria usuário no domínio usando UserService
+
             try
             {
                 var createUserDto = new CreateUser
@@ -85,7 +84,6 @@ namespace OscarCinema.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create domain user.");
             }
 
-            //Gera o token
             var token = await _tokenService.CreateToken(appUser.Id, appUser.Email, appUser.UserName);
             return Ok(new { Token = token });
         }
