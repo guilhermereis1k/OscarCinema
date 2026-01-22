@@ -90,33 +90,37 @@ builder.Services.AddScoped<IPricingService, PricingService>();
 
 var outputTemplate = "[{Timestamp:dd-MM-yyyy HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}";
 
-Log.Logger = new LoggerConfiguration()
+Serilog.Log.Logger = new Serilog.LoggerConfiguration()
     .MinimumLevel.Debug()
     .WriteTo.Console(outputTemplate: outputTemplate)
     .WriteTo.File(
         path: "logs/log-.txt",
-        rollingInterval: RollingInterval.Day,
+        rollingInterval: Serilog.RollingInterval.Day,
         retainedFileCountLimit: 7,
         shared: true
     )
     .Enrich.FromLogContext()
     .CreateLogger();
 
+builder.Host.UseSerilog();
+
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme =
+        Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme =
+        Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
-    options.TokenValidationParameters = new TokenValidationParameters
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
     {
         ValidateIssuer = false,
         ValidateAudience = false,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
 });
 
@@ -129,7 +133,7 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("ADMIN", "EMPLOYEE"));
 });
 
-builder.Services.AddIdentityCore<ApplicationUser>(options =>
+builder.Services.AddIdentityCore<OscarCinema.Infrastructure.Identity.ApplicationUser>(options =>
 {
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
@@ -137,11 +141,9 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     options.Password.RequiredLength = 6;
     options.User.RequireUniqueEmail = true;
 })
-    .AddRoles<IdentityRole<int>>()     
-    .AddEntityFrameworkStores<OscarCinemaContext>() 
-    .AddDefaultTokenProviders();
-
-builder.Host.UseSerilog();
+.AddRoles<Microsoft.AspNetCore.Identity.IdentityRole<int>>()
+.AddEntityFrameworkStores<OscarCinema.Infrastructure.Context.OscarCinemaContext>()
+.AddDefaultTokenProviders();
 
 builder.Services.AddCors(options =>
 {
@@ -160,27 +162,18 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenLocalhost(7023, listenOptions =>
-    {
-        listenOptions.UseHttps();
-    });
-});
-
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<OscarCinemaContext>();
+    var db = scope.ServiceProvider
+        .GetRequiredService<OscarCinema.Infrastructure.Context.OscarCinemaContext>();
     db.Database.Migrate();
 }
 
 app.UseCors("FrontEnd");
 
-app.UseHttpsRedirection();
-
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<OscarCinema.API.Middleware.ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -189,9 +182,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseAuthentication();
-
 app.UseAuthorization();
-
 
 app.MapControllers();
 
