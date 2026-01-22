@@ -44,12 +44,13 @@ string connectionString;
 if (!string.IsNullOrEmpty(databaseUrl))
 {
     var uri = new Uri(databaseUrl);
-
     var userInfo = uri.UserInfo.Split(':');
+
+    var port = uri.Port > 0 ? uri.Port : 5432;
 
     connectionString =
         $"Host={uri.Host};" +
-        $"Port={uri.Port};" +
+        $"Port={port};" +
         $"Database={uri.AbsolutePath.Trim('/')};" +
         $"Username={userInfo[0]};" +
         $"Password={userInfo[1]};" +
@@ -59,6 +60,9 @@ else
 {
     connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 }
+
+builder.Services.AddDbContext<OscarCinemaContext>(options =>
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddDbContext<OscarCinemaContext>(options =>
     options.UseNpgsql(connectionString));
