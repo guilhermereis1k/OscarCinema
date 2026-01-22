@@ -41,19 +41,19 @@ var databaseUrl = builder.Configuration["DATABASE_URL"];
 
 string connectionString;
 
-if (!string.IsNullOrWhiteSpace(databaseUrl))
+if (!string.IsNullOrEmpty(databaseUrl))
 {
     var uri = new Uri(databaseUrl);
+
     var userInfo = uri.UserInfo.Split(':');
 
     connectionString =
         $"Host={uri.Host};" +
         $"Port={uri.Port};" +
-        $"Database={uri.AbsolutePath.TrimStart('/')};" +
+        $"Database={uri.AbsolutePath.Trim('/')};" +
         $"Username={userInfo[0]};" +
         $"Password={userInfo[1]};" +
-        $"SSL Mode=Require;" +
-        $"Trust Server Certificate=true";
+        $"Ssl Mode=Require;Trust Server Certificate=true";
 }
 else
 {
