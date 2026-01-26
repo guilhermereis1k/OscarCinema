@@ -200,11 +200,15 @@ app.UseCors("FrontEnd");
 
 app.UseMiddleware<OscarCinema.API.Middleware.ExceptionHandlingMiddleware>();
 
-if (app.Environment.IsDevelopment())
+
+app.UseSwagger();
+
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Oscar Cinema API v1");
+    c.RoutePrefix = string.Empty;
+});
+
 
 app.UseAuthentication();
 app.UseAuthorization();
